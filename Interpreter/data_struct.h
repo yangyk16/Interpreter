@@ -6,6 +6,7 @@
 #include "config.h"
 
 class element {
+protected:
 	char*	name;
 };
 

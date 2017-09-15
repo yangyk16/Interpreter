@@ -77,6 +77,7 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="interpreter.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="data_struct.h" />
     <ClInclude Include="hal.h" />
@@ -86,9 +87,10 @@
     <ClInclude Include="varity.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="interpreter.cpp" />
     <ClCompile Include="data_struct.cpp" />
     <ClCompile Include="hal.cpp" />
-    <ClCompile Include="Interpreter.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="varity.cpp" />
   </ItemGroup>

@@ -39,12 +39,12 @@
     <ClInclude Include="config.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="interpreter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Interpreter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="hal.cpp">
@@ -54,6 +54,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="varity.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="interpreter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

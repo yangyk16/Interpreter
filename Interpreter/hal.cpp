@@ -1,7 +1,9 @@
 #include "hal.h"
 #include <iostream>
 using namespace std;
-int tty::readline(char* str) {
+
+int tty::readline(char* str)//×îºó±ØĞë²¹0
+{
 	char ch;
 	int i = 0;
 	while(ch = getchar()) {
@@ -11,5 +13,13 @@ int tty::readline(char* str) {
 			str[i++] = ch;
 		}
 	}
+	str[i] = 0;
 	return i;
 };
+
+int tty::puts(char* str)
+{
+	cout << str;
+	return 0;
+}
+
