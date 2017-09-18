@@ -15,10 +15,12 @@ public:
 };
 
 class varity {
-	stack* all_varity_stack;
 	data_struct* frame_varity_struct;
 	uint current_stack_depth;
 public:
+	varity(stack*, indexed_stack*);
+	stack* global_varity_stack;
+	indexed_stack* local_varity_stack;
 	int declare(char* name, int type, uint size);
 	int undeclare();
 };

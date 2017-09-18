@@ -13,10 +13,22 @@ protected:
 class data_struct {
 protected:
 	uint element_size;
+};
+
+class round_queue: public data_struct {
+	uint wptr;
+	uint rptr;
+	uint length;
+	void* bottom_addr;
+	uint count;
 public:
-	virtual void push(void*) = 0;
-	virtual void* pop(void) = 0;
-	virtual void* find(void*) = 0;
+	round_queue();
+	round_queue(uint, void*);
+	inline void set_base(void* addr) {this->bottom_addr = addr;}
+	inline void set_length(uint len) {this->length = len;}
+	int write(void*, uint);
+	int read(void*, uint);
+	int readline(char*);
 };
 
 class stack: public data_struct {
@@ -24,18 +36,22 @@ protected:
 	uint top;
 	void* bottom_addr;
 public:
-	virtual void push(void*);
-	virtual void* pop(void);
-	virtual void* find(void*);
+	void push(void*);
+	void* pop(void);
+	void* find(void*);
+	inline void set_base(void* addr) {this->bottom_addr = addr;}
+	//inline void set_length(uint len) {this->length = len;}
 	stack();
 	stack(int esize, void* base_addr);
 };
 
 class indexed_stack: public stack {
 	int current_depth;
-	uint index_table[MAX_FUNC_CALL_DEPTH];
+	uint index_table[MAX_STACK_INDEX];
 public:
-	inline void endeep(void) {current_depth++; index_table[current_depth] = top;}
+	indexed_stack(int esize, void* base_addr);
+	inline void endeep(void) {index_table[current_depth] = top; current_depth++;}
+	inline void dedeep(void) {current_depth--;}
 };
 
 #endif
