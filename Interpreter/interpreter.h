@@ -6,10 +6,12 @@
 #include "hal.h"
 #include "config.h"
 #include "varity.h"
+#include "operator.h"
 
 #define C_OPT_PRIO_COUNT		15
-
-typedef varity_info (*opt_calc)(char*,uint);
+class c_interpreter;
+//typedef varity_info (*opt_calc)(c_interpreter*,char*,uint);
+typedef varity_info (__thiscall c_interpreter::*opt_calc )(char *,unsigned int);
 class interpreter {
 protected:
 	varity* varity_declare;
@@ -27,7 +29,6 @@ public:
 };
 
 class c_interpreter: public interpreter {
-	opt_calc *opt_caculate_func_list;
 	char pretreat_buf[MAX_PRETREAT_BUFLEN];
 	round_queue row_pretreat_fifo;
 	int brace_depth;
@@ -44,9 +45,14 @@ class c_interpreter: public interpreter {
 	int sentence_exec(char*, uint);
 	virtual int sentence_analysis(char*, uint);
 	virtual int pre_treat(void);
+
+	varity_info assign_opt(char* str, uint len);
+	varity_info plus_opt(char* str, uint size);
+	opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT];
 public:
 	c_interpreter(terminal*, varity*, varity*);
 	virtual int run_interpreter(void);
 };
 
+int remove_substring(char* str, int index1, int index2);
 #endif

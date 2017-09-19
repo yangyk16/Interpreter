@@ -48,6 +48,8 @@ public:
 	varity_info(double);
 	friend varity_info operator+(varity_info&, varity_info&);
 	int apply_space(void);
+	void* get_content_ptr(void){return content_ptr;}
+	uint get_size(void){return size;}
 };
 
 class varity {

@@ -13,9 +13,7 @@ varity c_varity(&g_varity_list, &l_varity_list);
 c_interpreter myinterpreter(&stdio, &c_varity, &c_varity);
 
 char non_seq_key[][7] = {"if", "switch", "else", "for", "while", "do"};
-const opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT] ={
-	plus_opt
-};
+
 
 inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
 //need a bracket stack save outer bracket
@@ -91,6 +89,18 @@ int remove_char(char* str, char ch)
 	return wptr;
 }
 
+int remove_substring(char* str, int index1, int index2)
+{
+	if(index2 < index1)
+		return -1;
+	int wptr = index1, rptr = index2 + 1;
+	for(; str[rptr]; rptr++) {
+		str[wptr++] = str[rptr];
+	}
+	str[wptr] = 0;
+	return index2 - index1 + 1;
+}
+
 int interpreter::call_func(char*, uint)
 {
 	return 0;
@@ -118,7 +128,7 @@ int c_interpreter::pre_treat(void)
 	sentence_buf[wptr] = 0;
 	//this->tty_used->puts(sentence_buf);
 	//this->tty_used->puts("\n");
-	return 0;
+	return wptr;
 }
 
 int c_interpreter::run_interpreter(void)
@@ -132,7 +142,7 @@ int c_interpreter::run_interpreter(void)
 			tty_used->readline(sentence_buf);
 			len = pre_treat();
 		}
-		cout << this->sentence_analysis(sentence_buf, len);
+		this->sentence_analysis(sentence_buf, len);
 	}
 }
 
@@ -141,13 +151,14 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, varity*
 	this->tty_used = tty_used;
 	this->varity_declare = varity_declare;
 	this->temp_varity_analysis = temp_varity_analysis;
-	this->opt_caculate_func_list = (opt_calc*)c_opt_caculate_func_list;
 	this->row_pretreat_fifo.set_base(this->pretreat_buf);
 	this->row_pretreat_fifo.set_length(sizeof(this->pretreat_buf));
 	this->non_seq_code_fifo.set_base(this->non_seq_tmp_buf);
 	this->non_seq_code_fifo.set_length(sizeof(this->non_seq_tmp_buf));
 	this->nonseq_begin_stack_ptr = 0;
 	this->global_flag = true;
+	this->c_opt_caculate_func_list[0]=&c_interpreter::plus_opt;
+	this->c_opt_caculate_func_list[1]=&c_interpreter::assign_opt;
 }
 
 int c_interpreter::sentence_analysis(char* str, uint len)
@@ -200,6 +211,11 @@ int c_interpreter::sentence_exec(char* str, uint len)
 	int i,j;
 	int total_bracket_depth;
 
+	if(str[len-1] != ';') {
+		cout << "Missing ;" << endl;
+		return 1;
+	}
+
 	int is_varity_declare;
 	is_varity_declare = keycmp(str);
 	if(is_varity_declare >= 0) {
@@ -223,16 +239,18 @@ int c_interpreter::sentence_exec(char* str, uint len)
 					else
 						ret = this->varity_declare->declare(this->global_flag, varity_name, is_varity_declare, sizeof_type[is_varity_declare]);
 					if(ret)
-						cout << "declare varity " << varity_name << " error: " << ret << endl;
+						cout << "declare varity \"" << varity_name << "\" error: " << ret << endl;
 				} else {
 
 				}
 				symbol_begin_pos = i + 1;
 			}
 		}
+		return 0;
 	}
 
 	total_bracket_depth = get_bracket_depth(str);
+	this->assign_opt(str,len-1);
 	//从最深级循环解析深度递减的各级，以立即数/临时变量？表示各级返回结果
 	for(i=total_bracket_depth; i>=0; i--) {
 
