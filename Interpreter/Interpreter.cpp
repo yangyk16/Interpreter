@@ -7,13 +7,12 @@ using namespace std;
 tty stdio;
 varity_info g_varity_node[MAX_G_VARITY_NODE];
 varity_info l_varity_node[MAX_L_VARITY_NODE];
-indexed_stack l_varity_list(sizeof(l_varity_node), l_varity_node);
-stack g_varity_list(sizeof(g_varity_node), g_varity_node);
+indexed_stack l_varity_list(sizeof(varity_info), l_varity_node);
+stack g_varity_list(sizeof(varity_info), g_varity_node);
 varity c_varity(&g_varity_list, &l_varity_list);
 c_interpreter myinterpreter(&stdio, &c_varity, &c_varity);
 
 char non_seq_key[][7] = {"if", "switch", "else", "for", "while", "do"};
-char type_key[][10] = {"long long", "char", "short", "int", "long", "float", "double"};
 const opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT] ={
 	plus_opt
 };
@@ -63,12 +62,12 @@ inline int get_bracket_depth(char* str)
 int keycmp(char* str)
 {
 	int i,j;
-	for(i=0; i<7; i++) {
+	for(i=0; i<sizeof(type_key)/sizeof(type_key[0]); i++) {
 		for(j=0; type_key[i][j]; j++) {
 			if(str[j] != type_key[i][j])
 				break;
 		}
-		if(type_key[i][j] == 0)
+		if(type_key[i][j] == 0 && (str[j] == ' ' || str[j] == '*'))
 			return i;
 	}
 	return -1;
@@ -79,16 +78,17 @@ char* trim(char* str)
 	return 0;
 }
 
-char* remove_char(char* str, char ch)
+int remove_char(char* str, char ch)
 {
 	int rptr = 0, wptr = 0;
 	while(str[rptr]) {
 		if(str[rptr] != ch) {
-			str[wptr++] = str[rptr++];
+			str[wptr++] = str[rptr];
 		}
+		rptr++;
 	}
 	str[wptr] = 0;
-	return str;
+	return wptr;
 }
 
 int interpreter::call_func(char*, uint)
@@ -147,6 +147,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, varity*
 	this->non_seq_code_fifo.set_base(this->non_seq_tmp_buf);
 	this->non_seq_code_fifo.set_length(sizeof(this->non_seq_tmp_buf));
 	this->nonseq_begin_stack_ptr = 0;
+	this->global_flag = true;
 }
 
 int c_interpreter::sentence_analysis(char* str, uint len)
@@ -196,22 +197,39 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 
 int c_interpreter::sentence_exec(char* str, uint len)
 {
-	int i;
+	int i,j;
 	int total_bracket_depth;
 
 	int is_varity_declare;
 	is_varity_declare = keycmp(str);
 	if(is_varity_declare >= 0) {
 		int keylen = strlen(type_key[is_varity_declare]);
-		if(str[keylen] == '*') {
-			char* space_ptr = strchr(str, ' ');
-			if(space_ptr != NULL) {
-				int space_pos = space_ptr - str;
-				str[keylen] = ' ';
-				str[space_pos] = '*';
+		int symbol_begin_pos;
+		len = remove_char(str + keylen + 1, ' ') + keylen + 1;
+		for(i=keylen+1, symbol_begin_pos=(str[keylen]==' '?i:i-1); i<len; i++) {
+			if(str[i] == ',' || str[i] == ';') {
+				int ptr_level = 0;
+				char varity_name[32];
+				for(j=symbol_begin_pos; str[j]=='*'; j++)
+					ptr_level++;
+				symbol_begin_pos += ptr_level;
+				memcpy(varity_name, str + symbol_begin_pos, i - symbol_begin_pos);
+				varity_name[i - symbol_begin_pos] = 0;
+				
+				if(this->global_flag) {
+					int ret;
+					if(ptr_level)
+						ret = this->varity_declare->declare(this->global_flag, varity_name, is_varity_declare + ptr_level * 12, PLATFORM_WORD_LEN);
+					else
+						ret = this->varity_declare->declare(this->global_flag, varity_name, is_varity_declare, sizeof_type[is_varity_declare]);
+					if(ret)
+						cout << "declare varity " << varity_name << " error: " << ret << endl;
+				} else {
+
+				}
+				symbol_begin_pos = i + 1;
 			}
 		}
-
 	}
 
 	total_bracket_depth = get_bracket_depth(str);

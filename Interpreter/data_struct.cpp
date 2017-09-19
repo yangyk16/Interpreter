@@ -16,18 +16,26 @@ stack::stack(int esize, void* base_addr)
 
 void stack::push(void* eptr)
 {
-	memcpy(this->bottom_addr, eptr, this->element_size);
+	memcpy((char*)this->bottom_addr + this->top, eptr, this->element_size);
 	this->top += this->element_size;
+	this->count++;
 }
 
 void* stack::pop(void)
 {
 	this->top -= this->element_size;
+	this->count--;
 	return (void*)((char*)(this->bottom_addr))[this->top];
 }
 
-void* stack::find(void*)
+void* stack::find(char* name)
 {
+	char* element_name;
+	for(int i=0; i<this->count; i++) {
+		element_name = ((element*)((char*)this->bottom_addr + i * this->element_size))->get_name();
+		if(!strcmp(element_name, name))
+			return (char*)this->bottom_addr + this->count * this->element_size;
+	}
 	return NULL;
 }
 

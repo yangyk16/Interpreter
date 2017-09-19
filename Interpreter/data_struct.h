@@ -8,10 +8,13 @@
 class element {
 protected:
 	char*	name;
+public:
+	inline char* get_name(void) {return name;}
 };
 
 class data_struct {
 protected:
+	uint count;
 	uint element_size;
 };
 
@@ -20,7 +23,6 @@ class round_queue: public data_struct {
 	uint rptr;
 	uint length;
 	void* bottom_addr;
-	uint count;
 public:
 	round_queue();
 	round_queue(uint, void*);
@@ -38,7 +40,7 @@ protected:
 public:
 	void push(void*);
 	void* pop(void);
-	void* find(void*);
+	void* find(char*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	//inline void set_length(uint len) {this->length = len;}
 	stack();

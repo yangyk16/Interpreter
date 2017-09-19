@@ -37,6 +37,7 @@ class c_interpreter: public interpreter {
 	round_queue non_seq_code_fifo;
 	char nonseq_begin_bracket_stack[MAX_STACK_INDEX];
 	int nonseq_begin_stack_ptr;
+	bool global_flag;
 
 	int non_seq_struct_check(char* str);
 	int sub_sentence_analysis(char*, uint size);
