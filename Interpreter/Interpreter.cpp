@@ -7,8 +7,8 @@ using namespace std;
 tty stdio;
 varity_info g_varity_node[MAX_G_VARITY_NODE];
 varity_info l_varity_node[MAX_L_VARITY_NODE];
-indexed_stack l_varity_list(sizeof(varity_info), l_varity_node);
-stack g_varity_list(sizeof(varity_info), g_varity_node);
+indexed_stack l_varity_list(sizeof(varity_info), l_varity_node, MAX_L_VARITY_NODE);
+stack g_varity_list(sizeof(varity_info), g_varity_node, MAX_G_VARITY_NODE);
 varity c_varity(&g_varity_list, &l_varity_list);
 c_interpreter myinterpreter(&stdio, &c_varity, &c_varity);
 

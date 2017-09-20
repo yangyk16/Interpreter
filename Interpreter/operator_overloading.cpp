@@ -27,7 +27,7 @@ varity_info operator+(varity_info& obj1, varity_info& obj2)
 			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) + *(int*)(obj2.content_ptr);
 		} else if(ret.type == U_SHORT || ret.type == SHORT) {
 			*(short*)(ret.content_ptr) = *(short*)(obj1.content_ptr) + *(short*)(obj2.content_ptr);
-		} else if(ret.type == U_CHAR || ret.type == CHAR) {
+		} else if(ret.type == U_CHAR) {
 			*(char*)(ret.content_ptr) = *(char*)(obj1.content_ptr) + *(char*)(obj2.content_ptr);
 		} else if(ret.type == DOUBLE) {
 			if(objb.type == LONG || objb.type == INT || objb.type == SHORT || objb.type == CHAR) {

@@ -32,24 +32,30 @@ class varity_info:public element {
 protected:
 	int	 	type;
 	uint 	size;
-	void*	content_ptr; 
+	void*	content_ptr;
 public:
+	static bool en_echo;
 	varity_info(char*, int, uint);
 	varity_info();
-	varity_info(char);
-	varity_info(unsigned char);
-	varity_info(short);
-	varity_info(unsigned short);
-	varity_info(int);
-	varity_info(unsigned int);
-	varity_info(long long);
-	varity_info(unsigned long long);
-	varity_info(float);
-	varity_info(double);
+	varity_info& operator=(const varity_info&);
+	varity_info& operator=(char);
+	varity_info& operator=(unsigned char);
+	varity_info& operator=(short);
+	varity_info& operator=(unsigned short);
+	varity_info& operator=(int);
+	varity_info& operator=(unsigned int);
+	varity_info& operator=(long long);
+	varity_info& operator=(unsigned long long);
+	varity_info& operator=(float);
+	varity_info& operator=(double);
+	void create_from_c_varity(void*, int);
 	friend varity_info operator+(varity_info&, varity_info&);
 	int apply_space(void);
 	void* get_content_ptr(void){return content_ptr;}
 	uint get_size(void){return size;}
+	void echo(void);
+	void convert(void*,int);
+	void set_echo(bool enable) {en_echo = enable;}
 };
 
 class varity {
@@ -62,6 +68,8 @@ public:
 	int declare(bool global_flag, char* name, int type, uint size);
 	int undeclare();
 };
+
+void* vmalloc(unsigned int size);
 
 extern const char type_key[13][19];
 extern const char sizeof_type[13];

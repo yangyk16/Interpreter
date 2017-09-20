@@ -7,11 +7,13 @@ stack::stack()
 	this->top = 0;
 }
 
-stack::stack(int esize, void* base_addr)
+stack::stack(int esize, void* base_addr, int capacity)
 {
 	stack();
 	this->element_size = esize;
 	this->bottom_addr = base_addr;
+	this->length = capacity;
+	memset(this->bottom_addr, 0, this->length * this->element_size);
 }
 
 void stack::push(void* eptr)
@@ -39,11 +41,13 @@ void* stack::find(char* name)
 	return NULL;
 }
 
-indexed_stack::indexed_stack(int esize, void* base_addr)
+indexed_stack::indexed_stack(int esize, void* base_addr, int capacity)
 {
 	stack();
 	this->element_size = esize;
 	this->bottom_addr = base_addr;
+	this->length = capacity;
+	memset(this->bottom_addr, 0, this->length * this->element_size);
 }
 
 round_queue::round_queue()

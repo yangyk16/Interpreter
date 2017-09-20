@@ -23,3 +23,14 @@ int tty::puts(char* str)
 	return 0;
 }
 
+void* vmalloc(unsigned int size)
+{
+	void* ret = malloc(size);
+	if(ret) {
+		size = size&7?size+(8-size&7):size;
+		memset(ret, 0, size);
+		return ret;
+	} else {
+		return NULL;
+	}
+}

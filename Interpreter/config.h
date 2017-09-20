@@ -11,4 +11,7 @@
 #define MAX_BRACKET_DEPTH		10
 #define NON_SEQ_TMPBUF_LEN		2048
 #define PLATFORM_WORD_LEN		4
+
+#define debug	printf
+#define vfree	free
 #endif

@@ -16,13 +16,13 @@ class data_struct {
 protected:
 	uint count;
 	uint element_size;
+	uint length;
+	void* bottom_addr;
 };
 
 class round_queue: public data_struct {
 	uint wptr;
 	uint rptr;
-	uint length;
-	void* bottom_addr;
 public:
 	round_queue();
 	round_queue(uint, void*);
@@ -36,7 +36,6 @@ public:
 class stack: public data_struct {
 protected:
 	uint top;
-	void* bottom_addr;
 public:
 	void push(void*);
 	void* pop(void);
@@ -44,14 +43,14 @@ public:
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	//inline void set_length(uint len) {this->length = len;}
 	stack();
-	stack(int esize, void* base_addr);
+	stack(int esize, void* base_addr, int capacity);
 };
 
 class indexed_stack: public stack {
 	int current_depth;
 	uint index_table[MAX_STACK_INDEX];
 public:
-	indexed_stack(int esize, void* base_addr);
+	indexed_stack(int esize, void* base_addr, int capacity);
 	inline void endeep(void) {index_table[current_depth] = top; current_depth++;}
 	inline void dedeep(void) {current_depth--;}
 };
