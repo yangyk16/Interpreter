@@ -50,7 +50,7 @@ class c_interpreter: public interpreter {
 	varity_info plus_opt(char* str, uint size);
 	opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT];
 public:
-	c_interpreter(terminal*, varity*, varity*);
+	c_interpreter(terminal*, varity*);
 	virtual int run_interpreter(void);
 };
 

@@ -62,8 +62,9 @@ class varity {
 	data_struct* frame_varity_struct;
 	uint current_stack_depth;
 public:
-	varity(stack*, indexed_stack*);
+	varity(stack*, indexed_stack*, stack*);
 	stack* global_varity_stack;
+	stack* analysis_varity_stack;
 	indexed_stack* local_varity_stack;
 	int declare(bool global_flag, char* name, int type, uint size);
 	int undeclare();

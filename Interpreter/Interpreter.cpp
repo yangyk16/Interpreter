@@ -7,13 +7,15 @@ using namespace std;
 tty stdio;
 varity_info g_varity_node[MAX_G_VARITY_NODE];
 varity_info l_varity_node[MAX_L_VARITY_NODE];
+varity_info a_varity_node[MAX_A_VARITY_NODE];
+stack a_varity_list(sizeof(varity_info), a_varity_node, MAX_A_VARITY_NODE);
 indexed_stack l_varity_list(sizeof(varity_info), l_varity_node, MAX_L_VARITY_NODE);
 stack g_varity_list(sizeof(varity_info), g_varity_node, MAX_G_VARITY_NODE);
-varity c_varity(&g_varity_list, &l_varity_list);
-c_interpreter myinterpreter(&stdio, &c_varity, &c_varity);
+varity c_varity(&g_varity_list, &l_varity_list, &a_varity_list);
+c_interpreter myinterpreter(&stdio, &c_varity);
 
 char non_seq_key[][7] = {"if", "switch", "else", "for", "while", "do"};
-
+char opt_str[][4] = {"[","]","(",")",".","->","-","~","++","--","*","&","!","/","%","+","<<",">>",">",">=","<","<=","==","!=","&","^","|","&&","||","?",":","=","/=","*=","%=","+=","-=","<<=",">>=","&=","^=","|=",","};
 
 inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
 //need a bracket stack save outer bracket
@@ -146,11 +148,10 @@ int c_interpreter::run_interpreter(void)
 	}
 }
 
-c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, varity* temp_varity_analysis)
+c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare)
 {
 	this->tty_used = tty_used;
 	this->varity_declare = varity_declare;
-	this->temp_varity_analysis = temp_varity_analysis;
 	this->row_pretreat_fifo.set_base(this->pretreat_buf);
 	this->row_pretreat_fifo.set_length(sizeof(this->pretreat_buf));
 	this->non_seq_code_fifo.set_base(this->non_seq_tmp_buf);
@@ -248,19 +249,21 @@ int c_interpreter::sentence_exec(char* str, uint len)
 		}
 		return 0;
 	}
-
+	strcpy(this->analysis_buf, str);
 	total_bracket_depth = get_bracket_depth(str);
-	this->assign_opt(str,len-1);
 	//从最深级循环解析深度递减的各级，以立即数/临时变量？表示各级返回结果
 	for(i=total_bracket_depth; i>=0; i--) {
-
+		
 	}
+	//this->assign_opt(str,len-1);
+	sub_sentence_analysis(analysis_buf, len-1);
 	return 0;
 }
 //无括号或仅含类型转换的子句解析
-int c_interpreter::sub_sentence_analysis(char* str, uint size)
+int c_interpreter::sub_sentence_analysis(char* str, uint len)
 {
 	//运算符用循环调用15个函数分级解释
+	this->assign_opt(str,len);
 	return 0;
 }
 

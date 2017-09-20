@@ -37,9 +37,9 @@ varity_info c_interpreter::assign_opt(char* str, uint len)
 				if(str[symbol_begin_pos] == '=') {
 					remove_substring(str, symbol_begin_pos, symbol_begin_pos);
 					*finded_varity = tmp_varity;
+					finded_varity->echo();
 				}
 				tmp_varity = *finded_varity;
-				finded_varity->echo();
 			}
 			symbol_begin_pos = i;
 			num_flag = 1;
