@@ -171,13 +171,24 @@ varity_info& varity_info::operator=(double source)
 
 int varity_info::apply_space(void)
 {
-	if(this->content_ptr)
+	if(this->content_ptr) {
 		vfree(this->content_ptr);
+		this->content_ptr = 0;
+	}
 	this->content_ptr = vmalloc(this->size);
 	if(this->content_ptr)
 		return 0;
 }
 
+void varity_info::reset(void)
+{
+	this->size = 0;
+	this->type = 0;
+	if(this->content_ptr) {
+		vfree(this->content_ptr);
+		this->content_ptr = 0;
+	}
+}
 void varity_info::echo(void)
 {
 	if(en_echo) {

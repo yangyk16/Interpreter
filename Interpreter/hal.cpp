@@ -25,9 +25,10 @@ int tty::puts(char* str)
 
 void* vmalloc(unsigned int size)
 {
+	size = size&7?size+(8-(size&7)):size;
 	void* ret = malloc(size);
 	if(ret) {
-		size = size&7?size+(8-size&7):size;
+		//size = size&7?size+(8-size&7):size;
 		memset(ret, 0, size);
 		return ret;
 	} else {

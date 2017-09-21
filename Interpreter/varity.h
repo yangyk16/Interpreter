@@ -53,6 +53,7 @@ public:
 	int apply_space(void);
 	void* get_content_ptr(void){return content_ptr;}
 	uint get_size(void){return size;}
+	void reset(void);
 	void echo(void);
 	void convert(void*,int);
 	void set_echo(bool enable) {en_echo = enable;}

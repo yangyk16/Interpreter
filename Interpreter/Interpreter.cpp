@@ -15,7 +15,7 @@ varity c_varity(&g_varity_list, &l_varity_list, &a_varity_list);
 c_interpreter myinterpreter(&stdio, &c_varity);
 
 char non_seq_key[][7] = {"if", "switch", "else", "for", "while", "do"};
-char opt_str[][4] = {"[","]","(",")",".","->","-","~","++","--","*","&","!","/","%","+","<<",">>",">",">=","<","<=","==","!=","&","^","|","&&","||","?",":","=","/=","*=","%=","+=","-=","<<=",">>=","&=","^=","|=",","};
+const char opt_str[][4] = {"[","]","(",")",".","->","-","~","++","--","*","&","!","/","%","+","<<",">>",">",">=","<","<=","==","!=","&","^","|","&&","||","?",":","=","/=","*=","%=","+=","-=","<<=",">>=","&=","^=","|=",","};
 
 inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
 //need a bracket stack save outer bracket
@@ -101,6 +101,42 @@ int remove_substring(char* str, int index1, int index2)
 	}
 	str[wptr] = 0;
 	return index2 - index1 + 1;
+}
+
+int search_opt(char* str, int size, int direction)
+{
+	int i, j;
+	if(direction) {
+		//direction=1: left->right; direction=0: right->left;
+		//merge 2 cycles to 1 can save space, but not merge is easily to read.
+		for(i=0; i<size; i++) {
+			for(j=0; j<sizeof(opt_str)/sizeof(*opt_str);j++) {
+				if(str[i] == opt_str[j][0]) {
+					if(i < size - 1 && str[i+1] == opt_str[j][1]) {
+						if(i < size - 2 && str[i+2] == opt_str[j][2]) {
+							return i;
+						}
+						return i;
+					}
+					return i;
+				}
+			}
+		}
+	} else {
+		for(i=size-1; i>=0; i--)
+			for(j=0; j<sizeof(opt_str)/sizeof(*opt_str);j++) {
+				if(str[i] == opt_str[j][0]) {
+					if(i < size - 1 && str[i+1] == opt_str[j][1]) {
+						if(i < size - 2 && str[i+2] == opt_str[j][2]) {
+							return i;
+						}
+						return i;
+					}
+					return i;
+				}
+			}
+	}
+	return -1;
 }
 
 int interpreter::call_func(char*, uint)

@@ -7,6 +7,7 @@
 varity_info c_interpreter::plus_opt(char* str, uint size)
 {
 	varity_info ret;
+
 	return ret;
 }
 
@@ -19,7 +20,7 @@ varity_info c_interpreter::assign_opt(char* str, uint len)
 	int i;
 	int symbol_begin_pos;
 	for(int num_flag=1, i=len-1, symbol_begin_pos=len; i>=-1; i--) {
-		if(i == -1 || str[i] == '=') {
+		if(i == -1 || str[i] == '=' || str[i] == ',') {
 			memcpy(tmpbuf, str + i + 1, symbol_begin_pos - i - 1);
 			tmpbuf[symbol_begin_pos - i - 1] = 0;
 			if(num_flag == 1) {
@@ -41,6 +42,8 @@ varity_info c_interpreter::assign_opt(char* str, uint len)
 				}
 				tmp_varity = *finded_varity;
 			}
+			if(str[i] == ',')
+				tmp_varity.reset();
 			symbol_begin_pos = i;
 			num_flag = 1;
 		} else if(str[i] == '.')
