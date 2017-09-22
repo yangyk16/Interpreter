@@ -18,6 +18,7 @@ protected:
 	uint element_size;
 	uint length;
 	void* bottom_addr;
+public:
 };
 
 class round_queue: public data_struct {
@@ -38,12 +39,14 @@ protected:
 	uint top;
 public:
 	void push(void*);
+	void push(void) {this->top += this->element_size; this->count++;}
 	void* pop(void);
 	void* find(char*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	//inline void set_length(uint len) {this->length = len;}
 	stack();
 	stack(int esize, void* base_addr, int capacity);
+	void* get_current_ptr(void) {return (char*)this->bottom_addr + top;}
 };
 
 class indexed_stack: public stack {

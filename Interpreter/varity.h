@@ -35,8 +35,9 @@ protected:
 	void*	content_ptr;
 public:
 	static bool en_echo;
-	varity_info(char*, int, uint);
+	static void init_varity(void*, char*, int, uint);
 	varity_info();
+	varity_info(char*, int, uint);
 	varity_info& operator=(const varity_info&);
 	varity_info& operator=(char);
 	varity_info& operator=(unsigned char);
@@ -49,7 +50,7 @@ public:
 	varity_info& operator=(float);
 	varity_info& operator=(double);
 	void create_from_c_varity(void*, int);
-	friend varity_info operator+(varity_info&, varity_info&);
+	friend varity_info& operator+(varity_info&, varity_info&);
 	int apply_space(void);
 	void* get_content_ptr(void){return content_ptr;}
 	uint get_size(void){return size;}
@@ -57,6 +58,7 @@ public:
 	void echo(void);
 	void convert(void*,int);
 	void set_echo(bool enable) {en_echo = enable;}
+	~varity_info(){this->reset();}
 };
 
 class varity {
@@ -67,7 +69,7 @@ public:
 	stack* global_varity_stack;
 	stack* analysis_varity_stack;
 	indexed_stack* local_varity_stack;
-	int declare(bool global_flag, char* name, int type, uint size);
+	int declare(int scope_flag, char* name, int type, uint size);
 	int undeclare();
 };
 

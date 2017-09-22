@@ -11,7 +11,7 @@
 #define C_OPT_PRIO_COUNT		15
 class c_interpreter;
 //typedef varity_info (*opt_calc)(c_interpreter*,char*,uint);
-typedef varity_info (__thiscall c_interpreter::*opt_calc )(char *,unsigned int);
+typedef varity_info (c_interpreter::*opt_calc )(char*, uint*);
 class interpreter {
 protected:
 	varity* varity_declare;
@@ -38,7 +38,7 @@ class c_interpreter: public interpreter {
 	round_queue non_seq_code_fifo;
 	char nonseq_begin_bracket_stack[MAX_STACK_INDEX];
 	int nonseq_begin_stack_ptr;
-	bool global_flag;
+	int global_flag;
 
 	int non_seq_struct_check(char* str);
 	int sub_sentence_analysis(char*, uint size);
@@ -46,8 +46,8 @@ class c_interpreter: public interpreter {
 	virtual int sentence_analysis(char*, uint);
 	virtual int pre_treat(void);
 
-	varity_info assign_opt(char* str, uint len);
-	varity_info plus_opt(char* str, uint size);
+	varity_info assign_opt(char* str, uint* len);
+	varity_info plus_opt(char* str, uint* size);
 	opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT];
 public:
 	c_interpreter(terminal*, varity*);

@@ -18,11 +18,25 @@ varity_info::varity_info()
 	this->content_ptr = 0;
 	this->type = 0;
 	this->size = 0;
+	this->name = 0;
+}
+
+void varity_info::init_varity(void* addr, char* name, int type, uint size)
+{
+	varity_info* varity_ptr = (varity_info*)addr;
+	int name_len = strlen(name);
+	varity_ptr->name = (char*)malloc(name_len+1);
+	strcpy(varity_ptr->name, name);
+	varity_ptr->type = type;
+	varity_ptr->size = size;
+	varity_ptr->content_ptr = 0;
 }
 
 varity_info::varity_info(char* name, int type, uint size)
 {
-	this->name = name;
+	int name_len = strlen(name);
+	this->name = (char*)malloc(name_len+1);
+	strcpy(this->name, name);
 	this->type = type;
 	this->size = size;
 	this->content_ptr = 0;
@@ -188,6 +202,10 @@ void varity_info::reset(void)
 		vfree(this->content_ptr);
 		this->content_ptr = 0;
 	}
+	if(this->name) {
+		vfree(this->name);
+		this->name = 0;
+	}
 }
 void varity_info::echo(void)
 {
@@ -206,25 +224,27 @@ void varity_info::echo(void)
 	}
 }
 
-int varity::declare(bool global_flag, char* name, int type, uint size)
-{
-	int ret, name_len;
-	char* name_addr;
-	if(global_flag) {
+int varity::declare(int scope_flag, char* name, int type, uint size)
+{//scope_flag = 0:global; 1: local; 2:analysis_tmp
+	int ret;
+	varity_info* varity_ptr;
+	stack* varity_stack;
+	if(!scope_flag) {
 		if(this->global_varity_stack->find(name))
 			return VARITY_DUPLICATE;
 	}
-	name_len = strlen(name);
-	name_addr = (char*)vmalloc(name_len + 1);
-	strcpy(name_addr, name);
-	varity_info varity(name_addr, type, size);
-	ret = varity.apply_space();
+	if(!scope_flag)
+		varity_stack = global_varity_stack;
+	else if(scope_flag == 1)
+		varity_stack = local_varity_stack;
+	else
+		varity_stack = analysis_varity_stack;
+	varity_ptr = (varity_info*)varity_stack->get_current_ptr();
+	varity_info::init_varity(varity_ptr, name, type, size);
+	ret = varity_ptr->apply_space();
 	if(ret)
 		return VARITY_NOSPACE;
-	if(global_flag)
-		global_varity_stack->push(&varity);
-	else
-		local_varity_stack->push(&varity);
+	varity_stack->push();
 	return 0;
 }
 

@@ -1,22 +1,78 @@
 #include "operator.h"
 #include "interpreter.h"
+#include "string_lib.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-varity_info c_interpreter::plus_opt(char* str, uint size)
+varity_info c_interpreter::plus_opt(char* str, uint* size_ptr)
 {
-	varity_info ret;
-
+	varity_info ret, tmp_varity;
+	uint size = *size_ptr;
+	varity_info* finded_varity;
+	int opt_len = 0, opt_type;
+	int symbol_pos_last = 0, symbol_pos_once, symbol_pos_next;
+	while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
+		int symbol_pos_cur = symbol_pos_last + symbol_pos_once + opt_len;
+		size -= symbol_pos_once + opt_len;
+		if(opt_type == OPT_PLUS || opt_type == OPT_MINUS) {
+			char name_buf[32];
+			memcpy(name_buf, str + symbol_pos_last, symbol_pos_once);
+			name_buf[symbol_pos_once] = 0;
+			int tmp_varity_type = check_symbol(name_buf, symbol_pos_once);
+			if(tmp_varity_type == 0) {
+				finded_varity = (varity_info*)this->varity_declare->global_varity_stack->find(name_buf);
+				if(!finded_varity) {
+					debug("varity \"%s\" doesn't exist\n", name_buf);
+					return ret;
+				}
+				tmp_varity = *finded_varity;
+			} else if(tmp_varity_type == 1) {
+				tmp_varity = y_atof(name_buf);
+			} else if(tmp_varity_type == 2) {
+				tmp_varity = y_atoi(name_buf);
+			}
+			symbol_pos_last += symbol_pos_once + opt_len;
+			while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
+				size -= symbol_pos_once + opt_len;
+				memcpy(name_buf, str + symbol_pos_last, symbol_pos_once);
+				name_buf[symbol_pos_once] = 0;
+				int tmp_varity_type = check_symbol(name_buf, symbol_pos_once);
+				if(tmp_varity_type == 0) {
+					finded_varity = (varity_info*)this->varity_declare->global_varity_stack->find(name_buf);
+					if(!finded_varity) {
+						debug("varity \"%s\" doesn't exist\n", name_buf);
+						return ret;
+					}
+					tmp_varity = tmp_varity + *finded_varity;
+				} else if(tmp_varity_type == 1) {
+					varity_info sub_tmp_varity;
+					sub_tmp_varity = y_atof(name_buf);
+					tmp_varity = sub_tmp_varity + tmp_varity;
+				} else if(tmp_varity_type == 2) {
+					varity_info sub_tmp_varity;
+					sub_tmp_varity = y_atoi(name_buf);
+					tmp_varity = sub_tmp_varity + tmp_varity;
+				}
+				symbol_pos_last += symbol_pos_once + opt_len;
+				if(opt_type != OPT_PLUS && opt_type != OPT_MINUS)
+					break;
+			}
+		}
+		symbol_pos_last += symbol_pos_once;
+		printf("%d,%d\n",symbol_pos_last, opt_len);
+		symbol_pos_last += opt_len;
+	}
 	return ret;
 }
 
-varity_info c_interpreter::assign_opt(char* str, uint len)
+varity_info c_interpreter::assign_opt(char* str, uint* len_ptr)
 {
 	varity_info ret;
 	varity_info tmp_varity;
 	varity_info* finded_varity;
 	char tmpbuf[32];
+	int len = *len_ptr;
 	int i;
 	int symbol_begin_pos;
 	for(int num_flag=1, i=len-1, symbol_begin_pos=len; i>=-1; i--) {

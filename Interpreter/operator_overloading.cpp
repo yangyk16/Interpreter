@@ -1,9 +1,10 @@
 #include "varity.h"
 
 int min(int a, int b){return a>b?b:a;}
-varity_info operator+(varity_info& obj1, varity_info& obj2)
+varity_info& operator+(varity_info& obj1, varity_info& obj2)
 {
-	varity_info ret;
+	static varity_info ret;
+	ret.reset();
 	ret.type = min(obj1.type, obj2.type);
 	ret.size = sizeof_type[ret.type];
 	ret.apply_space();

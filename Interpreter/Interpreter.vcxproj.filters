@@ -45,6 +45,9 @@
     <ClInclude Include="operator.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="string_lib.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -69,6 +72,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="operator_overloading.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="string_lib.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
