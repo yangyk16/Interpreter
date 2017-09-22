@@ -169,6 +169,7 @@ int c_interpreter::sentence_exec(char* str, uint len)
 	}
 	//this->assign_opt(str,len-1);
 	sub_sentence_analysis(analysis_buf, len-1);
+	this->varity_declare->destroy_analysis_varity();
 	return 0;
 }
 //无括号或仅含类型转换的子句解析

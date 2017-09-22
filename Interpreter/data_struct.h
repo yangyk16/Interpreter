@@ -47,6 +47,7 @@ public:
 	stack();
 	stack(int esize, void* base_addr, int capacity);
 	void* get_current_ptr(void) {return (char*)this->bottom_addr + top;}
+	uint get_count(void) {return this->count;}
 };
 
 class indexed_stack: public stack {

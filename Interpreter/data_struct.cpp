@@ -27,7 +27,7 @@ void* stack::pop(void)
 {
 	this->top -= this->element_size;
 	this->count--;
-	return (void*)((char*)(this->bottom_addr))[this->top];
+	return (void*)&((char*)(this->bottom_addr))[this->top];
 }
 
 void* stack::find(char* name)

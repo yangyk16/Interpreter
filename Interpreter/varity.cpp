@@ -263,6 +263,19 @@ int varity::declare_analysis_varity(int type, uint size, char* ret_name, varity_
 	*varity_ptr = (varity_info*)this->analysis_varity_stack->find(ret_name);
 	return ret;
 }
+
+int varity::destroy_analysis_varity(void)
+{
+	int count = this->analysis_varity_stack->get_count();
+	varity_info* varity_ptr;
+	for(int i=0; i<count; i++) {
+		varity_ptr = (varity_info*)this->analysis_varity_stack->pop();
+		varity_ptr->reset();
+	}
+	this->cur_analysis_varity_count = 0;
+	return 0;
+}
+
 int varity::undeclare(void)
 {
 	return 0;

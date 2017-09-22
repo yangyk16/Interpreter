@@ -132,7 +132,7 @@ int sub_replace(char* str, int indexl, int indexr, char* sub_str)
 	} else {
 		debug("complete code,string_lib.cpp, %d" ,__LINE__);
 	}
-	return indexr - indexl + 1 - sub_str_len;
+	return sub_str_len - (indexr - indexl + 1);
 }
 
 int y_atoi(char* str)

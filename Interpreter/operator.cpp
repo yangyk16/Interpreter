@@ -17,6 +17,7 @@ varity_info c_interpreter::plus_opt(char* str, uint* size_ptr)
 		int symbol_pos_cur = symbol_pos_last + symbol_pos_once + opt_len;
 		size -= symbol_pos_once + opt_len;
 		if(opt_type == OPT_PLUS || opt_type == OPT_MINUS) {
+			int delta_str_len;
 			char tmp_varity_name[3];
 			this->varity_declare->declare_analysis_varity(0, 0, tmp_varity_name, &tmp_varity);
 			char name_buf[32];
@@ -61,7 +62,8 @@ varity_info c_interpreter::plus_opt(char* str, uint* size_ptr)
 				if(opt_type != OPT_PLUS && opt_type != OPT_MINUS)
 					break;
 			}
-			sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
+			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
+			symbol_pos_last += delta_str_len;
 			tmp_varity->echo();
 		}
 		//symbol_pos_last += symbol_pos_once;
