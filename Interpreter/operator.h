@@ -42,7 +42,7 @@
 #define OPT_BIT_OR				37
 #define OPT_TERNARY_Q			38
 #define OPT_TERNARY_C			39
-#define OPT_EQU					40
+#define OPT_ASSIGN				40
 #define OPT_COMMA				41
 #define OPT_EDGE				42
 

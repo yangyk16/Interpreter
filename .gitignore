@@ -12,5 +12,6 @@
 *.idb
 *.ipch
 *.sdf
+*Copy.cpp
 Interpreter/Debug/Interpreter.exe.embed.manifest.res
 *.rc

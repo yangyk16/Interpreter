@@ -50,6 +50,7 @@ int remove_char(char* str, char ch);
 int remove_substring(char* str, int index1, int index2);
 int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type);
 int check_symbol(char* str, int size);
+int sub_replace(char* str, int indexl, int indexr, char* sub_str);
 int y_atoi(char* str, int size);
 int y_atoi(char* str);
 double y_atof(char* str, int size);

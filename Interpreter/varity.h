@@ -5,6 +5,8 @@
 #include "type.h"
 #include "data_struct.h"
 
+#define TMP_VAIRTY_PREFIX 0x02 //STX
+
 #if PLATFORM_WORD_LEN == 4
 #define U_INT 6
 #define LONG 7
@@ -64,12 +66,15 @@ public:
 class varity {
 	data_struct* frame_varity_struct;
 	uint current_stack_depth;
+	int cur_analysis_varity_count;
 public:
 	varity(stack*, indexed_stack*, stack*);
 	stack* global_varity_stack;
 	stack* analysis_varity_stack;
 	indexed_stack* local_varity_stack;
 	int declare(int scope_flag, char* name, int type, uint size);
+	int declare_analysis_varity(int type, uint size, char*, varity_info**);
+	int destroy_analysis_varity(void);
 	int undeclare();
 };
 

@@ -7,15 +7,18 @@
 
 varity_info c_interpreter::plus_opt(char* str, uint* size_ptr)
 {
-	varity_info ret, tmp_varity;
+	varity_info ret, *tmp_varity = 0;
 	uint size = *size_ptr;
 	varity_info* finded_varity;
 	int opt_len = 0, opt_type;
 	int symbol_pos_last = 0, symbol_pos_once, symbol_pos_next;
 	while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
+		int continuous_plus_begin_pos = symbol_pos_last;
 		int symbol_pos_cur = symbol_pos_last + symbol_pos_once + opt_len;
 		size -= symbol_pos_once + opt_len;
 		if(opt_type == OPT_PLUS || opt_type == OPT_MINUS) {
+			char tmp_varity_name[3];
+			this->varity_declare->declare_analysis_varity(0, 0, tmp_varity_name, &tmp_varity);
 			char name_buf[32];
 			memcpy(name_buf, str + symbol_pos_last, symbol_pos_once);
 			name_buf[symbol_pos_once] = 0;
@@ -26,11 +29,11 @@ varity_info c_interpreter::plus_opt(char* str, uint* size_ptr)
 					debug("varity \"%s\" doesn't exist\n", name_buf);
 					return ret;
 				}
-				tmp_varity = *finded_varity;
+				*tmp_varity = *finded_varity;
 			} else if(tmp_varity_type == 1) {
-				tmp_varity = y_atof(name_buf);
+				*tmp_varity = y_atof(name_buf);
 			} else if(tmp_varity_type == 2) {
-				tmp_varity = y_atoi(name_buf);
+				*tmp_varity = y_atoi(name_buf);
 			}
 			symbol_pos_last += symbol_pos_once + opt_len;
 			while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
@@ -44,24 +47,26 @@ varity_info c_interpreter::plus_opt(char* str, uint* size_ptr)
 						debug("varity \"%s\" doesn't exist\n", name_buf);
 						return ret;
 					}
-					tmp_varity = tmp_varity + *finded_varity;
+					*tmp_varity = *tmp_varity + *finded_varity;
 				} else if(tmp_varity_type == 1) {
 					varity_info sub_tmp_varity;
 					sub_tmp_varity = y_atof(name_buf);
-					tmp_varity = sub_tmp_varity + tmp_varity;
+					*tmp_varity = sub_tmp_varity + *tmp_varity;
 				} else if(tmp_varity_type == 2) {
 					varity_info sub_tmp_varity;
 					sub_tmp_varity = y_atoi(name_buf);
-					tmp_varity = sub_tmp_varity + tmp_varity;
+					*tmp_varity = sub_tmp_varity + *tmp_varity;
 				}
 				symbol_pos_last += symbol_pos_once + opt_len;
 				if(opt_type != OPT_PLUS && opt_type != OPT_MINUS)
 					break;
 			}
+			sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
+			tmp_varity->echo();
 		}
-		symbol_pos_last += symbol_pos_once;
-		printf("%d,%d\n",symbol_pos_last, opt_len);
-		symbol_pos_last += opt_len;
+		//symbol_pos_last += symbol_pos_once;
+		//debug("%d,%d\n",symbol_pos_last, opt_len);
+		//symbol_pos_last += opt_len;
 	}
 	return ret;
 }

@@ -189,9 +189,14 @@ int varity_info::apply_space(void)
 		vfree(this->content_ptr);
 		this->content_ptr = 0;
 	}
-	this->content_ptr = vmalloc(this->size);
-	if(this->content_ptr)
-		return 0;
+	if(this->size) {
+		this->content_ptr = vmalloc(this->size);
+		if(this->content_ptr)
+			return 0;
+		else
+			return 1;
+	}
+	return 0;
 }
 
 void varity_info::reset(void)
@@ -248,6 +253,16 @@ int varity::declare(int scope_flag, char* name, int type, uint size)
 	return 0;
 }
 
+int varity::declare_analysis_varity(int type, uint size, char* ret_name, varity_info** varity_ptr)
+{
+	int ret;
+	char tmp_varity_name[3];
+	sprintf(tmp_varity_name, "%c%c", TMP_VAIRTY_PREFIX, 128 + this->cur_analysis_varity_count++);
+	strcpy(ret_name, tmp_varity_name);
+	ret = this->declare(2, tmp_varity_name, type, size);
+	*varity_ptr = (varity_info*)this->analysis_varity_stack->find(ret_name);
+	return ret;
+}
 int varity::undeclare(void)
 {
 	return 0;
@@ -258,4 +273,6 @@ varity::varity(stack* g_stack, indexed_stack* l_stack, stack* a_stack)
 	this->global_varity_stack = g_stack;
 	this->local_varity_stack = l_stack;
 	this->analysis_varity_stack = a_stack;
+	this->cur_analysis_varity_count = 0;
+	this->current_stack_depth = 0;
 }

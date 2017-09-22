@@ -3,6 +3,7 @@
 #include "varity.h"
 #include "operator.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 char non_seq_key[][7] = {"if", "switch", "else", "for", "while", "do"};
 const char opt_str[][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
@@ -120,6 +121,18 @@ int check_symbol(char* str, int size)
 			break;
 		}
 	return ret;
+}
+
+int sub_replace(char* str, int indexl, int indexr, char* sub_str)
+{
+	int sub_str_len = strlen(sub_str);
+	if(sub_str_len <= indexr - indexl + 1) {
+		memcpy(str + indexl, sub_str, sub_str_len);
+		strcpy(str + indexl + sub_str_len, str + indexr + 1);
+	} else {
+		debug("complete code,string_lib.cpp, %d" ,__LINE__);
+	}
+	return indexr - indexl + 1 - sub_str_len;
 }
 
 int y_atoi(char* str)
