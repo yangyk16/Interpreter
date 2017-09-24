@@ -151,8 +151,6 @@ int c_interpreter::sentence_exec(char* str, uint len)
 						ret = this->varity_declare->declare(0, varity_name, is_varity_declare + ptr_level * 12, PLATFORM_WORD_LEN);
 					else
 						ret = this->varity_declare->declare(0, varity_name, is_varity_declare, sizeof_type[is_varity_declare]);
-					if(ret)
-						cout << "declare varity \"" << varity_name << "\" error: " << ret << endl;
 				} else {
 
 				}
@@ -162,24 +160,50 @@ int c_interpreter::sentence_exec(char* str, uint len)
 		return 0;
 	}
 	strcpy(this->analysis_buf, str);
-	total_bracket_depth = get_bracket_depth(str);
+	total_bracket_depth = get_bracket_depth(analysis_buf);
+	if(total_bracket_depth < 0)
+		return ERROR_BRACKET_UNMATCH;
 	//从最深级循环解析深度递减的各级，以立即数/临时变量？表示各级返回结果
-	for(i=total_bracket_depth; i>=0; i--) {
-		
+	char sub_analysis_buf[MAX_SUB_ANA_BUFLEN];
+	for(i=total_bracket_depth; i>0; i--) {
+		int current_depth = 0, sub_sentence_begin_pos, sub_sentence_end_pos;
+		for(int j=0; j<len; j++) {
+			if(analysis_buf[j] == '(' || analysis_buf[j] == '[') {
+				current_depth++;
+				if(current_depth == i)
+					sub_sentence_begin_pos = j;
+			} else if(analysis_buf[j] == ')' || analysis_buf[j] == ']') {
+				if(current_depth == i) {
+					uint sub_sentence_length;
+					sub_sentence_end_pos = j;
+					sub_sentence_length = sub_sentence_end_pos - sub_sentence_begin_pos - 1;
+					memcpy(sub_analysis_buf, analysis_buf + sub_sentence_begin_pos + 1, sub_sentence_length);
+					sub_analysis_buf[sub_sentence_length] = 0;
+					sub_sentence_analysis(sub_analysis_buf, &sub_sentence_length);
+					//remove_substring(str, sub_sentence_begin_pos + sub_sentence_length, sub_sentence_end_pos);
+					sub_replace(analysis_buf, sub_sentence_begin_pos, sub_sentence_end_pos, sub_analysis_buf);
+					len -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
+					j -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
+				}
+				current_depth--;
+			}
+		}
 	}
 	//this->assign_opt(str,len-1);
-	sub_sentence_analysis(analysis_buf, len-1);
+	//sub_sentence_analysis(analysis_buf, len-1);
+	len -= 1;
+	sub_sentence_analysis(analysis_buf, &len);
 	this->varity_declare->destroy_analysis_varity();
 	return 0;
 }
 //无括号或仅含类型转换的子句解析
-int c_interpreter::sub_sentence_analysis(char* str, uint len)
+int c_interpreter::sub_sentence_analysis(char* str, uint *len)
 {
 	//运算符用循环调用15个函数分级解释
 	int i;
 	for(i=0; i<C_OPT_PRIO_COUNT; i++)
 		if(this->c_opt_caculate_func_list[i])
-			(this->*c_opt_caculate_func_list[i])(str,&len);
+			(this->*c_opt_caculate_func_list[i])(str,len);
 	return 0;
 }
 

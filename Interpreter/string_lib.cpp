@@ -81,6 +81,9 @@ int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 				}
 			}
 		}
+		*opt_len = 0;
+		*opt_type = OPT_EDGE;
+		return size;
 	} else {
 		for(i=size-1; i>=0; i--)
 			for(j=0; j<sizeof(opt_str)/sizeof(*opt_str);j++) {
@@ -104,10 +107,13 @@ int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 					}
 				}
 			}
+		if(i == -1) {
+			*opt_len = 0;
+			*opt_type = OPT_EDGE;
+			return 0;
+		}
 	}
-	*opt_len = 0;
-	*opt_type = OPT_EDGE;
-	return size;
+	return -1;
 }
 
 int check_symbol(char* str, int size)

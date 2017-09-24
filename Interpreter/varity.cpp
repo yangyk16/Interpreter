@@ -235,8 +235,10 @@ int varity::declare(int scope_flag, char* name, int type, uint size)
 	varity_info* varity_ptr;
 	stack* varity_stack;
 	if(!scope_flag) {
-		if(this->global_varity_stack->find(name))
+		if(this->global_varity_stack->find(name)) {
+			debug("declare varity \"%s\" error: varity name duplicated\n", name);
 			return VARITY_DUPLICATE;
+		}
 	}
 	if(!scope_flag)
 		varity_stack = global_varity_stack;
@@ -244,11 +246,17 @@ int varity::declare(int scope_flag, char* name, int type, uint size)
 		varity_stack = local_varity_stack;
 	else
 		varity_stack = analysis_varity_stack;
+	if(varity_stack->is_full()) {
+		debug("declare varity \"%s\" error: varity count reach max\n", name);
+		return VARITY_COUNT_MAX;
+	}
 	varity_ptr = (varity_info*)varity_stack->get_current_ptr();
 	varity_info::init_varity(varity_ptr, name, type, size);
 	ret = varity_ptr->apply_space();
-	if(ret)
+	if(ret) {
+		debug("declare varity \"%s\" error: space is insufficient\n", name);
 		return VARITY_NOSPACE;
+	}
 	varity_stack->push();
 	return 0;
 }

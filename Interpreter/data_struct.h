@@ -19,6 +19,7 @@ protected:
 	uint length;
 	void* bottom_addr;
 public:
+	inline int is_full(void) {return length==count?1:0;}
 };
 
 class round_queue: public data_struct {

@@ -8,6 +8,8 @@
 #include "varity.h"
 #include "operator.h"
 
+#define ERROR_BRACKET_UNMATCH 1
+
 #define C_OPT_PRIO_COUNT		15
 class c_interpreter;
 //typedef varity_info (*opt_calc)(c_interpreter*,char*,uint);
@@ -41,7 +43,7 @@ class c_interpreter: public interpreter {
 	int global_flag;
 
 	int non_seq_struct_check(char* str);
-	int sub_sentence_analysis(char*, uint size);
+	int sub_sentence_analysis(char*, uint* size);
 	int sentence_exec(char*, uint);
 	virtual int sentence_analysis(char*, uint);
 	virtual int pre_treat(void);
