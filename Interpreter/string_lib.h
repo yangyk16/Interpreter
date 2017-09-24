@@ -45,7 +45,8 @@ inline int get_bracket_depth(char* str)
 		return max_depth;
 }
 
-int keycmp(char* str);
+int optcmp(char* str);
+int nonseq_key_cmp(char* str);
 int remove_char(char* str, char ch);
 int remove_substring(char* str, int index1, int index2);
 int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type);

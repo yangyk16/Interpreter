@@ -68,6 +68,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare)
 	this->row_pretreat_fifo.set_length(sizeof(this->pretreat_buf));
 	this->non_seq_code_fifo.set_base(this->non_seq_tmp_buf);
 	this->non_seq_code_fifo.set_length(sizeof(this->non_seq_tmp_buf));
+	this->non_seq_code_fifo.set_element_size(1);
 	this->nonseq_begin_stack_ptr = 0;
 	this->global_flag = 1;
 	this->c_opt_caculate_func_list[0]=&c_interpreter::plus_opt;
@@ -111,7 +112,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 			non_seq_exec = 1;
 	}
 	if(non_seq_exec) {
-
+		return 0;//avoid continue to exec single sentence.
 	}
 	if(!non_seq_struct_depth && str[0] != '}') {
 		sentence_exec(str, len);
@@ -130,7 +131,7 @@ int c_interpreter::sentence_exec(char* str, uint len)
 	}
 
 	int is_varity_declare;
-	is_varity_declare = keycmp(str);
+	is_varity_declare = optcmp(str);
 	if(is_varity_declare >= 0) {
 		int keylen = strlen(type_key[is_varity_declare]);
 		int symbol_begin_pos;
@@ -189,7 +190,6 @@ int c_interpreter::sentence_exec(char* str, uint len)
 			}
 		}
 	}
-	//this->assign_opt(str,len-1);
 	//sub_sentence_analysis(analysis_buf, len-1);
 	len -= 1;
 	sub_sentence_analysis(analysis_buf, &len);
@@ -209,5 +209,8 @@ int c_interpreter::sub_sentence_analysis(char* str, uint *len)
 
 int c_interpreter::non_seq_struct_check(char* str)
 {
+	if(nonseq_key_cmp(str)) {
+		return 1; 
+	}
 	return 0;
 }

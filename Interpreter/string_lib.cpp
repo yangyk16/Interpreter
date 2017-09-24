@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-char non_seq_key[][7] = {"if", "switch", "else", "for", "while", "do"};
+char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
 const char opt_str[][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
 
-int keycmp(char* str)
+int optcmp(char* str)
 {
 	int i,j;
 	for(i=0; i<sizeof(type_key)/sizeof(type_key[0]); i++) {
@@ -20,6 +20,20 @@ int keycmp(char* str)
 			return i;
 	}
 	return -1;
+}
+
+int nonseq_key_cmp(char* str)
+{
+	int i,j;
+	for(i=0; i<sizeof(non_seq_key)/sizeof(non_seq_key[0]); i++) {
+		for(j=0; non_seq_key[i][j]; j++) {
+			if(str[j] != non_seq_key[i][j])
+				break;
+		}
+		if(non_seq_key[i][j] == 0 && (str[j] == ' ' || str[j] == '(' || str[j] == 0))
+			return i;
+	}
+	return 0;
 }
 
 char* trim(char* str)

@@ -30,6 +30,7 @@ public:
 	round_queue(uint, void*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	inline void set_length(uint len) {this->length = len;}
+	inline void set_element_size(uint len) {this->element_size = len;}
 	int write(void*, uint);
 	int read(void*, uint);
 	int readline(char*);
