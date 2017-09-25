@@ -78,6 +78,7 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="error.h" />
     <ClInclude Include="interpreter.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="data_struct.h" />

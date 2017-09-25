@@ -26,10 +26,6 @@
 #define U_CHAR 11
 #define CHAR 12
 
-#define VARITY_NOSPACE		1
-#define VARITY_DUPLICATE	2
-#define VARITY_COUNT_MAX	3
-
 class varity_info:public element {
 protected:
 	int	 	type;

@@ -3,6 +3,7 @@
 #include <iostream>
 #include "operator.h"
 #include "string_lib.h"
+#include "error.h"
 using namespace std;
 
 tty stdio;
@@ -14,6 +15,11 @@ indexed_stack l_varity_list(sizeof(varity_info), l_varity_node, MAX_L_VARITY_NOD
 stack g_varity_list(sizeof(varity_info), g_varity_node, MAX_G_VARITY_NODE);
 varity c_varity(&g_varity_list, &l_varity_list, &a_varity_list);
 c_interpreter myinterpreter(&stdio, &c_varity);
+
+void analysis_info_struct::reset(void)
+{
+	memset(this, 0, sizeof(analysis_info_struct));
+}
 
 int interpreter::call_func(char*, uint)
 {
@@ -69,7 +75,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare)
 	this->non_seq_code_fifo.set_base(this->non_seq_tmp_buf);
 	this->non_seq_code_fifo.set_length(sizeof(this->non_seq_tmp_buf));
 	this->non_seq_code_fifo.set_element_size(1);
-	this->nonseq_begin_stack_ptr = 0;
+	this->analysis_info.nonseq_begin_stack_ptr = 0;
 	this->global_flag = 1;
 	this->c_opt_caculate_func_list[0]=&c_interpreter::plus_opt;
 	this->c_opt_caculate_func_list[1]=&c_interpreter::assign_opt;
@@ -77,44 +83,90 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare)
 
 int c_interpreter::sentence_analysis(char* str, uint len)
 {
-	int non_seq_check_ret, non_seq_exec = 0;
-	
-	non_seq_check_ret = non_seq_struct_check(str);
-	if(non_seq_check_ret)
-		non_seq_struct_depth++;
-	if(non_seq_struct_depth) {
+	analysis_info.last_non_seq_check_ret = analysis_info.non_seq_check_ret;
+	if(len == 0) {
+		if(analysis_info.non_seq_finish_flag == 1) {
+			analysis_info.non_seq_exec = 1;
+			goto sentence_exec;
+		} else 
+			return -1;
+	}
+	analysis_info.non_seq_check_ret = non_seq_struct_check(str);
+	if(analysis_info.non_seq_finish_flag == 2) {
+		if(analysis_info.non_seq_check_ret == NONSEQ_KEY_WHILE) {
+			analysis_info.non_seq_exec = 1;
+			goto sentence_exec;
+		} else {
+			debug("do is unmatch with while\n");
+			analysis_info.reset();
+			return -1;
+		} 
+	} else if(analysis_info.non_seq_finish_flag == 1) {
+		if(analysis_info.non_seq_check_ret == NONSEQ_KEY_ELSE) {
+			
+		} else {
+			debug("if is unmatch with else or blank\n");
+			analysis_info.reset();
+			return -1;
+		}
+	}
+	if(analysis_info.non_seq_check_ret) {
+		analysis_info.non_seq_struct_depth++;
+		if(analysis_info.non_seq_struct_depth == 1)
+			analysis_info.outer_non_seq_type = analysis_info.non_seq_check_ret;
+	}
+	if(analysis_info.non_seq_struct_depth) {
 		non_seq_code_fifo.write(str, len);
 		non_seq_code_fifo.write("\n", 1);
 	}
 	if(str[0] == '{') {
-		brace_depth++;
-		if(non_seq_check_ret) {
-			this->nonseq_begin_bracket_stack[this->nonseq_begin_stack_ptr++] = brace_depth;
+		analysis_info.brace_depth++;
+		if(analysis_info.last_non_seq_check_ret) {
+			this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] = analysis_info.brace_depth;
 		}
-		varity_declare->local_varity_stack->endeep();
 	} else if(str[0] == '}') {
-		if(brace_depth > 0) {
-			if(non_seq_struct_depth > 0 && this->nonseq_begin_bracket_stack[this->nonseq_begin_stack_ptr] == brace_depth) {
-				non_seq_struct_depth--;
-				this->nonseq_begin_stack_ptr--;
-				if(non_seq_struct_depth == 0)
-					non_seq_exec = 1;
+		if(analysis_info.brace_depth > 0) {
+			if(analysis_info.non_seq_struct_depth > 0 && this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == analysis_info.brace_depth) {
+				analysis_info.non_seq_struct_depth--;
+				while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0)
+					this->analysis_info.non_seq_struct_depth--;
+				this->analysis_info.nonseq_begin_stack_ptr--;
+				if(analysis_info.non_seq_struct_depth == 0)
+					if(analysis_info.outer_non_seq_type == NONSEQ_KEY_IF) {
+						analysis_info.non_seq_finish_flag = 1;
+					} else if(analysis_info.outer_non_seq_type == NONSEQ_KEY_DO) {
+						analysis_info.non_seq_finish_flag = 2;
+					} else {
+						analysis_info.non_seq_exec = 1;
+					}
 			}
-			brace_depth--;
-			varity_declare->local_varity_stack->dedeep();
+			analysis_info.brace_depth--;
 		} else {
 			return -1;
 		}
 	}
-	if(non_seq_struct_depth && brace_depth == 0 && str[len-1] == ';') {
-		non_seq_struct_depth--;
-		if(non_seq_struct_depth == 0)
-			non_seq_exec = 1;
+	if(analysis_info.last_non_seq_check_ret && analysis_info.non_seq_struct_depth && str[len-1] == ';') {// && analysis_info.brace_depth == 0
+		while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0)
+			this->analysis_info.non_seq_struct_depth--;
+		//analysis_info.non_seq_struct_depth--;
+		if(analysis_info.non_seq_struct_depth == 0) {
+			if(analysis_info.outer_non_seq_type == NONSEQ_KEY_IF) {
+				analysis_info.non_seq_finish_flag = 1;
+				return 0;
+			} else if(analysis_info.outer_non_seq_type == NONSEQ_KEY_DO) {
+				analysis_info.non_seq_finish_flag = 2;
+				return 0;
+			} else {
+				analysis_info.non_seq_exec = 1;
+			}
+		}
 	}
-	if(non_seq_exec) {
+sentence_exec:
+	if(analysis_info.non_seq_exec) {
+		analysis_info.reset();
 		return 0;//avoid continue to exec single sentence.
 	}
-	if(!non_seq_struct_depth && str[0] != '}') {
+	if(!analysis_info.non_seq_struct_depth && str[0] != '}') {
 		sentence_exec(str, len);
 	}
 	return 0;
@@ -175,13 +227,13 @@ int c_interpreter::sentence_exec(char* str, uint len)
 					sub_sentence_begin_pos = j;
 			} else if(analysis_buf[j] == ')' || analysis_buf[j] == ']') {
 				if(current_depth == i) {
+					//先检查是否是函数调用
 					uint sub_sentence_length;
 					sub_sentence_end_pos = j;
 					sub_sentence_length = sub_sentence_end_pos - sub_sentence_begin_pos - 1;
 					memcpy(sub_analysis_buf, analysis_buf + sub_sentence_begin_pos + 1, sub_sentence_length);
 					sub_analysis_buf[sub_sentence_length] = 0;
 					sub_sentence_analysis(sub_analysis_buf, &sub_sentence_length);
-					//remove_substring(str, sub_sentence_begin_pos + sub_sentence_length, sub_sentence_end_pos);
 					sub_replace(analysis_buf, sub_sentence_begin_pos, sub_sentence_end_pos, sub_analysis_buf);
 					len -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
 					j -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
@@ -209,8 +261,5 @@ int c_interpreter::sub_sentence_analysis(char* str, uint *len)
 
 int c_interpreter::non_seq_struct_check(char* str)
 {
-	if(nonseq_key_cmp(str)) {
-		return 1; 
-	}
-	return 0;
+	return nonseq_key_cmp(str);
 }

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "error.h"
 
 #if PLATFORM_WORD_LEN == 4
 const char type_key[13][19] = {"void", "double", "float", "unsigned long long", "long long", "unsigned long", "unsigned int", "long", "int", "unsigned short", "short", "unsigned char", "char"};
@@ -237,7 +238,7 @@ int varity::declare(int scope_flag, char* name, int type, uint size)
 	if(!scope_flag) {
 		if(this->global_varity_stack->find(name)) {
 			debug("declare varity \"%s\" error: varity name duplicated\n", name);
-			return VARITY_DUPLICATE;
+			return ERROR_VARITY_DUPLICATE;
 		}
 	}
 	if(!scope_flag)
@@ -248,14 +249,14 @@ int varity::declare(int scope_flag, char* name, int type, uint size)
 		varity_stack = analysis_varity_stack;
 	if(varity_stack->is_full()) {
 		debug("declare varity \"%s\" error: varity count reach max\n", name);
-		return VARITY_COUNT_MAX;
+		return ERROR_VARITY_COUNT_MAX;
 	}
 	varity_ptr = (varity_info*)varity_stack->get_current_ptr();
 	varity_info::init_varity(varity_ptr, name, type, size);
 	ret = varity_ptr->apply_space();
 	if(ret) {
 		debug("declare varity \"%s\" error: space is insufficient\n", name);
-		return VARITY_NOSPACE;
+		return ERROR_VARITY_NOSPACE;
 	}
 	varity_stack->push();
 	return 0;

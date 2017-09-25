@@ -8,12 +8,32 @@
 #include "varity.h"
 #include "operator.h"
 
-#define ERROR_BRACKET_UNMATCH 1
+#define NONSEQ_KEY_IF		1
+#define NONSEQ_KEY_SWITCH	2
+#define NONSEQ_KEY_ELSE		3
+#define NONSEQ_KEY_FOR		4
+#define NONSEQ_KEY_WHILE	5
+#define NONSEQ_KEY_DO		6
 
 #define C_OPT_PRIO_COUNT		15
 class c_interpreter;
 //typedef varity_info (*opt_calc)(c_interpreter*,char*,uint);
 typedef varity_info (c_interpreter::*opt_calc )(char*, uint*);
+
+typedef struct analysis_info_struct_s {
+	int brace_depth;
+	int non_seq_struct_depth;
+	int non_seq_check_ret;
+	int last_non_seq_check_ret;
+	int non_seq_exec;
+	int outer_non_seq_type;
+	int non_seq_finish_flag;
+	char* non_seq_begin_addr[10];
+	char nonseq_begin_bracket_stack[MAX_STACK_INDEX];
+	int nonseq_begin_stack_ptr;
+	void reset(void);
+} analysis_info_struct;
+
 class interpreter {
 protected:
 	varity* varity_declare;
@@ -33,13 +53,10 @@ public:
 class c_interpreter: public interpreter {
 	char pretreat_buf[MAX_PRETREAT_BUFLEN];
 	round_queue row_pretreat_fifo;
-	int brace_depth;
-	int non_seq_struct_depth;
-	char* non_seq_begin_addr[10];
+	analysis_info_struct analysis_info;
+
 	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
 	round_queue non_seq_code_fifo;
-	char nonseq_begin_bracket_stack[MAX_STACK_INDEX];
-	int nonseq_begin_stack_ptr;
 	int global_flag;
 
 	int non_seq_struct_check(char* str);
