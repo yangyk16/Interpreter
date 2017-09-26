@@ -65,6 +65,7 @@ class c_interpreter: public interpreter {
 	int non_seq_struct_check(char* str);
 	int sub_sentence_analysis(char*, uint* size);
 	int sentence_exec(char*, uint);
+	int non_seq_section_exec(void);
 	virtual int sentence_analysis(char*, uint);
 	virtual int pre_treat(void);
 

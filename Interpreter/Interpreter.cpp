@@ -239,12 +239,27 @@ sentence_exec:
 	if(analysis_info.non_seq_exec) {
 		analysis_info.reset();
 		debug("exec non seq struct\n");
+		this->non_seq_section_exec();
 		return 0;//avoid continue to exec single sentence.
 	}
 	if(!analysis_info.non_seq_struct_depth && str[0] != '}') {
 		sentence_exec(str, len);
 	}
 	return 0;
+}
+
+int c_interpreter::non_seq_section_exec(void)
+{
+	char* str_row;
+	int str_row_len;
+	int section_len = this->non_seq_code_fifo.get_count();
+	while(1) {
+		str_row = non_seq_code_fifo.readline(str_row_len);
+		analysis_info.non_seq_check_ret = non_seq_struct_check(str_row);
+		if(analysis_info.non_seq_check_ret == NONSEQ_KEY_FOR) {
+			
+		}
+	}
 }
 
 int c_interpreter::sentence_exec(char* str, uint len)

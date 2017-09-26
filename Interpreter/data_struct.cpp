@@ -102,8 +102,29 @@ int round_queue::readline(char* buf)
 		else 
 			return i;
 		rptr = (rptr + 1) % length;
-		if(buf[i - 1] = '\n')
+		if(buf[i - 1] == '\n')
 			return i;
 	}
 	return -1;
+}
+
+char* round_queue::readline(int& len)
+{
+	char* base = (char*)this->bottom_addr;
+	int ret = rptr;
+	len = 0;
+	while(1)
+	{
+		if(count > 0)
+			len++;
+		else {
+			break;
+		}
+		rptr = (rptr + 1) % length;
+		if(base[rptr - 1] == '\n') {
+			len -= 1;
+			break;
+		}
+	}
+	return &((char*)bottom_addr)[ret];
 }

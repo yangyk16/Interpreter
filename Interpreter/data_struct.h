@@ -20,6 +20,7 @@ protected:
 	void* bottom_addr;
 public:
 	inline int is_full(void) {return length==count?1:0;}
+	inline uint get_count(void) {return this->count;}
 };
 
 class round_queue: public data_struct {
@@ -34,6 +35,7 @@ public:
 	int write(void*, uint);
 	int read(void*, uint);
 	int readline(char*);
+	char* readline(int&);
 };
 
 class stack: public data_struct {
@@ -49,7 +51,6 @@ public:
 	stack();
 	stack(int esize, void* base_addr, int capacity);
 	void* get_current_ptr(void) {return (char*)this->bottom_addr + top;}
-	uint get_count(void) {return this->count;}
 };
 
 class indexed_stack: public stack {
