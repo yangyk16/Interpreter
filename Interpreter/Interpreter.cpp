@@ -1,10 +1,9 @@
 #include "interpreter.h"
 #include <string.h>
-#include <iostream>
+#include <stdio.h>
 #include "operator.h"
 #include "string_lib.h"
 #include "error.h"
-using namespace std;
 
 tty stdio;
 varity_info g_varity_node[MAX_G_VARITY_NODE];
@@ -81,44 +80,109 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare)
 	this->c_opt_caculate_func_list[1]=&c_interpreter::assign_opt;
 }
 
+int c_interpreter::save_sentence(char* str, uint len)
+{
+	non_seq_code_fifo.write(str, len);
+	non_seq_code_fifo.write("\n", 1);
+	return 0;
+}
+
 int c_interpreter::sentence_analysis(char* str, uint len)
 {
 	analysis_info.last_non_seq_check_ret = analysis_info.non_seq_check_ret;
 	if(len == 0) {
-		if(analysis_info.non_seq_finish_flag == 1) {
-			analysis_info.non_seq_exec = 1;
-			goto sentence_exec;
-		} else 
-			return -1;
-	}
-	analysis_info.non_seq_check_ret = non_seq_struct_check(str);
-	if(analysis_info.non_seq_finish_flag == 2) {
-		if(analysis_info.non_seq_check_ret == NONSEQ_KEY_WHILE) {
-			analysis_info.non_seq_exec = 1;
-			goto sentence_exec;
-		} else {
-			debug("do is unmatch with while\n");
-			analysis_info.reset();
-			return -1;
-		} 
-	} else if(analysis_info.non_seq_finish_flag == 1) {
-		if(analysis_info.non_seq_check_ret == NONSEQ_KEY_ELSE) {
-			
-		} else {
-			debug("if is unmatch with else or blank\n");
+		if(analysis_info.non_seq_struct_depth && analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE) {
+			debug("blank shouldn't appear here.\n");
 			analysis_info.reset();
 			return -1;
 		}
 	}
+	analysis_info.non_seq_check_ret = non_seq_struct_check(str);
+	if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
+		if(analysis_info.brace_depth == 0) {
+			if(len != 0 && analysis_info.non_seq_check_ret != NONSEQ_KEY_ELSE) {
+				debug("if is unmatch with else or blank\n");
+				analysis_info.reset();
+				return -1;
+			} else if(len == 0) {
+				while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0) {
+					analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth--]=0;
+					if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_IF) {
+						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+						//break;
+					} else if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_DO) {
+						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
+						break;
+					}
+				}
+				if(analysis_info.non_seq_struct_depth == 0) {
+					if(analysis_info.non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE) {
+						save_sentence(str, len);
+						analysis_info.non_seq_exec = 1;
+						goto sentence_exec;
+					} else {
+						save_sentence(str, len);
+						return 0;
+					}
+				}
+			}
+		} else {
+			if(analysis_info.non_seq_check_ret != NONSEQ_KEY_ELSE && len != 0) {
+				while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0) {
+					analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth--]=0;
+					if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_IF) {
+						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+						break;
+					} else if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_DO) {
+						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
+						break;
+					}
+				}
+			}
+		}
+	} else if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_WHILE) {
+		if(analysis_info.non_seq_check_ret != NONSEQ_KEY_WHILE && len != 0) {
+			debug("do is unmatch with while\n");
+			analysis_info.reset();
+			return -1;
+		} else if(analysis_info.non_seq_check_ret == NONSEQ_KEY_WHILE) {
+			analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WHILE;
+			while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0) {
+				analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth--]=0;
+				if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_IF) {
+					analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+					break;
+				} else if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_DO) {
+					analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
+					break;
+				}
+			}
+			if(analysis_info.non_seq_struct_depth == 0 && analysis_info.non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE && analysis_info.non_seq_type_stack[0] != NONSEQ_KEY_WAIT_ELSE) {
+				save_sentence(str, len);
+				analysis_info.non_seq_exec = 1;
+				goto sentence_exec;
+			} else {
+				save_sentence(str, len);
+				return 0;
+			}
+		}
+	}
 	if(analysis_info.non_seq_check_ret) {
+		if(analysis_info.non_seq_check_ret == NONSEQ_KEY_ELSE) {
+			if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE || analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] != analysis_info.brace_depth) {
+				debug("else is unmatch with if\n");
+				analysis_info.reset();
+				return -1;
+			}
+			analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_IF;
+		}
+		analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = analysis_info.non_seq_check_ret;
 		analysis_info.non_seq_struct_depth++;
-		if(analysis_info.non_seq_struct_depth == 1)
-			analysis_info.outer_non_seq_type = analysis_info.non_seq_check_ret;
 	}
-	if(analysis_info.non_seq_struct_depth) {
-		non_seq_code_fifo.write(str, len);
-		non_seq_code_fifo.write("\n", 1);
-	}
+	if(len == 0)
+		return 0;
+	if(analysis_info.non_seq_struct_depth)
+		save_sentence(str, len);
 	if(str[0] == '{') {
 		analysis_info.brace_depth++;
 		if(analysis_info.last_non_seq_check_ret) {
@@ -127,15 +191,20 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	} else if(str[0] == '}') {
 		if(analysis_info.brace_depth > 0) {
 			if(analysis_info.non_seq_struct_depth > 0 && this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == analysis_info.brace_depth) {
-				analysis_info.non_seq_struct_depth--;
-				while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0)
-					this->analysis_info.non_seq_struct_depth--;
+				do {
+					analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth--]=0;
+					if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_IF) {
+						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+						break;
+					} else if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_DO) {
+						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
+						break;
+					}
+				} while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0);
 				this->analysis_info.nonseq_begin_stack_ptr--;
 				if(analysis_info.non_seq_struct_depth == 0)
-					if(analysis_info.outer_non_seq_type == NONSEQ_KEY_IF) {
-						analysis_info.non_seq_finish_flag = 1;
-					} else if(analysis_info.outer_non_seq_type == NONSEQ_KEY_DO) {
-						analysis_info.non_seq_finish_flag = 2;
+					if(analysis_info.non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
+					} else if(analysis_info.non_seq_type_stack[0] == NONSEQ_KEY_WAIT_WHILE) {
 					} else {
 						analysis_info.non_seq_exec = 1;
 					}
@@ -146,15 +215,20 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		}
 	}
 	if(analysis_info.last_non_seq_check_ret && analysis_info.non_seq_struct_depth && str[len-1] == ';') {// && analysis_info.brace_depth == 0
-		while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0)
-			this->analysis_info.non_seq_struct_depth--;
-		//analysis_info.non_seq_struct_depth--;
+		do {
+			analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth--]=0;
+			if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_IF) {
+				analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+				break;
+			} else if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_DO) {
+				analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
+				break;
+			}
+		} while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0);
 		if(analysis_info.non_seq_struct_depth == 0) {
-			if(analysis_info.outer_non_seq_type == NONSEQ_KEY_IF) {
-				analysis_info.non_seq_finish_flag = 1;
+			if(analysis_info.non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
 				return 0;
-			} else if(analysis_info.outer_non_seq_type == NONSEQ_KEY_DO) {
-				analysis_info.non_seq_finish_flag = 2;
+			} else if(analysis_info.non_seq_type_stack[0] == NONSEQ_KEY_WAIT_WHILE) {
 				return 0;
 			} else {
 				analysis_info.non_seq_exec = 1;
@@ -164,6 +238,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 sentence_exec:
 	if(analysis_info.non_seq_exec) {
 		analysis_info.reset();
+		debug("exec non seq struct\n");
 		return 0;//avoid continue to exec single sentence.
 	}
 	if(!analysis_info.non_seq_struct_depth && str[0] != '}') {
@@ -178,7 +253,7 @@ int c_interpreter::sentence_exec(char* str, uint len)
 	int total_bracket_depth;
 
 	if(str[len-1] != ';') {
-		cout << "Missing ;" << endl;
+		debug("Missing ;\n");
 		return 1;
 	}
 

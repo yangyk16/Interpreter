@@ -14,6 +14,8 @@
 #define NONSEQ_KEY_FOR		4
 #define NONSEQ_KEY_WHILE	5
 #define NONSEQ_KEY_DO		6
+#define NONSEQ_KEY_WAIT_ELSE	7
+#define NONSEQ_KEY_WAIT_WHILE	8
 
 #define C_OPT_PRIO_COUNT		15
 class c_interpreter;
@@ -26,10 +28,11 @@ typedef struct analysis_info_struct_s {
 	int non_seq_check_ret;
 	int last_non_seq_check_ret;
 	int non_seq_exec;
-	int outer_non_seq_type;
-	int non_seq_finish_flag;
+	//int outer_non_seq_type;
+	//int non_seq_finish_flag;
 	char* non_seq_begin_addr[10];
 	char nonseq_begin_bracket_stack[MAX_STACK_INDEX];
+	char non_seq_type_stack[MAX_STACK_INDEX];
 	int nonseq_begin_stack_ptr;
 	void reset(void);
 } analysis_info_struct;
@@ -58,7 +61,7 @@ class c_interpreter: public interpreter {
 	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
 	round_queue non_seq_code_fifo;
 	int global_flag;
-
+	int save_sentence(char*, uint);
 	int non_seq_struct_check(char* str);
 	int sub_sentence_analysis(char*, uint* size);
 	int sentence_exec(char*, uint);

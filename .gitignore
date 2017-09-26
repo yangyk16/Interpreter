@@ -14,3 +14,4 @@
 *.sdf
 Interpreter/Debug/Interpreter.exe.embed.manifest.res
 *.rc
+*.out
