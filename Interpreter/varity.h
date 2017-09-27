@@ -56,6 +56,8 @@ public:
 	void echo(void);
 	void convert(void*,int);
 	void set_echo(bool enable) {en_echo = enable;}
+	inline int get_type(void) {return this->type;}
+	int is_non_zero(void);
 	~varity_info(){this->reset();}
 };
 

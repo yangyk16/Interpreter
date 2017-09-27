@@ -82,6 +82,8 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare)
 
 int c_interpreter::save_sentence(char* str, uint len)
 {
+	analysis_info.row_info_node[analysis_info.row_num].row_ptr = &non_seq_tmp_buf[non_seq_code_fifo.wptr];
+	analysis_info.row_info_node[analysis_info.row_num].row_len = len;
 	non_seq_code_fifo.write(str, len);
 	non_seq_code_fifo.write("\n", 1);
 	return 0;
@@ -97,6 +99,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 			return -1;
 		}
 	} else {
+		this->save_sentence(str, len);
 		analysis_info.row_num++;
 	}
 	analysis_info.non_seq_check_ret = non_seq_struct_check(str);
@@ -121,11 +124,11 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 				analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_info = 1;
 				if(analysis_info.non_seq_struct_depth == 0) {
 					if(analysis_info.non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE) {
-						save_sentence(str, len);
+						//save_sentence(str, len);
 						analysis_info.non_seq_exec = 1;
 						goto sentence_exec;
 					} else {
-						save_sentence(str, len);
+						//save_sentence(str, len);
 						return 0;
 					}
 				}
@@ -136,7 +139,8 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 					//没清掉type_stack
 					analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth--] = 0;
 					if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_IF) {
-						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = 0;
+						//analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
 						//break;
 					} else if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_DO) {
 						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
@@ -165,11 +169,11 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 				}
 			}
 			if(analysis_info.non_seq_struct_depth == 0 && analysis_info.non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE && analysis_info.non_seq_type_stack[0] != NONSEQ_KEY_WAIT_ELSE) {
-				save_sentence(str, len);
+				//save_sentence(str, len);
 				analysis_info.non_seq_exec = 1;
 				goto sentence_exec;
 			} else {
-				save_sentence(str, len);
+				//save_sentence(str, len);
 				return 0;
 			}
 		}
@@ -192,7 +196,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	if(len == 0)
 		return 0;
 	if(analysis_info.non_seq_struct_depth) {
-		save_sentence(str, len);
+		//save_sentence(str, len);
 	}
 	if(str[0] == '{') {
 		analysis_info.brace_depth++;
@@ -213,7 +217,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 					}
 				} while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0);
 				analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_info = 1;
-				analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth = analysis_info.non_seq_struct_depth;
+				analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth = analysis_info.non_seq_struct_depth + 1;
 				if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
 					analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth++;
 				}
@@ -242,7 +246,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 			}
 		} while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0);
 		analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_info = 1;
-		analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth = analysis_info.non_seq_struct_depth;
+		analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth = analysis_info.non_seq_struct_depth + 1;
 		if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
 			analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth++;
 		}
@@ -258,38 +262,67 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	}
 sentence_exec:
 	if(analysis_info.non_seq_exec) {
-		analysis_info.reset();
 		debug("exec non seq struct\n");
-		this->non_seq_section_exec();
+		this->non_seq_section_exec(0, analysis_info.row_num - 1);
+		analysis_info.reset();
 		return 0;//avoid continue to exec single sentence.
 	}
 	if(!analysis_info.non_seq_struct_depth && str[0] != '}') {
-		sentence_exec(str, len);
+		sentence_exec(str, len, true, NULL);
 	}
 	return 0;
 }
 
-int c_interpreter::non_seq_section_exec(void)
+int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 {
-	char* str_row;
-	int str_row_len;
-	int section_len = this->non_seq_code_fifo.get_count();
-	while(1) {
-		str_row = non_seq_code_fifo.readline(str_row_len);
-		analysis_info.non_seq_check_ret = non_seq_struct_check(str_row);
-		if(analysis_info.non_seq_check_ret == NONSEQ_KEY_FOR) {
-			
+	int row_line, nesting_level = 0;
+	int section_type;
+	char* row_ptr;
+	varity_info condition_varity;
+	row_line = line_begin;
+	//for(row_line=line_begin; row_line<=line_end; row_line++) {
+		row_ptr = analysis_info.row_info_node[row_line].row_ptr;
+		section_type = non_seq_struct_check(row_ptr);
+		if(section_type == NONSEQ_KEY_FOR) {
+			int bracket_pos = str_find(row_ptr, '(');
+			int semi_pos_1st = str_find(row_ptr + bracket_pos + 1, ';');
+			int semi_pos_2nd = str_find(row_ptr + bracket_pos + semi_pos_1st + 2, ';');
+			int r_bracket_pos = str_find(row_ptr + bracket_pos + semi_pos_1st + semi_pos_2nd + 3, ')');
+			int single_sentence_ret;
+			this->sentence_exec(row_ptr + bracket_pos + 1, semi_pos_1st + 1, true, 0);
+			while(1) {
+				this->sentence_exec(row_ptr + bracket_pos + semi_pos_1st + 2, semi_pos_2nd, false, &condition_varity);
+				int condition_type = condition_varity.get_type();
+				if(condition_type == DOUBLE || condition_type == FLOAT){
+					debug("float cannot become condtion\n");
+					return -1;
+				}
+				if(!condition_varity.is_non_zero())
+					break;
+				for(row_line=line_begin+1; row_line<=line_end; row_line++) {
+					single_sentence_ret = this->sentence_exec(analysis_info.row_info_node[row_line].row_ptr, analysis_info.row_info_node[row_line].row_len, 1, 0);
+					if(single_sentence_ret)
+						return single_sentence_ret;
+				}
+				this->sentence_exec(row_ptr + bracket_pos + semi_pos_1st + semi_pos_2nd + 3, r_bracket_pos, false, 0);
+			}
 		}
-	}
+	//}
+	return 0;
 }
 
-int c_interpreter::sentence_exec(char* str, uint len)
+int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varity_info* expression_value)
 {
 	int i,j;
 	int total_bracket_depth;
-
-	if(str[len-1] != ';') {
+	char ch_last = str[len];
+	int source_len = len;
+	str[source_len] = 0;
+	if(str[0] == '{' || str[0] == '}')
+		return 0;
+	if(str[len-1] != ';' && need_semicolon) {
 		debug("Missing ;\n");
+		str[source_len] = ch_last;
 		return 1;
 	}
 
@@ -321,6 +354,7 @@ int c_interpreter::sentence_exec(char* str, uint len)
 				symbol_begin_pos = i + 1;
 			}
 		}
+		str[source_len] = ch_last;
 		return 0;
 	}
 	strcpy(this->analysis_buf, str);
@@ -354,9 +388,14 @@ int c_interpreter::sentence_exec(char* str, uint len)
 		}
 	}
 	//sub_sentence_analysis(analysis_buf, len-1);
-	len -= 1;
+	if(need_semicolon)
+		len -= 1;
 	sub_sentence_analysis(analysis_buf, &len);
+	if(expression_value != 0) {
+		*expression_value = *(varity_info*)varity_declare->analysis_varity_stack->pop();
+	}
 	this->varity_declare->destroy_analysis_varity();
+	str[source_len] = ch_last;
 	return 0;
 }
 //无括号或仅含类型转换的子句解析

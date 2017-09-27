@@ -213,6 +213,22 @@ void varity_info::reset(void)
 		this->name = 0;
 	}
 }
+
+int varity_info::is_non_zero(void)
+{
+	if(type >= U_LONG_LONG) {
+		if(*(long long*)this->content_ptr)
+			return 1;
+	} else if(type == FLOAT) {
+		if(*(float*)this->content_ptr != 0)
+			return 1;
+	} else if(type == DOUBLE) {
+		if(*(double*)this->content_ptr != 0)
+			return 1;
+	}
+	return 0;
+}
+
 void varity_info::echo(void)
 {
 	if(en_echo) {

@@ -27,6 +27,7 @@ class round_queue: public data_struct {
 	uint wptr;
 	uint rptr;
 public:
+	friend class c_interpreter;
 	round_queue();
 	round_queue(uint, void*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}

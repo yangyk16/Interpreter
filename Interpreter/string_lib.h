@@ -56,4 +56,5 @@ int y_atoi(char* str, int size);
 int y_atoi(char* str);
 double y_atof(char* str, int size);
 double y_atof(char* str);
+int str_find(char* str, char ch);
 #endif

@@ -11,7 +11,7 @@ varity_info c_interpreter::plus_opt(char* str, uint* size_ptr)
 	uint size = *size_ptr;
 	varity_info* finded_varity;
 	int opt_len = 0, opt_type;
-	int symbol_pos_last = 0, symbol_pos_once, symbol_pos_next;
+	int symbol_pos_last = 0, symbol_pos_once;
 	while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
 		int continuous_plus_begin_pos = symbol_pos_last;
 		int symbol_pos_cur = symbol_pos_last + symbol_pos_once + opt_len;
@@ -83,7 +83,7 @@ varity_info c_interpreter::assign_opt(char* str, uint* len_ptr)
 	uint size = *len_ptr;
 	varity_info* finded_varity;
 	int opt_len = 0, opt_type;
-	int symbol_pos_once, symbol_pos_next;
+	int symbol_pos_once;
 	while(size > 0) {
 		symbol_pos_once = search_opt(str, size, 1, &opt_len, &opt_type);
 		int continuous_assign_end_pos = size - 1;
