@@ -96,6 +96,8 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 			analysis_info.reset();
 			return -1;
 		}
+	} else {
+		analysis_info.row_num++;
 	}
 	analysis_info.non_seq_check_ret = non_seq_struct_check(str);
 	if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
@@ -115,6 +117,8 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 						break;
 					}
 				}
+				analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth = analysis_info.non_seq_struct_depth + 1;
+				analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_info = 1;
 				if(analysis_info.non_seq_struct_depth == 0) {
 					if(analysis_info.non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE) {
 						save_sentence(str, len);
@@ -129,15 +133,18 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		} else {
 			if(analysis_info.non_seq_check_ret != NONSEQ_KEY_ELSE && len != 0) {
 				while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0) {
-					analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth--]=0;
+					//Ã»Çåµôtype_stack
+					analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth--] = 0;
 					if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_IF) {
 						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
-						break;
+						//break;
 					} else if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_DO) {
 						analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
 						break;
 					}
 				}
+				analysis_info.row_info_node[analysis_info.row_num - 2].non_seq_depth = analysis_info.non_seq_struct_depth + 1;
+				analysis_info.row_info_node[analysis_info.row_num - 2].non_seq_info = 1;
 			}
 		}
 	} else if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_WHILE) {
@@ -168,7 +175,9 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		}
 	}
 	if(analysis_info.non_seq_check_ret) {
+		analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_info = 0;
 		if(analysis_info.non_seq_check_ret == NONSEQ_KEY_ELSE) {
+			analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_info = 2;
 			if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE || analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] != analysis_info.brace_depth) {
 				debug("else is unmatch with if\n");
 				analysis_info.reset();
@@ -178,11 +187,13 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		}
 		analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] = analysis_info.non_seq_check_ret;
 		analysis_info.non_seq_struct_depth++;
+		analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth = analysis_info.non_seq_struct_depth;
 	}
 	if(len == 0)
 		return 0;
-	if(analysis_info.non_seq_struct_depth)
+	if(analysis_info.non_seq_struct_depth) {
 		save_sentence(str, len);
+	}
 	if(str[0] == '{') {
 		analysis_info.brace_depth++;
 		if(analysis_info.last_non_seq_check_ret) {
@@ -201,6 +212,11 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 						break;
 					}
 				} while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0);
+				analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_info = 1;
+				analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth = analysis_info.non_seq_struct_depth;
+				if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
+					analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth++;
+				}
 				this->analysis_info.nonseq_begin_stack_ptr--;
 				if(analysis_info.non_seq_struct_depth == 0)
 					if(analysis_info.non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
@@ -225,6 +241,11 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 				break;
 			}
 		} while(this->analysis_info.nonseq_begin_bracket_stack[this->analysis_info.non_seq_struct_depth] == 0 && this->analysis_info.non_seq_struct_depth > 0);
+		analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_info = 1;
+		analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth = analysis_info.non_seq_struct_depth;
+		if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
+			analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth++;
+		}
 		if(analysis_info.non_seq_struct_depth == 0) {
 			if(analysis_info.non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
 				return 0;

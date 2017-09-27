@@ -22,14 +22,21 @@ class c_interpreter;
 //typedef varity_info (*opt_calc)(c_interpreter*,char*,uint);
 typedef varity_info (c_interpreter::*opt_calc )(char*, uint*);
 
+typedef struct row_info_relative_nonseq_s {
+	char* row_ptr;
+	uint row_len;
+	int non_seq_depth;
+	int non_seq_info;
+} row_info_struct;
+
 typedef struct analysis_info_struct_s {
 	int brace_depth;
 	int non_seq_struct_depth;
 	int non_seq_check_ret;
 	int last_non_seq_check_ret;
 	int non_seq_exec;
-	//int outer_non_seq_type;
-	//int non_seq_finish_flag;
+	row_info_struct row_info_node[MAX_NON_SEQ_ROW];
+	uint row_num;
 	char* non_seq_begin_addr[10];
 	char nonseq_begin_bracket_stack[MAX_STACK_INDEX];
 	char non_seq_type_stack[MAX_STACK_INDEX];
