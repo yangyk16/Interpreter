@@ -145,6 +145,89 @@ varity_info c_interpreter::assign_opt(char* str, uint* len_ptr)
 	}
 	return ret;
 }
+
+varity_info c_interpreter::relational_opt(char* str, uint* size_ptr)
+{
+	varity_info ret, *tmp_varity = 0;
+	uint size = *size_ptr;
+	varity_info* finded_varity;
+	int opt_len = 0, opt_type, last_opt_type;
+	int symbol_pos_last = 0, symbol_pos_once;
+	while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
+		int continuous_plus_begin_pos = symbol_pos_last;
+		int symbol_pos_cur = symbol_pos_last + symbol_pos_once + opt_len;
+		size -= symbol_pos_once + opt_len;
+		if(opt_type == OPT_BIG || opt_type == OPT_SMALL) {
+			int delta_str_len;
+			char tmp_varity_name[3];
+			this->varity_declare->declare_analysis_varity(0, 0, tmp_varity_name, &tmp_varity);
+			char name_buf[32];
+			memcpy(name_buf, str + symbol_pos_last, symbol_pos_once);
+			name_buf[symbol_pos_once] = 0;
+			int tmp_varity_type = check_symbol(name_buf, symbol_pos_once);
+			if(tmp_varity_type == 0) {
+				finded_varity = (varity_info*)this->varity_declare->analysis_varity_stack->find(name_buf);
+				if(!finded_varity)
+					finded_varity = (varity_info*)this->varity_declare->global_varity_stack->find(name_buf);
+				if(!finded_varity) {
+					debug("varity \"%s\" doesn't exist\n", name_buf);
+					return ret;
+				}
+				*tmp_varity = *finded_varity;
+			} else if(tmp_varity_type == 1) {
+				*tmp_varity = y_atof(name_buf);
+			} else if(tmp_varity_type == 2) {
+				*tmp_varity = y_atoi(name_buf);
+			}
+			symbol_pos_last += symbol_pos_once + opt_len;
+			last_opt_type = opt_type;
+			while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
+				size -= symbol_pos_once + opt_len;
+				memcpy(name_buf, str + symbol_pos_last, symbol_pos_once);
+				name_buf[symbol_pos_once] = 0;
+				int tmp_varity_type = check_symbol(name_buf, symbol_pos_once);
+				if(tmp_varity_type == 0) {
+					finded_varity = (varity_info*)this->varity_declare->analysis_varity_stack->find(name_buf);
+					if(!finded_varity)
+						finded_varity = (varity_info*)this->varity_declare->global_varity_stack->find(name_buf);
+					if(!finded_varity) {
+						debug("varity \"%s\" doesn't exist\n", name_buf);
+						return ret;
+					}
+					if(last_opt_type == OPT_BIG)
+						*tmp_varity = *tmp_varity > *finded_varity;
+					else if(last_opt_type == OPT_SMALL)
+						*tmp_varity = *tmp_varity < *finded_varity;
+				} else if(tmp_varity_type == 1) {
+					varity_info sub_tmp_varity;
+					sub_tmp_varity = y_atof(name_buf);
+					if(last_opt_type == OPT_BIG)
+						*tmp_varity = *tmp_varity > sub_tmp_varity;
+					else if(last_opt_type == OPT_SMALL)
+						*tmp_varity = *tmp_varity < sub_tmp_varity;
+				} else if(tmp_varity_type == 2) {
+					varity_info sub_tmp_varity;
+					sub_tmp_varity = y_atoi(name_buf);
+					if(last_opt_type == OPT_BIG)
+						*tmp_varity = *tmp_varity > sub_tmp_varity;
+					else if(last_opt_type == OPT_SMALL)
+						*tmp_varity = *tmp_varity < sub_tmp_varity;
+				}
+				symbol_pos_last += symbol_pos_once + opt_len;
+				if(opt_type != OPT_BIG && opt_type != OPT_SMALL)
+					break;
+			}
+			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
+			*size_ptr += delta_str_len;
+			symbol_pos_last += delta_str_len;
+			tmp_varity->echo();
+		} else {
+			symbol_pos_last += symbol_pos_once + opt_len;
+		}
+	}
+	return ret;
+}
+
 /*varity_info c_interpreter::assign_opt(char* str, uint* len_ptr)
 {
 	varity_info ret;

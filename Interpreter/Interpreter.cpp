@@ -76,8 +76,9 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare)
 	this->non_seq_code_fifo.set_element_size(1);
 	this->analysis_info.nonseq_begin_stack_ptr = 0;
 	this->global_flag = 1;
-	this->c_opt_caculate_func_list[0]=&c_interpreter::plus_opt;
-	this->c_opt_caculate_func_list[1]=&c_interpreter::assign_opt;
+	this->c_opt_caculate_func_list[3]=&c_interpreter::plus_opt;
+	this->c_opt_caculate_func_list[5]=&c_interpreter::relational_opt;
+	this->c_opt_caculate_func_list[13]=&c_interpreter::assign_opt;
 }
 
 int c_interpreter::save_sentence(char* str, uint len)
@@ -98,11 +99,12 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 			analysis_info.reset();
 			return -1;
 		}
-	} else {
+	}
+	analysis_info.non_seq_check_ret = non_seq_struct_check(str);
+	if(len && (analysis_info.non_seq_check_ret || analysis_info.non_seq_struct_depth)) {
 		this->save_sentence(str, len);
 		analysis_info.row_num++;
 	}
-	analysis_info.non_seq_check_ret = non_seq_struct_check(str);
 	if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
 		if(analysis_info.brace_depth == 0) {
 			if(len != 0 && analysis_info.non_seq_check_ret != NONSEQ_KEY_ELSE) {
@@ -132,6 +134,8 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 						return 0;
 					}
 				}
+			} else { //analysis_info.non_seq_check_ret == NONSEQ_KEY_ELSE
+				analysis_info.row_info_node[analysis_info.row_num - 2].non_seq_info = 3;
 			}
 		} else {
 			if(analysis_info.non_seq_check_ret != NONSEQ_KEY_ELSE && len != 0) {
@@ -149,6 +153,8 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 				}
 				analysis_info.row_info_node[analysis_info.row_num - 2].non_seq_depth = analysis_info.non_seq_struct_depth + 1;
 				analysis_info.row_info_node[analysis_info.row_num - 2].non_seq_info = 1;
+			} else if(analysis_info.non_seq_check_ret == NONSEQ_KEY_ELSE) {
+				analysis_info.row_info_node[analysis_info.row_num - 2].non_seq_info = 3;
 			}
 		}
 	} else if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_WHILE) {
@@ -219,7 +225,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 				analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_info = 1;
 				analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth = analysis_info.non_seq_struct_depth + 1;
 				if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
-					analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth++;
+					//analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth++;
 				}
 				this->analysis_info.nonseq_begin_stack_ptr--;
 				if(analysis_info.non_seq_struct_depth == 0)
@@ -248,7 +254,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_info = 1;
 		analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth = analysis_info.non_seq_struct_depth + 1;
 		if(analysis_info.non_seq_type_stack[analysis_info.non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
-			analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth++;
+			//analysis_info.row_info_node[analysis_info.row_num - 1].non_seq_depth++;
 		}
 		if(analysis_info.non_seq_struct_depth == 0) {
 			if(analysis_info.non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
@@ -273,6 +279,29 @@ sentence_exec:
 	return 0;
 }
 
+int c_interpreter::nesting_nonseq_section_exec(int& line_begin, int& line_end)
+{
+	int single_sentence_ret;
+	int row_line;
+	for(row_line=line_begin+1; row_line<=line_end; row_line++) {
+		if(analysis_info.row_info_node[row_line].non_seq_depth > analysis_info.row_info_node[line_begin].non_seq_depth && analysis_info.row_info_node[row_line].non_seq_info == 0) {
+			int i;
+			for(i=row_line+1; i<=line_end; i++) {
+				if(analysis_info.row_info_node[i].non_seq_depth < analysis_info.row_info_node[row_line].non_seq_depth || analysis_info.row_info_node[i].non_seq_depth == analysis_info.row_info_node[row_line].non_seq_depth && analysis_info.row_info_node[i].non_seq_info == 1) {
+					non_seq_section_exec(row_line, i);
+					break;
+				}
+			}
+			row_line = i;
+			continue;
+		}
+		single_sentence_ret = this->sentence_exec(analysis_info.row_info_node[row_line].row_ptr, analysis_info.row_info_node[row_line].row_len, 1, 0);
+		if(single_sentence_ret)
+			return single_sentence_ret;
+	}
+	return 0;
+}
+
 int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 {
 	int row_line, nesting_level = 0;
@@ -281,32 +310,47 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 	varity_info condition_varity;
 	row_line = line_begin;
 	//for(row_line=line_begin; row_line<=line_end; row_line++) {
-		row_ptr = analysis_info.row_info_node[row_line].row_ptr;
-		section_type = non_seq_struct_check(row_ptr);
-		if(section_type == NONSEQ_KEY_FOR) {
-			int bracket_pos = str_find(row_ptr, '(');
-			int semi_pos_1st = str_find(row_ptr + bracket_pos + 1, ';');
-			int semi_pos_2nd = str_find(row_ptr + bracket_pos + semi_pos_1st + 2, ';');
-			int r_bracket_pos = str_find(row_ptr + bracket_pos + semi_pos_1st + semi_pos_2nd + 3, ')');
-			int single_sentence_ret;
-			this->sentence_exec(row_ptr + bracket_pos + 1, semi_pos_1st + 1, true, 0);
-			while(1) {
-				this->sentence_exec(row_ptr + bracket_pos + semi_pos_1st + 2, semi_pos_2nd, false, &condition_varity);
-				int condition_type = condition_varity.get_type();
-				if(condition_type == DOUBLE || condition_type == FLOAT){
-					debug("float cannot become condtion\n");
-					return -1;
-				}
-				if(!condition_varity.is_non_zero())
-					break;
-				for(row_line=line_begin+1; row_line<=line_end; row_line++) {
-					single_sentence_ret = this->sentence_exec(analysis_info.row_info_node[row_line].row_ptr, analysis_info.row_info_node[row_line].row_len, 1, 0);
-					if(single_sentence_ret)
-						return single_sentence_ret;
-				}
-				this->sentence_exec(row_ptr + bracket_pos + semi_pos_1st + semi_pos_2nd + 3, r_bracket_pos, false, 0);
+	row_ptr = analysis_info.row_info_node[row_line].row_ptr;
+	section_type = non_seq_struct_check(row_ptr);
+	if(section_type == NONSEQ_KEY_FOR) {
+		int bracket_pos = str_find(row_ptr, '(');
+		int semi_pos_1st = str_find(row_ptr + bracket_pos + 1, ';');
+		int semi_pos_2nd = str_find(row_ptr + bracket_pos + semi_pos_1st + 2, ';');
+		int r_bracket_pos = str_find(row_ptr + bracket_pos + semi_pos_1st + semi_pos_2nd + 3, ')');
+		int single_sentence_ret;
+		int block_ret;
+		this->sentence_exec(row_ptr + bracket_pos + 1, semi_pos_1st + 1, true, 0);
+		while(1) {
+			this->sentence_exec(row_ptr + bracket_pos + semi_pos_1st + 2, semi_pos_2nd, false, &condition_varity);
+			int condition_type = condition_varity.get_type();
+			if(condition_type == DOUBLE || condition_type == FLOAT){
+				debug("float cannot become condtion\n");
+				return -1;
 			}
+			if(!condition_varity.is_non_zero())
+				break;
+			block_ret = nesting_nonseq_section_exec(line_begin, line_end);
+			if(block_ret)
+				return block_ret;
+			/*for(row_line=line_begin+1; row_line<=line_end; row_line++) {
+				if(analysis_info.row_info_node[row_line].non_seq_depth > analysis_info.row_info_node[line_begin].non_seq_depth && analysis_info.row_info_node[row_line].non_seq_info == 0) {
+					int i;
+					for(i=row_line+1; i<=line_end; i++) {
+						if(analysis_info.row_info_node[i].non_seq_depth < analysis_info.row_info_node[row_line].non_seq_depth || analysis_info.row_info_node[i].non_seq_depth == analysis_info.row_info_node[row_line].non_seq_depth && analysis_info.row_info_node[i].non_seq_info == 1) {
+							non_seq_section_exec(row_line, i);
+							break;
+						}
+					}
+					row_line = i;
+					continue;
+				}
+				single_sentence_ret = this->sentence_exec(analysis_info.row_info_node[row_line].row_ptr, analysis_info.row_info_node[row_line].row_len, 1, 0);
+				if(single_sentence_ret)
+					return single_sentence_ret;
+			}*/
+			this->sentence_exec(row_ptr + bracket_pos + semi_pos_1st + semi_pos_2nd + 3, r_bracket_pos, false, 0);
 		}
+	}
 	//}
 	return 0;
 }
@@ -387,7 +431,6 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 			}
 		}
 	}
-	//sub_sentence_analysis(analysis_buf, len-1);
 	if(need_semicolon)
 		len -= 1;
 	sub_sentence_analysis(analysis_buf, &len);

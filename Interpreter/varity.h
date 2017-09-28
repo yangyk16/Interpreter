@@ -47,8 +47,11 @@ public:
 	varity_info& operator=(unsigned long long);
 	varity_info& operator=(float);
 	varity_info& operator=(double);
-	void create_from_c_varity(void*, int);
 	friend varity_info& operator+(varity_info&, varity_info&);
+	friend varity_info& operator>(varity_info&, varity_info&);
+	friend varity_info& operator<(varity_info&, varity_info&);
+	operator varity_info();
+	void create_from_c_varity(void*, int);
 	int apply_space(void);
 	void* get_content_ptr(void){return content_ptr;}
 	uint get_size(void){return size;}

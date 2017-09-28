@@ -48,3 +48,101 @@ varity_info& operator+(varity_info& obj1, varity_info& obj2)
 	}
 	return ret;
 }
+
+varity_info& operator>(varity_info& obj1, varity_info& obj2)
+{
+	static varity_info ret;
+	ret.reset();
+	ret.type = INT;
+	ret.size = sizeof_type[ret.type];
+	ret.apply_space();
+	if(obj1.type == obj2.type) {
+		if(ret.type == U_LONG || ret.type == LONG || ret.type == U_INT || ret.type == INT) {
+			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) > *(int*)(obj2.content_ptr);
+		} else if(ret.type == U_SHORT || ret.type == SHORT) {
+			*(int*)(ret.content_ptr) = *(short*)(obj1.content_ptr) > *(short*)(obj2.content_ptr);
+		} else if(ret.type == U_CHAR || ret.type == CHAR) {
+			*(int*)(ret.content_ptr) = *(char*)(obj1.content_ptr) > *(char*)(obj2.content_ptr);
+		} else if(ret.type = DOUBLE) {
+			*(int*)(ret.content_ptr) = *(double*)(obj1.content_ptr) > *(double*)(obj2.content_ptr);
+		} else if(ret.type == FLOAT) {
+			*(int*)(ret.content_ptr) = *(float*)(obj1.content_ptr) > *(float*)(obj2.content_ptr);
+		}
+	} else {//TODO：obj1,obj2都可能被转为obja，导致比较方向错误。重写。
+		varity_info obja, objb;
+		int mintype = min(obj1.type, obj2.type);
+		obja = obj1.type==mintype?obj1:obj2;
+		objb = obj1.type==mintype?obj2:obj1;
+		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) {
+			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) > *(int*)(obj2.content_ptr);
+		} else if(mintype == U_SHORT || mintype == SHORT) {
+			*(int*)(ret.content_ptr) = *(short*)(obj1.content_ptr) > *(short*)(obj2.content_ptr);
+		} else if(mintype == U_CHAR) {
+			*(int*)(ret.content_ptr) = *(char*)(obj1.content_ptr) > *(char*)(obj2.content_ptr);
+		} else if(mintype == DOUBLE) {
+			if(objb.type == LONG || objb.type == INT || objb.type == SHORT || objb.type == CHAR) {
+				*(int*)(ret.content_ptr) = *(double*)(obja.content_ptr) > (double)(*(int*)(objb.content_ptr));
+			} else if(objb.type == U_LONG || objb.type == U_INT || objb.type == U_SHORT || objb.type == U_CHAR) {
+				*(int*)(ret.content_ptr) = *(double*)(obja.content_ptr) > (double)(*(uint*)(objb.content_ptr));
+			} else if(objb.type == FLOAT) {
+				*(int*)(ret.content_ptr) = *(double*)(obja.content_ptr) > (double)(*(float*)(objb.content_ptr));
+			}
+		} else if(mintype == FLOAT) {
+			if(objb.type == LONG || objb.type == INT || objb.type == SHORT || objb.type == CHAR) {
+				*(int*)(ret.content_ptr) = *(float*)(obja.content_ptr) > (float)(*(int*)(objb.content_ptr));
+			} else if(objb.type == U_LONG || objb.type == U_INT || objb.type == U_SHORT || objb.type == U_CHAR) {
+				*(int*)(ret.content_ptr) = *(float*)(obja.content_ptr) > (float)(*(uint*)(objb.content_ptr));
+			}
+		}
+	}
+	return ret;
+}
+
+varity_info& operator<(varity_info& obj1, varity_info& obj2)
+{
+	static varity_info ret;
+	ret.reset();
+	ret.type = INT;
+	ret.size = sizeof_type[ret.type];
+	ret.apply_space();
+	if(obj1.type == obj2.type) {
+		if(ret.type == U_LONG || ret.type == LONG || ret.type == U_INT || ret.type == INT) {
+			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) < *(int*)(obj2.content_ptr);
+		} else if(ret.type == U_SHORT || ret.type == SHORT) {
+			*(int*)(ret.content_ptr) = *(short*)(obj1.content_ptr) < *(short*)(obj2.content_ptr);
+		} else if(ret.type == U_CHAR || ret.type == CHAR) {
+			*(int*)(ret.content_ptr) = *(char*)(obj1.content_ptr) < *(char*)(obj2.content_ptr);
+		} else if(ret.type = DOUBLE) {
+			*(int*)(ret.content_ptr) = *(double*)(obj1.content_ptr) < *(double*)(obj2.content_ptr);
+		} else if(ret.type == FLOAT) {
+			*(int*)(ret.content_ptr) = *(float*)(obj1.content_ptr) < *(float*)(obj2.content_ptr);
+		}
+	} else {//TODO：obj1,obj2都可能被转为obja，导致比较方向错误。重写。
+		varity_info obja, objb;
+		int mintype = min(obj1.type, obj2.type);
+		obja = obj1.type==mintype?obj1:obj2;
+		objb = obj1.type==mintype?obj2:obj1;
+		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) {
+			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) > *(int*)(obj2.content_ptr);
+		} else if(mintype == U_SHORT || mintype == SHORT) {
+			*(int*)(ret.content_ptr) = *(short*)(obj1.content_ptr) > *(short*)(obj2.content_ptr);
+		} else if(mintype == U_CHAR) {
+			*(int*)(ret.content_ptr) = *(char*)(obj1.content_ptr) > *(char*)(obj2.content_ptr);
+		} else if(mintype == DOUBLE) {
+			if(objb.type == LONG || objb.type == INT || objb.type == SHORT || objb.type == CHAR) {
+				*(int*)(ret.content_ptr) = *(double*)(obja.content_ptr) > (double)(*(int*)(objb.content_ptr));
+			} else if(objb.type == U_LONG || objb.type == U_INT || objb.type == U_SHORT || objb.type == U_CHAR) {
+				*(int*)(ret.content_ptr) = *(double*)(obja.content_ptr) > (double)(*(uint*)(objb.content_ptr));
+			} else if(objb.type == FLOAT) {
+				*(int*)(ret.content_ptr) = *(double*)(obja.content_ptr) > (double)(*(float*)(objb.content_ptr));
+			}
+		} else if(mintype == FLOAT) {
+			if(objb.type == LONG || objb.type == INT || objb.type == SHORT || objb.type == CHAR) {
+				*(int*)(ret.content_ptr) = *(float*)(obja.content_ptr) > (float)(*(int*)(objb.content_ptr));
+			} else if(objb.type == U_LONG || objb.type == U_INT || objb.type == U_SHORT || objb.type == U_CHAR) {
+				*(int*)(ret.content_ptr) = *(float*)(obja.content_ptr) > (float)(*(uint*)(objb.content_ptr));
+			}
+		}
+	}
+	return ret;
+}

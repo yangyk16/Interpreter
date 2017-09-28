@@ -73,11 +73,13 @@ class c_interpreter: public interpreter {
 	int sub_sentence_analysis(char*, uint* size);
 	int sentence_exec(char*, uint, bool, varity_info*);
 	int non_seq_section_exec(int, int);
+	int nesting_nonseq_section_exec(int&, int&);
 	virtual int sentence_analysis(char*, uint);
 	virtual int pre_treat(void);
 
 	varity_info assign_opt(char* str, uint* len);
 	varity_info plus_opt(char* str, uint* size);
+	varity_info relational_opt(char* str, uint* size);
 	opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT];
 public:
 	c_interpreter(terminal*, varity*);
