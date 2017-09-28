@@ -185,14 +185,24 @@ double y_atof(char* str, int size)
 	return ret;
 }
 
-int str_find(char* str, char ch)
+int str_find(char* str, char ch, int direction)
 {
 	int i = 0;
-	while(str[i]) {
-		if(str[i] == ch) {
-			return i;
-		} else
+	if(direction == 0)
+		while(str[i]) {
+			if(str[i] == ch) {
+				return i;
+			} else
+				i++;
+		}
+	else {
+		int ret;
+		while(str[i]) {
+			if(str[i] == ch)
+				ret = i;
 			i++;
+		}
+		return ret;
 	}
 	return -1;
 }

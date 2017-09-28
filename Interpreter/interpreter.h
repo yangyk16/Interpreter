@@ -73,7 +73,7 @@ class c_interpreter: public interpreter {
 	int sub_sentence_analysis(char*, uint* size);
 	int sentence_exec(char*, uint, bool, varity_info*);
 	int non_seq_section_exec(int, int);
-	int nesting_nonseq_section_exec(int&, int&);
+	int nesting_nonseq_section_exec(int, int);
 	virtual int sentence_analysis(char*, uint);
 	virtual int pre_treat(void);
 

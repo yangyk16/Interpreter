@@ -25,6 +25,8 @@ void stack::push(void* eptr)
 
 void* stack::pop(void)
 {
+	if(count == 0)
+		return NULL;
 	this->top -= this->element_size;
 	this->count--;
 	return (void*)&((char*)(this->bottom_addr))[this->top];

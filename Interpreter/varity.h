@@ -6,6 +6,9 @@
 #include "data_struct.h"
 
 #define TMP_VAIRTY_PREFIX 0x02 //STX
+#define PRODUCED_DECLARE	1
+#define PRODUCED_ANALIES	2
+#define PRODUCED_ALL		3
 
 #if PLATFORM_WORD_LEN == 4
 #define U_INT 6
@@ -73,6 +76,7 @@ public:
 	stack* global_varity_stack;
 	stack* analysis_varity_stack;
 	indexed_stack* local_varity_stack;
+	int find(char*, int);
 	int declare(int scope_flag, char* name, int type, uint size);
 	int declare_analysis_varity(int type, uint size, char*, varity_info**);
 	int destroy_analysis_varity(void);

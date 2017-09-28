@@ -278,6 +278,15 @@ int varity::declare(int scope_flag, char* name, int type, uint size)
 	return 0;
 }
 
+int varity::find(char* name, int scope)
+{
+	if(scope & PRODUCED_ANALIES) {
+
+	} else if(scope == PRODUCED_DECLARE) {
+
+	}
+}
+
 int varity::declare_analysis_varity(int type, uint size, char* ret_name, varity_info** varity_ptr)
 {
 	int ret;
