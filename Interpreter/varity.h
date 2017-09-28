@@ -76,7 +76,7 @@ public:
 	stack* global_varity_stack;
 	stack* analysis_varity_stack;
 	indexed_stack* local_varity_stack;
-	int find(char*, int);
+	varity_info* find(char*, int);
 	int declare(int scope_flag, char* name, int type, uint size);
 	int declare_analysis_varity(int type, uint size, char*, varity_info**);
 	int destroy_analysis_varity(void);

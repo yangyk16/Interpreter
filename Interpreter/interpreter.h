@@ -71,6 +71,7 @@ class c_interpreter: public interpreter {
 	int save_sentence(char*, uint);
 	int non_seq_struct_check(char* str);
 	int sub_sentence_analysis(char*, uint* size);
+	int key_word_analysis(char*, uint);
 	int sentence_exec(char*, uint, bool, varity_info*);
 	int non_seq_section_exec(int, int);
 	int nesting_nonseq_section_exec(int, int);

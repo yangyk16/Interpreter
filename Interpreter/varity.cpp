@@ -278,13 +278,24 @@ int varity::declare(int scope_flag, char* name, int type, uint size)
 	return 0;
 }
 
-int varity::find(char* name, int scope)
+varity_info* varity::find(char* name, int scope)
 {
+	varity_info* ret = NULL;
 	if(scope & PRODUCED_ANALIES) {
-
-	} else if(scope == PRODUCED_DECLARE) {
-
+		ret = (varity_info*)this->analysis_varity_stack->find(name);
+		if(ret)
+			return ret;
 	}
+	if(scope & PRODUCED_DECLARE) {
+		ret = (varity_info*)this->local_varity_stack->find(name);
+		if(ret)
+			return ret;
+		else
+			ret = (varity_info*)this->global_varity_stack->find(name);
+		if(ret)
+			return ret;
+	}
+	return ret;
 }
 
 int varity::declare_analysis_varity(int type, uint size, char* ret_name, varity_info** varity_ptr)

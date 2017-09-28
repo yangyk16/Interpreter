@@ -363,6 +363,49 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 	return 0;
 }
 
+int c_interpreter::key_word_analysis(char* str, uint len)
+{
+	int is_varity_declare;
+	is_varity_declare = optcmp(str);
+	if(is_varity_declare >= 0) {
+		int keylen = strlen(type_key[is_varity_declare]);
+		int symbol_begin_pos;
+		len = remove_char(str + keylen + 1, ' ') + keylen + 1;
+		for(int i=keylen+1, symbol_begin_pos=(str[keylen]==' '?i:i-1); i<len; i++) {
+			if(str[i] == ',' || str[i] == ';') {
+				int ptr_level = 0;
+				char varity_name[32];
+				int count = 1;
+				for(int j=symbol_begin_pos; str[j]=='*'; j++)
+					ptr_level++;
+				symbol_begin_pos += ptr_level;
+				int symbol_end_pos = str_find(str + symbol_begin_pos, '[');
+				if(symbol_end_pos >= 0) {
+					int rbrace_pos = str_find(str + symbol_begin_pos, ']');
+					memcpy(varity_name, str + symbol_begin_pos, symbol_end_pos);
+					varity_name[symbol_end_pos] = 0;	
+					count = y_atoi(str + symbol_begin_pos + symbol_end_pos + 1, rbrace_pos - symbol_end_pos - 1);
+				} else {
+					memcpy(varity_name, str + symbol_begin_pos, i - symbol_begin_pos);
+					varity_name[i - symbol_begin_pos] = 0;	
+				}
+				if(this->global_flag) {
+					int ret;
+					if(ptr_level)
+						ret = this->varity_declare->declare(0, varity_name, is_varity_declare + ptr_level * 12, PLATFORM_WORD_LEN * count);
+					else
+						ret = this->varity_declare->declare(0, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * count);
+				} else {
+
+				}
+				symbol_begin_pos = i + 1;
+			}
+		}
+		return 1;
+	}
+	return 0;
+}
+
 int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varity_info* expression_value)
 {
 	int i,j;
@@ -378,38 +421,12 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 		return 1;
 	}
 
-	int is_varity_declare;
-	is_varity_declare = optcmp(str);
-	if(is_varity_declare >= 0) {
-		int keylen = strlen(type_key[is_varity_declare]);
-		int symbol_begin_pos;
-		len = remove_char(str + keylen + 1, ' ') + keylen + 1;
-		for(i=keylen+1, symbol_begin_pos=(str[keylen]==' '?i:i-1); i<len; i++) {
-			if(str[i] == ',' || str[i] == ';') {
-				int ptr_level = 0;
-				char varity_name[32];
-				for(j=symbol_begin_pos; str[j]=='*'; j++)
-					ptr_level++;
-				symbol_begin_pos += ptr_level;
-				memcpy(varity_name, str + symbol_begin_pos, i - symbol_begin_pos);
-				varity_name[i - symbol_begin_pos] = 0;
-				
-				if(this->global_flag) {
-					int ret;
-					if(ptr_level)
-						ret = this->varity_declare->declare(0, varity_name, is_varity_declare + ptr_level * 12, PLATFORM_WORD_LEN);
-					else
-						ret = this->varity_declare->declare(0, varity_name, is_varity_declare, sizeof_type[is_varity_declare]);
-				} else {
-
-				}
-				symbol_begin_pos = i + 1;
-			}
-		}
+	strcpy(this->analysis_buf, str);
+	int key_word_ret = key_word_analysis(this->analysis_buf, len);
+	if(key_word_ret) {
 		str[source_len] = ch_last;
 		return 0;
 	}
-	strcpy(this->analysis_buf, str);
 	total_bracket_depth = get_bracket_depth(analysis_buf);
 	if(total_bracket_depth < 0)
 		return ERROR_BRACKET_UNMATCH;
@@ -431,9 +448,13 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 					memcpy(sub_analysis_buf, analysis_buf + sub_sentence_begin_pos + 1, sub_sentence_length);
 					sub_analysis_buf[sub_sentence_length] = 0;
 					sub_sentence_analysis(sub_analysis_buf, &sub_sentence_length);
-					sub_replace(analysis_buf, sub_sentence_begin_pos, sub_sentence_end_pos, sub_analysis_buf);
-					len -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
-					j -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
+					if(analysis_buf[j] == ')') {
+						sub_replace(analysis_buf, sub_sentence_begin_pos, sub_sentence_end_pos, sub_analysis_buf);
+						len -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
+						j -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
+					} else {
+
+					}
 				}
 				current_depth--;
 			}
@@ -445,7 +466,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	if(expression_value != 0) {
 		varity_info* ret_varity_ptr = (varity_info*)varity_declare->analysis_varity_stack->pop();
 		if(ret_varity_ptr == NULL)
-			ret_varity_ptr = (varity_info*)this->varity_declare->analysis_varity_stack->find(analysis_buf);
+			ret_varity_ptr = (varity_info*)this->varity_declare->find(analysis_buf, PRODUCED_DECLARE);
 		if(ret_varity_ptr == NULL)
 			return 1;
 		*expression_value = *ret_varity_ptr;
@@ -454,10 +475,9 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	str[source_len] = ch_last;
 	return 0;
 }
-//无括号或仅含类型转换的子句解析
-int c_interpreter::sub_sentence_analysis(char* str, uint *len)
+
+int c_interpreter::sub_sentence_analysis(char* str, uint *len)//无括号或仅含类型转换的子句解析
 {
-	//运算符用循环调用15个函数分级解释
 	int i;
 	for(i=0; i<C_OPT_PRIO_COUNT; i++)
 		if(this->c_opt_caculate_func_list[i])
