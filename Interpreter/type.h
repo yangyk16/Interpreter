@@ -6,4 +6,5 @@
 #define uchar unsigned char
 #define ushort unsigned short
 
+#define MAX_INT 2147483647
 #endif

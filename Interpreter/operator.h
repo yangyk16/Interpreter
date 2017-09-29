@@ -1,7 +1,6 @@
 #pragma once
 #ifndef OPERATOR_H
 #define OPERATOR_H
-#include "varity.h"
 
 #define OPT_ASL_ASSIGN			0
 #define OPT_ASR_ASSIGN			1
@@ -45,8 +44,5 @@
 #define OPT_ASSIGN				40
 #define OPT_COMMA				41
 #define OPT_EDGE				42
-
-varity_info plus_opt(char*, uint);
-varity_info assign_opt(char* str, uint size);
 
 #endif

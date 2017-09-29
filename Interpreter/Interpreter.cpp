@@ -453,7 +453,16 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 						len -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
 						j -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
 					} else {
-
+						int opt_len, opt_type, varity_begin_pos;
+						uint ret_len;
+						char ret_str[4];
+						analysis_buf[sub_sentence_begin_pos] = 0;
+						varity_begin_pos = search_opt(analysis_buf, sub_sentence_begin_pos, 1, &opt_len, &opt_type) + opt_len;
+						//len = sub_sentence_end_pos - varity_begin_pos + 1;
+						this->bracket_opt(analysis_buf + varity_begin_pos, sub_analysis_buf, ret_str, &ret_len);
+						sub_replace(analysis_buf, varity_begin_pos, sub_sentence_end_pos, ret_str);
+						len -= sub_sentence_end_pos - varity_begin_pos + 1 - ret_len;
+						j -= sub_sentence_end_pos - varity_begin_pos + 1 - ret_len;
 					}
 				}
 				current_depth--;

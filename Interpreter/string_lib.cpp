@@ -133,7 +133,7 @@ int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 int check_symbol(char* str, int size)
 {
 	int ret = 2;
-	for(int i=0; i<size; i++)
+	for(int i=0; i<size && str[i]; i++)
 		if(str[i] == '.')
 			ret = 1;
 		else if((str[i] >'9' || str[i] < '0') && str[i] != '.') {

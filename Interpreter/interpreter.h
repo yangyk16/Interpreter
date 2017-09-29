@@ -20,7 +20,7 @@
 #define C_OPT_PRIO_COUNT		15
 class c_interpreter;
 //typedef varity_info (*opt_calc)(c_interpreter*,char*,uint);
-typedef varity_info (c_interpreter::*opt_calc )(char*, uint*);
+typedef int (c_interpreter::*opt_calc )(char*, uint*);
 
 typedef struct row_info_relative_nonseq_s {
 	char* row_ptr;
@@ -78,9 +78,10 @@ class c_interpreter: public interpreter {
 	virtual int sentence_analysis(char*, uint);
 	virtual int pre_treat(void);
 
-	varity_info assign_opt(char* str, uint* len);
-	varity_info plus_opt(char* str, uint* size);
-	varity_info relational_opt(char* str, uint* size);
+	int assign_opt(char* str, uint* len);
+	int plus_opt(char* str, uint* size);
+	int relational_opt(char* str, uint* size);
+	int bracket_opt(char*, char*, char*, uint*);
 	opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT];
 public:
 	c_interpreter(terminal*, varity*);
