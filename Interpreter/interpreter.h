@@ -67,7 +67,7 @@ class c_interpreter: public interpreter {
 
 	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
 	round_queue non_seq_code_fifo;
-	int global_flag;
+	int varity_global_flag;
 	int save_sentence(char*, uint);
 	int non_seq_struct_check(char* str);
 	int sub_sentence_analysis(char*, uint* size);

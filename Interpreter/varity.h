@@ -7,9 +7,17 @@
 
 #define BASIC_VARITY_TYPE_COUNT	15
 #define TMP_VAIRTY_PREFIX 0x02 //STX
+
 #define PRODUCED_DECLARE	1
 #define PRODUCED_ANALIES	2
 #define PRODUCED_ALL		3
+
+#define VARITY_SCOPE_GLOBAL  	0
+#define VARITY_SCOPE_LOCAL   	1
+#define VARITY_SCOPE_ANALYSIS	2
+
+#define ATTRIBUTE_NORMAL	0
+#define ATTRIBUTE_LINK		1
 
 #if PLATFORM_WORD_LEN == 4
 #define U_INT 8
@@ -40,7 +48,8 @@ protected:
 	void*	content_ptr;
 public:
 	static bool en_echo;
-	static void init_varity(void*, char*, int, uint);
+	static void init_varity(void*, char*, char, uint);
+	void config_varity(char, void* = 0);
 	varity_info();
 	varity_info(char*, int, uint);
 	varity_info& operator=(const varity_info&);
@@ -48,7 +57,7 @@ public:
 	varity_info& operator=(unsigned char);
 	varity_info& operator=(short);
 	varity_info& operator=(unsigned short);
-	varity_info& operator=(int);
+	varity_info& operator=(const int&);
 	varity_info& operator=(unsigned int);
 	varity_info& operator=(long long);
 	varity_info& operator=(unsigned long long);
@@ -61,6 +70,7 @@ public:
 	void create_from_c_varity(void*, int);
 	int apply_space(void);
 	void* get_content_ptr(void){return content_ptr;}
+	void set_content_ptr(void* addr){this->content_ptr = addr;}
 	uint get_size(void){return size;}
 	void reset(void);
 	void echo(void);
@@ -81,14 +91,15 @@ public:
 	stack* analysis_varity_stack;
 	indexed_stack* local_varity_stack;
 	varity_info* find(char*, int);
-	int declare(int scope_flag, char* name, char type, uint size);
-	int declare_analysis_varity(int type, uint size, char*, varity_info**);
+	int declare(int scope_flag, char* name, char type, uint size, char = 0);
+	int declare_analysis_varity(char type, uint size, char*, varity_info**, char = 0);
 	int destroy_analysis_varity(void);
+	int destroy_local_varity_cur_depth(void);
 	int undeclare();
 };
 
 void* vmalloc(unsigned int size);
 
-extern const char type_key[13][19];
-extern const char sizeof_type[13];
+extern const char type_key[15][19];
+extern const char sizeof_type[15];
 #endif

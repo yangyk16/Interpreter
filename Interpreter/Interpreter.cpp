@@ -75,7 +75,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare)
 	this->non_seq_code_fifo.set_length(sizeof(this->non_seq_tmp_buf));
 	this->non_seq_code_fifo.set_element_size(1);
 	this->analysis_info.nonseq_begin_stack_ptr = 0;
-	this->global_flag = 1;
+	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 	this->c_opt_caculate_func_list[3]=&c_interpreter::plus_opt;
 	this->c_opt_caculate_func_list[5]=&c_interpreter::relational_opt;
 	this->c_opt_caculate_func_list[13]=&c_interpreter::assign_opt;
@@ -302,12 +302,19 @@ int c_interpreter::nesting_nonseq_section_exec(int line_begin, int line_end)
 	return 0;
 }
 
+#define RETURN(x)	this->varity_global_flag = varity_global_flag_backup; \
+	this->varity_declare->destroy_local_varity_cur_depth(); \
+	this->varity_declare->local_varity_stack->dedeep(); \
+	return x
 int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 {
-	int row_line, nesting_level = 0;
+	int varity_global_flag_backup = this->varity_global_flag;
+	int row_line;
 	int section_type;
 	char* row_ptr;
 	varity_info condition_varity;
+	this->varity_global_flag = VARITY_SCOPE_LOCAL;
+	this->varity_declare->local_varity_stack->endeep();
 	row_line = line_begin;
 	row_ptr = analysis_info.row_info_node[row_line].row_ptr;
 	section_type = non_seq_struct_check(row_ptr);
@@ -323,13 +330,14 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 			int condition_type = condition_varity.get_type();
 			if(condition_type == DOUBLE || condition_type == FLOAT){
 				debug("float cannot become condtion\n");
-				return -1;
+				RETURN(-1);
 			}
 			if(!condition_varity.is_non_zero())
 				break;
 			block_ret = nesting_nonseq_section_exec(line_begin, line_end);
-			if(block_ret)
-				return block_ret;
+			if(block_ret) {
+				RETURN(block_ret);
+			}
 			this->sentence_exec(row_ptr + l_bracket_pos + semi_pos_1st + semi_pos_2nd + 3, r_bracket_pos, false, 0);
 		}
 	} else if(section_type == NONSEQ_KEY_IF) {
@@ -345,23 +353,25 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 		condition_type = condition_varity.get_type();
 		if(condition_type == DOUBLE || condition_type == FLOAT){
 			debug("float cannot become condtion\n");
-			return -1;
+			RETURN(-1);
 		}
 		if(condition_varity.is_non_zero()) {
 			if(else_line < line_end)
 				block_ret = nesting_nonseq_section_exec(line_begin, else_line - 1);
 			else
 				block_ret = nesting_nonseq_section_exec(line_begin, line_end);
-			if(block_ret)
-				return block_ret;
+			if(block_ret) {
+				RETURN(block_ret);
+			}
 		} else {
 			if(else_line < line_end)
 				block_ret = nesting_nonseq_section_exec(else_line, line_end);
 		}
 	}
 	//}
-	return 0;
+	RETURN(0);
 }
+#undef RETURN(x)
 
 int c_interpreter::key_word_analysis(char* str, uint len)
 {
@@ -389,14 +399,18 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					memcpy(varity_name, str + symbol_begin_pos, i - symbol_begin_pos);
 					varity_name[i - symbol_begin_pos] = 0;	
 				}
-				if(this->global_flag) {
+				if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
 					int ret;
 					if(ptr_level)
-						ret = this->varity_declare->declare(0, varity_name, is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT, PLATFORM_WORD_LEN * count);
+						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT, PLATFORM_WORD_LEN * count);
 					else
-						ret = this->varity_declare->declare(0, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * count);
+						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * count);
 				} else {
-
+					int ret;
+					if(ptr_level)
+						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT, PLATFORM_WORD_LEN * count);
+					else
+						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * count);
 				}
 				symbol_begin_pos = i + 1;
 			}
@@ -408,7 +422,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 
 int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varity_info* expression_value)
 {
-	int i,j;
+	int i;
 	int total_bracket_depth;
 	char ch_last = str[len];
 	int source_len = len;

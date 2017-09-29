@@ -257,16 +257,8 @@ int c_interpreter::bracket_opt(char* name, char* sub_sentence, char* ret_str, ui
 			index = y_atoi(sub_sentence);
 		}
 		int ret_type = varity_ptr->get_type();
-		this->varity_declare->declare_analysis_varity(ret_type, sizeof_type[ret_type], ret_str, &ret_varity_ptr);
-		if(ret_type == DOUBLE) {
-			*ret_varity_ptr = *(double*)((uint)varity_ptr->get_content_ptr() + sizeof_type[DOUBLE] * index);
-		} else if(ret_type == FLOAT) {
-			*ret_varity_ptr = *(float*)((uint)varity_ptr->get_content_ptr() + sizeof_type[FLOAT] * index);
-		} else if(ret_type == U_LONG_LONG || ret_type == LONG_LONG) {
-			*ret_varity_ptr = *(long long*)((uint)varity_ptr->get_content_ptr() + sizeof_type[FLOAT] * index);
-		} else {
-			*ret_varity_ptr = *(int*)((uint)varity_ptr->get_content_ptr() + sizeof_type[FLOAT] * index);
-		}
+		this->varity_declare->declare_analysis_varity(ret_type, sizeof_type[ret_type], ret_str, &ret_varity_ptr, 1);
+		ret_varity_ptr->set_content_ptr((char*)varity_ptr->get_content_ptr() + sizeof_type[ret_type] * index);
 	}
 	*ret_len = strlen(ret_str);
 	return 0;
