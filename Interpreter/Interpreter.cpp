@@ -392,7 +392,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 				if(this->global_flag) {
 					int ret;
 					if(ptr_level)
-						ret = this->varity_declare->declare(0, varity_name, is_varity_declare + ptr_level * 12, PLATFORM_WORD_LEN * count);
+						ret = this->varity_declare->declare(0, varity_name, is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT, PLATFORM_WORD_LEN * count);
 					else
 						ret = this->varity_declare->declare(0, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * count);
 				} else {

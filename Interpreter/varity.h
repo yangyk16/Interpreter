@@ -5,33 +5,37 @@
 #include "type.h"
 #include "data_struct.h"
 
+#define BASIC_VARITY_TYPE_COUNT	15
 #define TMP_VAIRTY_PREFIX 0x02 //STX
 #define PRODUCED_DECLARE	1
 #define PRODUCED_ANALIES	2
 #define PRODUCED_ALL		3
 
 #if PLATFORM_WORD_LEN == 4
-#define U_INT 6
-#define LONG 7
+#define U_INT 8
+#define LONG 9
 #elif PLATFORM_WORD_LEN == 8
-#define LONG 6
-#define U_INT 7
+#define LONG 8
+#define U_INT 9
 #endif
-#define VOID 0
-#define DOUBLE 1
-#define FLOAT 2
-#define U_LONG_LONG 3
-#define LONG_LONG 4
-#define U_LONG 5
-#define INT 8
-#define U_SHORT 9
-#define SHORT 10
-#define U_CHAR 11
-#define CHAR 12
+#define EMPTY	0
+#define STRUCT	1
+#define VOID 2
+#define DOUBLE 3
+#define FLOAT 4
+#define U_LONG_LONG 5
+#define LONG_LONG 6
+#define U_LONG 7
+#define INT 10
+#define U_SHORT 11
+#define SHORT 12
+#define U_CHAR 13
+#define CHAR 14
 
 class varity_info:public element {
 protected:
-	int	 	type;
+	char 	type;
+	char	attribute;
 	uint 	size;
 	void*	content_ptr;
 public:
@@ -77,7 +81,7 @@ public:
 	stack* analysis_varity_stack;
 	indexed_stack* local_varity_stack;
 	varity_info* find(char*, int);
-	int declare(int scope_flag, char* name, int type, uint size);
+	int declare(int scope_flag, char* name, char type, uint size);
 	int declare_analysis_varity(int type, uint size, char*, varity_info**);
 	int destroy_analysis_varity(void);
 	int undeclare();

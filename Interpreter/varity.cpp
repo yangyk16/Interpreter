@@ -123,10 +123,16 @@ void varity_info::create_from_c_varity(void* addr, int type)
 varity_info& varity_info::operator=(const varity_info& source)
 {
 	if(!this->size) {
-		type = source.type;
-		size = sizeof_type[type];
-		this->apply_space();
-		memcpy(this->content_ptr, source.content_ptr, size);
+		if(this->attribute == 0) {
+			type = source.type;
+			size = sizeof_type[type];
+			this->apply_space();
+			memcpy(this->content_ptr, source.content_ptr, size);
+		} else if(this->attribute == 1) {
+			type = source.type;
+			size = sizeof_type[type];
+			this->content_ptr = source.content_ptr;
+		}
 	} else {
 		this->convert(source.content_ptr, source.type);
 	}
@@ -186,7 +192,7 @@ varity_info& varity_info::operator=(double source)
 
 int varity_info::apply_space(void)
 {
-	if(this->content_ptr) {
+	if(this->content_ptr && this->attribute != 1) {
 		vfree(this->content_ptr);
 		this->content_ptr = 0;
 	}
@@ -204,7 +210,7 @@ void varity_info::reset(void)
 {
 	this->size = 0;
 	this->type = 0;
-	if(this->content_ptr) {
+	if(this->content_ptr && this->attribute != 1) {
 		vfree(this->content_ptr);
 		this->content_ptr = 0;
 	}
@@ -246,7 +252,7 @@ void varity_info::echo(void)
 	}
 }
 
-int varity::declare(int scope_flag, char* name, int type, uint size)
+int varity::declare(int scope_flag, char* name, char type, uint size)
 {//scope_flag = 0:global; 1: local; 2:analysis_tmp
 	int ret;
 	varity_info* varity_ptr;
