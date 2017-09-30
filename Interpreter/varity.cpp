@@ -251,8 +251,13 @@ int varity::declare(int scope_flag, char* name, char type, uint size, char attri
 	int ret;
 	varity_info* varity_ptr;
 	stack* varity_stack;
-	if(!scope_flag) {
+	if(scope_flag == VARITY_SCOPE_GLOBAL) {
 		if(this->global_varity_stack->find(name)) {
+			debug("declare varity \"%s\" error: varity name duplicated\n", name);
+			return ERROR_VARITY_DUPLICATE;
+		}
+	} else if(scope_flag == VARITY_SCOPE_LOCAL) {
+		if(this->local_varity_stack->find(name)) {
 			debug("declare varity \"%s\" error: varity name duplicated\n", name);
 			return ERROR_VARITY_DUPLICATE;
 		}

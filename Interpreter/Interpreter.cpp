@@ -287,7 +287,7 @@ int c_interpreter::nesting_nonseq_section_exec(int line_begin, int line_end)
 		if(analysis_info.row_info_node[row_line].non_seq_depth > analysis_info.row_info_node[line_begin].non_seq_depth && analysis_info.row_info_node[row_line].non_seq_info == 0) {
 			int i;
 			for(i=row_line+1; i<=line_end; i++) {
-				if(analysis_info.row_info_node[i].non_seq_depth < analysis_info.row_info_node[row_line].non_seq_depth || analysis_info.row_info_node[i].non_seq_depth == analysis_info.row_info_node[row_line].non_seq_depth && analysis_info.row_info_node[i].non_seq_info == 1) {
+				if(analysis_info.row_info_node[i].non_seq_depth < analysis_info.row_info_node[row_line].non_seq_depth && analysis_info.row_info_node[i].non_seq_depth || analysis_info.row_info_node[i].non_seq_depth == analysis_info.row_info_node[row_line].non_seq_depth && analysis_info.row_info_node[i].non_seq_info == 1) {
 					non_seq_section_exec(row_line, i);
 					break;
 				}
@@ -318,6 +318,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 	row_line = line_begin;
 	row_ptr = analysis_info.row_info_node[row_line].row_ptr;
 	section_type = non_seq_struct_check(row_ptr);
+	varity_info::en_echo = 0;
 	if(section_type == NONSEQ_KEY_FOR) {
 		int l_bracket_pos = str_find(row_ptr, '(');
 		int semi_pos_1st = str_find(row_ptr + l_bracket_pos + 1, ';');
@@ -356,6 +357,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 			RETURN(-1);
 		}
 		if(condition_varity.is_non_zero()) {
+			debug("condition 1\n");
 			if(else_line < line_end)
 				block_ret = nesting_nonseq_section_exec(line_begin, else_line - 1);
 			else
@@ -369,6 +371,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 		}
 	}
 	//}
+	varity_info::en_echo = 1;
 	RETURN(0);
 }
 #undef RETURN(x)

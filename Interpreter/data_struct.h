@@ -58,6 +58,8 @@ class indexed_stack: public stack {
 	int current_depth;
 	uint index_table[MAX_STACK_INDEX];
 public:
+	friend class c_interpreter;
+	friend class varity;
 	indexed_stack(int esize, void* base_addr, int capacity);
 	void* get_layer_begin_pos(void) {return (void*)index_table[current_depth];}
 	inline void endeep(void) {index_table[++current_depth] = top;}

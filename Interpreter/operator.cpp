@@ -99,9 +99,7 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 			name_buf[size - symbol_pos_once - opt_len] = 0;
 			int tmp_varity_type = check_symbol(name_buf, size - symbol_pos_once - opt_len);
 			if(tmp_varity_type == 0) {
-				finded_varity = (varity_info*)this->varity_declare->analysis_varity_stack->find(name_buf);
-				if(!finded_varity)
-					finded_varity = (varity_info*)this->varity_declare->global_varity_stack->find(name_buf);
+				finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 				if(!finded_varity) {
 					debug("varity \"%s\" doesn't exist\n", name_buf);
 					return 1;
@@ -120,9 +118,7 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 				name_buf[size - symbol_pos_once - opt_len] = 0;
 				int tmp_varity_type = check_symbol(name_buf, size - symbol_pos_once - opt_len);
 				if(tmp_varity_type == 0) {
-					finded_varity = (varity_info*)this->varity_declare->analysis_varity_stack->find(name_buf);
-					if(!finded_varity)
-						finded_varity = (varity_info*)this->varity_declare->global_varity_stack->find(name_buf);
+					finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 					if(!finded_varity) {
 						debug("varity \"%s\" doesn't exist\n", name_buf);
 						return 1;
