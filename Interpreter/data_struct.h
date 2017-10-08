@@ -51,11 +51,15 @@ public:
 	//inline void set_length(uint len) {this->length = len;}
 	stack();
 	stack(int esize, void* base_addr, int capacity);
+	void init(int, void*, int);
 	void* get_current_ptr(void) {return (char*)this->bottom_addr + top;}
+	void* get_lastest_element(void) {return (char*)get_current_ptr() - this->element_size;}
+	void* visit_element_by_index(int);
 };
 
 class indexed_stack: public stack {
 	int current_depth;
+	int visible_depth;
 	uint index_table[MAX_STACK_INDEX];
 public:
 	friend class c_interpreter;

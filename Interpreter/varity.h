@@ -16,8 +16,9 @@
 #define VARITY_SCOPE_LOCAL   	1
 #define VARITY_SCOPE_ANALYSIS	2
 
-#define ATTRIBUTE_NORMAL	0
-#define ATTRIBUTE_LINK		1
+#define ATTRIBUTE_NORMAL		0
+#define ATTRIBUTE_LINK			(1 << 0)
+#define ATTRIBUTE_TYPE_UNFIXED	(1 << 1)
 
 #if PLATFORM_WORD_LEN == 4
 #define U_INT 8
@@ -40,11 +41,19 @@
 #define U_CHAR 13
 #define CHAR 14
 
-class varity_info:public element {
+class varity_attribute: public element {
 protected:
-	char 	type;
-	char	attribute;
-	uint 	size;
+	char type;
+	char attribute;
+	uint size;
+public:
+	inline uint get_size(void){return this->size;}
+	inline int get_type(void) {return this->type;}
+	static void init(void*, char*, char, char, uint);
+};
+
+class varity_info:public varity_attribute {
+protected:
 	void*	content_ptr;
 public:
 	static bool en_echo;
@@ -64,6 +73,7 @@ public:
 	varity_info& operator=(float);
 	varity_info& operator=(double);
 	friend varity_info& operator+(varity_info&, varity_info&);
+	friend varity_info& operator*(varity_info&, varity_info&);
 	friend varity_info& operator>(varity_info&, varity_info&);
 	friend varity_info& operator<(varity_info&, varity_info&);
 	operator varity_info();
@@ -71,12 +81,10 @@ public:
 	int apply_space(void);
 	void* get_content_ptr(void){return content_ptr;}
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
-	uint get_size(void){return size;}
 	void reset(void);
 	void echo(void);
 	void convert(void*,int);
 	void set_echo(bool enable) {en_echo = enable;}
-	inline int get_type(void) {return this->type;}
 	int is_non_zero(void);
 	~varity_info(){this->reset();}
 };
@@ -102,4 +110,5 @@ void* vmalloc(unsigned int size);
 
 extern const char type_key[15][19];
 extern const char sizeof_type[15];
+extern const char type_len[15];
 #endif

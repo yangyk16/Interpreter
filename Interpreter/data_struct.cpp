@@ -7,7 +7,7 @@ stack::stack()
 	this->top = 0;
 }
 
-stack::stack(int esize, void* base_addr, int capacity)
+void stack::init(int esize, void* base_addr, int capacity)
 {
 	stack();
 	this->element_size = esize;
@@ -16,8 +16,16 @@ stack::stack(int esize, void* base_addr, int capacity)
 	memset(this->bottom_addr, 0, this->length * this->element_size);
 }
 
+stack::stack(int esize, void* base_addr, int capacity)
+{
+	stack();
+	this->init(esize, base_addr, capacity);
+}
+
 void stack::push(void* eptr)
 {
+	if(this->is_full())
+		return;
 	memcpy((char*)this->bottom_addr + this->top, eptr, this->element_size);
 	this->top += this->element_size;
 	this->count++;
@@ -41,6 +49,11 @@ void* stack::find(char* name)
 			return (char*)this->bottom_addr + i * this->element_size;
 	}
 	return NULL;
+}
+
+void* stack::visit_element_by_index(int index)
+{
+	return (char*)this->bottom_addr + index * this->element_size;
 }
 
 indexed_stack::indexed_stack(int esize, void* base_addr, int capacity)

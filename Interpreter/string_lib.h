@@ -57,4 +57,7 @@ int y_atoi(char* str);
 double y_atof(char* str, int size);
 double y_atof(char* str);
 int str_find(char* str, char ch, int direction = 0);
+int str_find(char* str, int len, char ch, int direction = 0);
+int key_match(char* str, int size, int* type);
+int strequ(char* str1, char* str2, int len);
 #endif

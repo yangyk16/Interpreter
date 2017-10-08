@@ -8,18 +8,21 @@
 #if PLATFORM_WORD_LEN == 4
 const char type_key[15][19] = {"empty", "struct", "void", "double", "float", "unsigned long long", "long long", "unsigned long", "unsigned int", "long", "int", "unsigned short", "short", "unsigned char", "char"};
 const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 4, 4, 4, 4, 2, 2, 1, 1};
+const char type_len[] = {5, 6, 4, 6, 5, 18, 9, 13, 12, 4, 3, 14, 5, 13, 4};
 #elif PLATFORM_WORD_LEN == 8
-const char type_key[15][19] = {"void", "double", "float", "unsigned long long", "long long", "unsigned long", "long", "unsigned int", "int", "unsigned short", "short", "unsigned char", "char"};
-const char sizeof_type[] = {0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};
+const char type_key[15][19] = {"empty", "struct", "void", "double", "float", "unsigned long long", "long long", "unsigned long", "long", "unsigned int", "int", "unsigned short", "short", "unsigned char", "char"};
+const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};
+const char type_len[] = {5, 6, 4, 6, 5, 18, 9, 13, 4, 12, 3, 14, 5, 13, 4};
 #endif
 
 bool varity_info::en_echo = 1;
 varity_info::varity_info()
 {
-	this->content_ptr = 0;
-	this->type = 0;
-	this->size = 0;
-	this->name = 0;
+	memset(this, 0, sizeof(*this));
+	//this->content_ptr = 0;
+	//this->type = 0;
+	//this->size = 0;
+	//this->name = 0;
 }
 
 void varity_info::config_varity(char attribute, void* info) {
@@ -30,7 +33,7 @@ void varity_info::init_varity(void* addr, char* name, char type, uint size)
 {
 	varity_info* varity_ptr = (varity_info*)addr;
 	int name_len = strlen(name);
-	varity_ptr->name = (char*)malloc(name_len+1);
+	varity_ptr->name = (char*)vmalloc(name_len+1);
 	strcpy(varity_ptr->name, name);
 	varity_ptr->type = type;
 	varity_ptr->size = size;
@@ -40,10 +43,11 @@ void varity_info::init_varity(void* addr, char* name, char type, uint size)
 varity_info::varity_info(char* name, int type, uint size)
 {
 	int name_len = strlen(name);
-	this->name = (char*)malloc(name_len+1);
+	this->name = (char*)vmalloc(name_len+1);
 	strcpy(this->name, name);
 	this->type = type;
 	this->size = size;
+	this->attribute = 0;
 	this->content_ptr = 0;
 }
 
@@ -284,6 +288,17 @@ int varity::declare(int scope_flag, char* name, char type, uint size, char attri
 	}
 	varity_stack->push();
 	return 0;
+}
+
+void varity_attribute::init(void* addr, char* name, char type, char attribute, uint size)
+{
+	int name_len = strlen(name);
+	varity_attribute* ptr = (varity_attribute*)addr;
+	ptr->type = type;
+	ptr->attribute = attribute;
+	ptr->size = size;
+	ptr->name = (char*)vmalloc(name_len + 1);
+	strcpy(ptr->name, name);
 }
 
 varity_info* varity::find(char* name, int scope)

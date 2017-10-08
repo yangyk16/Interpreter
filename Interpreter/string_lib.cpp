@@ -22,6 +22,27 @@ int optcmp(char* str)
 	return -1;
 }
 
+int key_match(char* str, int size, int* type)
+{
+	int i, j;
+	for(i=0; i<size; i++) {
+		for(j=0; j<sizeof(type_key)/sizeof(*type_key); j++) {
+			if(str[i] == type_key[j][0]) {
+				int k;
+				for(k=1; k<=type_len[j]; k++) {
+					if(str[i + k] != type_key[j][k])
+						break;
+				}
+				if(k == type_len[j] && (str[i + k] == ' ' || str[i + k] == '*')) {
+					*type = j;
+					return i;
+				}
+			}
+		}
+	}
+	return -1;
+}
+
 int nonseq_key_cmp(char* str)
 {
 	int i,j;
@@ -70,7 +91,7 @@ int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 {
 	int i, j;
 	if(!direction) {
-		//direction=1: left->right; direction=0: right->left;
+		//direction=0: left->right; direction=1: right->left;
 		//merge 2 cycles to 1 can save space, but not merge is easily to read.
 		for(i=0; i<size; i++) {
 			for(j=0; j<sizeof(opt_str)/sizeof(*opt_str);j++) {
@@ -132,12 +153,12 @@ int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 
 int check_symbol(char* str, int size)
 {
-	int ret = 2;
+	int ret = OPERAND_INTEGER;
 	for(int i=0; i<size && str[i]; i++)
 		if(str[i] == '.')
-			ret = 1;
+			ret = OPERAND_FLOAT;
 		else if((str[i] >'9' || str[i] < '0') && str[i] != '.') {
-			ret = 0;
+			ret = OPERAND_VARITY;
 			break;
 		}
 	return ret;
@@ -205,4 +226,32 @@ int str_find(char* str, char ch, int direction)
 		return ret;
 	}
 	return -1;
+}
+
+int str_find(char* str, int len, char ch, int direction)
+{
+	int i = 0;
+	if(direction == 0)
+		for(i=0; i<len; i++) {
+			if(str[i] == ch)
+				return i;
+		}
+	else {
+		int ret;
+		for(i=len-1; i>=0; i--) {
+			if(str[i] == ch)
+				return i;
+		}
+	}
+	return -1;
+}
+
+int strequ(char* str1, char* str2, int len)
+{
+	for(int i=0; i<len; i++) {
+		if(str1[i] != str2[i]) {
+			return 1;
+		}
+	}
+	return 0;
 }

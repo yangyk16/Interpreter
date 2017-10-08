@@ -2,6 +2,10 @@
 #ifndef OPERATOR_H
 #define OPERATOR_H
 
+#define OPERAND_VARITY		0
+#define OPERAND_FLOAT		1
+#define OPERAND_INTEGER		2
+
 #define OPT_ASL_ASSIGN			0
 #define OPT_ASR_ASSIGN			1
 #define OPT_PLUS_PLUS			3
@@ -32,7 +36,7 @@
 #define OPT_MUL					28
 #define OPT_BIT_AND				29
 #define OPT_NOT					30
-#define OPT_DIVEDE				31
+#define OPT_DIVIDE				31
 #define OPT_MOD					32
 #define OPT_PLUS				33
 #define OPT_BIG					34
