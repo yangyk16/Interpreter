@@ -3,6 +3,7 @@
 #include "string_lib.h"
 #include "varity.h"
 #include "type.h"
+#include "error.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -30,7 +31,7 @@ int c_interpreter::plus_opt(char* str, uint* size_ptr)
 				finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 				if(!finded_varity) {
 					error("Varity \"%s\" doesn't exist\n", name_buf);
-					return 1;
+					return ERROR_VARITY_NONEXIST;
 				}
 				*tmp_varity = *finded_varity;
 			} else if(tmp_varity_type == OPERAND_FLOAT) {
@@ -48,7 +49,7 @@ int c_interpreter::plus_opt(char* str, uint* size_ptr)
 					finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 					if(!finded_varity) {
 						error("Varity \"%s\" doesn't exist\n", name_buf);
-						return 1;
+						return ERROR_VARITY_NONEXIST;
 					}
 					*tmp_varity = *tmp_varity + *finded_varity;
 				} else if(tmp_varity_type == OPERAND_FLOAT) {
@@ -100,7 +101,7 @@ int c_interpreter::multiply_opt(char* str, uint* size_ptr)
 				finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 				if(!finded_varity) {
 					error("Varity \"%s\" doesn't exist\n", name_buf);
-					return 1;
+					return ERROR_VARITY_NONEXIST;
 				}
 				*tmp_varity = *finded_varity;
 			} else if(tmp_varity_type == OPERAND_FLOAT) {
@@ -118,7 +119,7 @@ int c_interpreter::multiply_opt(char* str, uint* size_ptr)
 					finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 					if(!finded_varity) {
 						error("Varity \"%s\" doesn't exist\n", name_buf);
-						return 1;
+						return ERROR_VARITY_NONEXIST;
 					}
 					*tmp_varity = *tmp_varity * *finded_varity;
 				} else if(tmp_varity_type == OPERAND_FLOAT) {
@@ -170,7 +171,7 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 				finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 				if(!finded_varity) {
 					error("Varity \"%s\" doesn't exist\n", name_buf);
-					return 1;
+					return ERROR_VARITY_NONEXIST;
 				}
 				*tmp_varity = *finded_varity;
 			} else if(tmp_varity_type == OPERAND_FLOAT) {
@@ -189,18 +190,18 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 					finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 					if(!finded_varity) {
 						error("Varity \"%s\" doesn't exist\n", name_buf);
-						return 1;
+						return ERROR_VARITY_NONEXIST;
 					}
 					*finded_varity = *tmp_varity;
 					finded_varity->echo();
 				} else if(tmp_varity_type == OPERAND_FLOAT) {
 					//*tmp_varity = *tmp_varity;
 					error("A constant cannot be assigned\n");
-					return 1;
+					return ERROR_CONST_ASSIGNED;
 				} else if(tmp_varity_type == OPERAND_INTEGER) {
 					//*tmp_varity = *tmp_varity;
 					error("A constant cannot be assigned\n");
-					return 1;
+					return ERROR_CONST_ASSIGNED;
 				}
 				size = symbol_pos_cur + 1;
 				if(opt_type != OPT_ASSIGN && opt_type != OPT_ADD_ASSIGN)
@@ -236,12 +237,10 @@ int c_interpreter::relational_opt(char* str, uint* size_ptr)
 			name_buf[symbol_pos_once] = 0;
 			int tmp_varity_type = check_symbol(name_buf, symbol_pos_once);
 			if(tmp_varity_type == OPERAND_VARITY) {
-				finded_varity = (varity_info*)this->varity_declare->analysis_varity_stack->find(name_buf);
-				if(!finded_varity)
-					finded_varity = (varity_info*)this->varity_declare->global_varity_stack->find(name_buf);
+				finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 				if(!finded_varity) {
 					error("Varity \"%s\" doesn't exist\n", name_buf);
-					return 1;
+					return ERROR_VARITY_NONEXIST;
 				}
 				*tmp_varity = *finded_varity;
 			} else if(tmp_varity_type == OPERAND_FLOAT) {
@@ -257,12 +256,10 @@ int c_interpreter::relational_opt(char* str, uint* size_ptr)
 				name_buf[symbol_pos_once] = 0;
 				int tmp_varity_type = check_symbol(name_buf, symbol_pos_once);
 				if(tmp_varity_type == OPERAND_VARITY) {
-					finded_varity = (varity_info*)this->varity_declare->analysis_varity_stack->find(name_buf);
-					if(!finded_varity)
-						finded_varity = (varity_info*)this->varity_declare->global_varity_stack->find(name_buf);
+					finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 					if(!finded_varity) {
 						error("Varity \"%s\" doesn't exist\n", name_buf);
-						return 1;
+						return ERROR_VARITY_NONEXIST;
 					}
 					if(last_opt_type == OPT_BIG)
 						*tmp_varity = *tmp_varity > *finded_varity;

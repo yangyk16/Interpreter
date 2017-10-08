@@ -360,7 +360,8 @@ int varity::destroy_local_varity_cur_depth(void)
 {
 	varity_info* varity_ptr;
 	varity_info* layer_begin_pos = (varity_info*)this->local_varity_stack->get_layer_begin_pos();
-	while(this->local_varity_stack->get_count() > 0 && (int)(varity_ptr = (varity_info*)this->local_varity_stack->pop()) - (int)layer_begin_pos >= 0) {
+	while(this->local_varity_stack->get_count() > 0 && (int)(varity_ptr = (varity_info*)this->local_varity_stack->get_lastest_element()) - (int)layer_begin_pos >= 0) {
+		this->local_varity_stack->pop();
 		if(varity_ptr)
 			varity_ptr->reset();
 		else {

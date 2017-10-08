@@ -65,7 +65,7 @@ public:
 	friend class c_interpreter;
 	friend class varity;
 	indexed_stack(int esize, void* base_addr, int capacity);
-	void* get_layer_begin_pos(void) {return (void*)index_table[current_depth];}
+	void* get_layer_begin_pos(void) {return (char*)this->bottom_addr + index_table[current_depth];}
 	inline void endeep(void) {index_table[++current_depth] = top;}
 	inline void dedeep(void) {index_table[current_depth--] = 0;}
 };

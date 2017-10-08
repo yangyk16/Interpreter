@@ -361,7 +361,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 	this->analysis_buf_ptr = analysis_buf_ptr_backup; \
 	return x
 int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
-{
+{//TODO: apply memory for non_seq_info(analysis_info_struct).
 	int ret, arg_count;
 	int varity_global_flag_backup = this->varity_global_flag;
 	char* analysis_buf_ptr_backup = this->analysis_buf_ptr;
@@ -393,7 +393,7 @@ int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 	this->function_return_value->init(arg_ptr, "", arg_ptr->get_type(), 0, arg_ptr->get_size());//TODO: check attribute.
 	for(int row_line=2; row_line<called_function_ptr->row_line-1; row_line++) {
 		ret = sentence_analysis(called_function_ptr->row_begin_pos[row_line], called_function_ptr->row_len[row_line]);
-		if(ret) {
+		if(ret < 0) {
 			RETURN(ret);
 		}
 	}
@@ -443,7 +443,7 @@ int c_interpreter::nesting_nonseq_section_exec(int line_begin, int line_end)
 			continue;
 		}
 		single_sentence_ret = this->sentence_exec(analysis_info->row_info_node[row_line].row_ptr, analysis_info->row_info_node[row_line].row_len, 1, 0);
-		if(single_sentence_ret)
+		if(single_sentence_ret < 0)
 			return single_sentence_ret;
 	}
 	return 0;
@@ -483,7 +483,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 			if(!condition_varity.is_non_zero())
 				break;
 			block_ret = nesting_nonseq_section_exec(line_begin, line_end);
-			if(block_ret) {
+			if(block_ret < 0) {
 				error("Non sequence struct exec error!\n");
 				RETURN(block_ret);
 			}
@@ -510,7 +510,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 				block_ret = nesting_nonseq_section_exec(line_begin, else_line - 1);
 			else
 				block_ret = nesting_nonseq_section_exec(line_begin, line_end);
-			if(block_ret) {
+			if(block_ret < 0) {
 				RETURN(block_ret);
 			}
 		} else {
@@ -687,8 +687,11 @@ int c_interpreter::sub_sentence_analysis(char* str, uint *len)//无括号或仅含类型
 {
 	int i;
 	for(i=0; i<C_OPT_PRIO_COUNT; i++)
-		if(this->c_opt_caculate_func_list[i])
-			(this->*c_opt_caculate_func_list[i])(str,len);
+		if(this->c_opt_caculate_func_list[i]) {
+			int ret = (this->*c_opt_caculate_func_list[i])(str,len);
+			if(ret < 0)
+				return ret;
+		}
 	return ERROR_NO;
 }
 
