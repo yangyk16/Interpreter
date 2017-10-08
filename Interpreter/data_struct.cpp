@@ -43,7 +43,7 @@ void* stack::pop(void)
 void* stack::find(char* name)
 {
 	char* element_name;
-	for(int i=0; i<this->count; i++) {
+	for(uint i=0; i<this->count; i++) {
 		element_name = ((element*)((char*)this->bottom_addr + i * this->element_size))->get_name();
 		if(!strcmp(element_name, name))
 			return (char*)this->bottom_addr + i * this->element_size;

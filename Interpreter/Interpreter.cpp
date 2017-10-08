@@ -484,6 +484,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 				break;
 			block_ret = nesting_nonseq_section_exec(line_begin, line_end);
 			if(block_ret) {
+				error("Non sequence struct exec error!\n");
 				RETURN(block_ret);
 			}
 			this->sentence_exec(row_ptr + l_bracket_pos + semi_pos_1st + semi_pos_2nd + 3, r_bracket_pos, false, 0);
@@ -530,7 +531,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 	if(is_varity_declare >= 0) {
 		int keylen = strlen(type_key[is_varity_declare]);
 		len = remove_char(str + keylen + 1, ' ') + keylen + 1;
-		for(int i=keylen+1, symbol_begin_pos=(str[keylen]==' '?i:i-1); i<len; i++) {
+		for(uint i=keylen+1, symbol_begin_pos=(str[keylen]==' '?i:i-1); i<len; i++) {
 			if(str[i] == ',' || str[i] == ';') {
 				int ptr_level = 0;
 				char varity_name[32];
@@ -578,6 +579,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 {
 	int i;
 	int total_bracket_depth;
+	uint analysis_varity_count;
 	char ch_last = str[len];
 	int source_len = len;
 	str[source_len] = 0;
@@ -588,8 +590,8 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 		str[source_len] = ch_last;
 		return ERROR_MISS_SEMICOLON;
 	}
-
 	strcpy(this->analysis_buf_ptr, str);
+	analysis_varity_count = this->varity_declare->analysis_varity_stack->get_count();
 	int key_word_ret = key_word_analysis(this->analysis_buf_ptr, len);
 	if(key_word_ret) {
 		str[source_len] = ch_last;
@@ -602,7 +604,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	char sub_analysis_buf[MAX_SUB_ANA_BUFLEN];
 	for(i=total_bracket_depth; i>0; i--) {
 		int current_depth = 0, sub_sentence_begin_pos, sub_sentence_end_pos;
-		for(int j=0; j<len; j++) {
+		for(uint j=0; j<len; j++) {
 			if(analysis_buf_ptr[j] == '(' || analysis_buf_ptr[j] == '[') {
 				current_depth++;
 				if(current_depth == i)
@@ -675,7 +677,8 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 			*expression_value = y_atoi(analysis_buf_ptr);
 		}
 	}
-	this->varity_declare->destroy_analysis_varity();
+	uint current_analysis_varity_count = this->varity_declare->analysis_varity_stack->get_count();
+	this->varity_declare->destroy_analysis_varity(current_analysis_varity_count - analysis_varity_count);
 	str[source_len] = ch_last;
 	return ERROR_NO;
 }

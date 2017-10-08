@@ -237,7 +237,6 @@ int str_find(char* str, int len, char ch, int direction)
 				return i;
 		}
 	else {
-		int ret;
 		for(i=len-1; i>=0; i--) {
 			if(str[i] == ch)
 				return i;

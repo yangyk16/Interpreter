@@ -102,6 +102,7 @@ public:
 	int declare(int scope_flag, char* name, char type, uint size, char = 0);
 	int declare_analysis_varity(char type, uint size, char*, varity_info**, char = 0);
 	int destroy_analysis_varity(void);
+	int destroy_analysis_varity(int);
 	int destroy_local_varity_cur_depth(void);
 	int undeclare();
 };

@@ -79,32 +79,32 @@ void varity_info::convert(void* addr, int type)
 			}
 		} else if(this->type == FLOAT) {
 			if(type == U_CHAR || type == U_INT || type == U_SHORT || type == U_LONG) {
-				*(float*)(this->content_ptr) = *(uint*)(addr);
+				*(float*)(this->content_ptr) = (float)*(uint*)(addr);
 			} else if(type == CHAR || type == INT || type == SHORT || type == LONG) {
-				*(float*)(this->content_ptr) = *(int*)(addr);
+				*(float*)(this->content_ptr) = (float)*(int*)(addr);
 			}
 		}
 	} else if(this->type > type) {	
 		if(type == DOUBLE) {
-			*(int*)(this->content_ptr) = *(double*)(addr);
+			*(int*)(this->content_ptr) = (int)*(double*)(addr);
 		} else if(type == FLOAT) {
-			*(int*)(this->content_ptr) = *(float*)(addr);
+			*(int*)(this->content_ptr) = (int)*(float*)(addr);
 		} else {
 			*(int*)(this->content_ptr) = *(int*)(addr);
 		}
 	} else if(this->type == U_SHORT || this->type == SHORT) {
 		if(type == DOUBLE) {
-			*(short*)(this->content_ptr) = *(double*)(addr);
+			*(short*)(this->content_ptr) = (short)*(double*)(addr);
 		} else if(type == FLOAT) {
-			*(short*)(this->content_ptr) = *(float*)(addr);
+			*(short*)(this->content_ptr) = (short)*(float*)(addr);
 		} else {
 			*(short*)(this->content_ptr) = *(short*)(addr);
 		}
 	} else if(this->type == U_CHAR || this->type == CHAR) {
 		if(type == DOUBLE) {
-			*(char*)(this->content_ptr) = *(double*)(addr);
+			*(char*)(this->content_ptr) = (char)*(double*)(addr);
 		} else if(type == FLOAT) {
-			*(char*)(this->content_ptr) = *(float*)(addr);
+			*(char*)(this->content_ptr) = (char)*(float*)(addr);
 		} else {
 			*(char*)(this->content_ptr) = *(char*)(addr);
 		}
@@ -210,12 +210,13 @@ void varity_info::reset(void)
 	this->type = 0;
 	if(this->content_ptr && this->attribute != ATTRIBUTE_LINK) {
 		vfree(this->content_ptr);
-		this->content_ptr = 0;
 	}
+	this->content_ptr = 0;
 	if(this->name) {
 		vfree(this->name);
 		this->name = 0;
 	}
+	this->attribute = 0;
 }
 
 int varity_info::is_non_zero(void)
@@ -330,6 +331,17 @@ int varity::declare_analysis_varity(char type, uint size, char* ret_name, varity
 	ret = this->declare(VARITY_SCOPE_ANALYSIS, tmp_varity_name, type, size, attribute);
 	*varity_ptr = (varity_info*)this->analysis_varity_stack->find(ret_name);
 	return ret;
+}
+
+int varity::destroy_analysis_varity(int count)
+{
+	varity_info* varity_ptr;
+	for(int i=0; i<count; i++) {
+		varity_ptr = (varity_info*)this->analysis_varity_stack->pop();
+		varity_ptr->reset();
+	}
+	this->cur_analysis_varity_count -= count;
+	return 0;
 }
 
 int varity::destroy_analysis_varity(void)

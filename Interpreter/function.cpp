@@ -25,7 +25,7 @@ int function_info::save_sentence(char* str, uint len)
 	this->row_begin_pos[row_line] = this->buffer + wptr;
 	this->row_line++;
 	memcpy(this->buffer + wptr, str, len);
-	this->buffer[wptr + len] = '\n';
+	this->buffer[wptr + len] = '\0';//\n
 	wptr += len + 1;
 	return 0;
 }
@@ -37,7 +37,6 @@ function::function(stack* function_stack_ptr)
 
 int function::declare(char* name, stack* arg_list)
 {
-	int ret;
 	function_info* function_node_ptr;
 
 	if(this->function_stack_ptr->find(name)) {
