@@ -84,6 +84,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, analysi
 	this->c_opt_caculate_func_list[2]=&c_interpreter::multiply_opt;
 	this->c_opt_caculate_func_list[3]=&c_interpreter::plus_opt;
 	this->c_opt_caculate_func_list[5]=&c_interpreter::relational_opt;
+	this->c_opt_caculate_func_list[6]=&c_interpreter::equal_opt;
 	this->c_opt_caculate_func_list[13]=&c_interpreter::assign_opt;
 }
 

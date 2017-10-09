@@ -81,6 +81,8 @@ public:
 	friend varity_info& operator<<(varity_info&, varity_info&);
 	friend varity_info& operator>(varity_info&, varity_info&);
 	friend varity_info& operator<(varity_info&, varity_info&);
+	friend varity_info& operator>=(varity_info&, varity_info&);
+	friend varity_info& operator<=(varity_info&, varity_info&);
 	friend varity_info& operator==(varity_info&, varity_info&);
 	friend varity_info& operator!=(varity_info&, varity_info&);
 	operator varity_info();

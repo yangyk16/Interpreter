@@ -1,4 +1,5 @@
 #include "varity.h"
+#include <stdio.h>
 
 #define OPERATOR_OVERLOAD_MACRO(opt) \
 	if(obj1.type == obj2.type) { \
@@ -110,6 +111,27 @@
 					*(int*)(ret.content_ptr) = (float)(*(uint*)(obj1.content_ptr)) opt *(float*)(obj2.content_ptr); \
 				} \
 			} \
+		} \
+	} \
+	return ret
+
+#define OPERATOR_OVERLOAD_MACRO_WITHOUT_FLOAT(opt) \
+	if(obj1.type == obj2.type) { \
+		if(ret.type == U_LONG || ret.type == LONG || ret.type == U_INT || ret.type == INT) { \
+			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) opt *(int*)(obj2.content_ptr); \
+		} else if(ret.type == U_SHORT || ret.type == SHORT) { \
+			*(short*)(ret.content_ptr) = *(short*)(obj1.content_ptr) opt *(short*)(obj2.content_ptr); \
+		} else if(ret.type == U_CHAR || ret.type == CHAR) { \
+			*(char*)(ret.content_ptr) = *(char*)(obj1.content_ptr) opt *(char*)(obj2.content_ptr); \
+		} \
+	} else { \
+		int mintype = min(obj1.type, obj2.type); \
+		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) { \
+			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) opt *(int*)(obj2.content_ptr); \
+		} else if(mintype == U_SHORT || mintype == SHORT) { \
+			*(short*)(ret.content_ptr) = *(short*)(obj1.content_ptr) opt *(short*)(obj2.content_ptr); \
+		} else if(mintype == U_CHAR) { \
+			*(char*)(ret.content_ptr) = *(char*)(obj1.content_ptr) opt *(char*)(obj2.content_ptr); \
 		} \
 	} \
 	return ret
@@ -236,10 +258,15 @@ varity_info& operator%(varity_info& obj1, varity_info& obj2)
 	static varity_info ret;
 	ret.reset();
 	ret.type = min(obj1.type, obj2.type);
+	if(ret.type == FLOAT || ret.type == DOUBLE) {
+		ret.reset();
+		error("float cannot be used in mod operator\n");
+		return ret;
+	}
 	ret.size = sizeof_type[ret.type];
 	ret.apply_space();
+	OPERATOR_OVERLOAD_MACRO_WITHOUT_FLOAT(%);
 	return ret;
-//	OPERATOR_OVERLOAD_MACRO(%);
 }
 
 varity_info& operator>(varity_info& obj1, varity_info& obj2)
@@ -370,22 +397,42 @@ varity_info& operator<(varity_info& obj1, varity_info& obj2)
 	return ret;
 }
 
+varity_info& operator>=(varity_info& obj1, varity_info& obj2)
+{
+	static varity_info ret;
+	ret.reset();
+	ret.type = INT;
+	ret.size = sizeof_type[ret.type];
+	ret.apply_space();
+	OPERATOR_OVERLOAD_MACRO_RET_INT(>=);
+}
+
+varity_info& operator<=(varity_info& obj1, varity_info& obj2)
+{
+	static varity_info ret;
+	ret.reset();
+	ret.type = INT;
+	ret.size = sizeof_type[ret.type];
+	ret.apply_space();
+	OPERATOR_OVERLOAD_MACRO_RET_INT(<=);
+}
+
 varity_info& operator==(varity_info& obj1, varity_info& obj2)
 {
 	static varity_info ret;
 	ret.reset();
-	ret.type = min(obj1.type, obj2.type);
+	ret.type = INT;
 	ret.size = sizeof_type[ret.type];
 	ret.apply_space();
-	OPERATOR_OVERLOAD_MACRO_RET_INT(-);
+	OPERATOR_OVERLOAD_MACRO_RET_INT(==);
 }
 
 varity_info& operator!=(varity_info& obj1, varity_info& obj2)
 {
 	static varity_info ret;
 	ret.reset();
-	ret.type = min(obj1.type, obj2.type);
+	ret.type = INT;
 	ret.size = sizeof_type[ret.type];
 	ret.apply_space();
-	OPERATOR_OVERLOAD_MACRO_RET_INT(-);
+	OPERATOR_OVERLOAD_MACRO_RET_INT(!=);
 }

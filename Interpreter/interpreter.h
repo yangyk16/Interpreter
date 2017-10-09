@@ -95,6 +95,7 @@ class c_interpreter: public interpreter {
 	int plus_opt(char* str, uint* size);
 	int multiply_opt(char* str, uint* size);
 	int relational_opt(char* str, uint* size);
+	int equal_opt(char* str, uint* size);
 	int bracket_opt(char*, char*, char*, uint*);
 	opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT];
 public:
