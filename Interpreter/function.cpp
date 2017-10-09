@@ -40,12 +40,12 @@ int function::declare(char* name, stack* arg_list)
 	function_info* function_node_ptr;
 
 	if(this->function_stack_ptr->find(name)) {
-		debug("declare function \"%s\" error: function name duplicated\n", name);
+		error("declare function \"%s\" error: function name duplicated\n", name);
 		return ERROR_FUNC_DUPLICATE;
 	}
 
 	if(function_stack_ptr->is_full()) {
-		debug("declare function \"%s\" error: varity count reach max\n", name);
+		error("declare function \"%s\" error: varity count reach max\n", name);
 		return ERROR_FUNC_COUNT_MAX;
 	}
 	function_node_ptr = (function_info*)function_stack_ptr->get_current_ptr();

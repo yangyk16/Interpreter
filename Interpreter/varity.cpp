@@ -120,6 +120,10 @@ void varity_info::create_from_c_varity(void* addr, int type)
 		this->apply_space();
 		memcpy(this->content_ptr, addr, size);
 	} else {
+		if(this->attribute & ATTRIBUTE_TYPE_UNFIXED) {
+			this->type = type;
+			this->size = sizeof_type[type];
+		}
 		this->convert(addr, type);
 	}
 }
@@ -132,6 +136,10 @@ varity_info& varity_info::operator=(const varity_info& source)
 		this->apply_space();
 		memcpy(this->content_ptr, source.content_ptr, size);
 	} else {
+		if(this->attribute & ATTRIBUTE_TYPE_UNFIXED) {
+			this->type = source.type;
+			this->size = sizeof_type[this->type];
+		}
 		this->convert(source.content_ptr, source.type);
 	}
 	return *this;
@@ -258,12 +266,12 @@ int varity::declare(int scope_flag, char* name, char type, uint size, char attri
 	stack* varity_stack;
 	if(scope_flag == VARITY_SCOPE_GLOBAL) {
 		if(this->global_varity_stack->find(name)) {
-			debug("declare varity \"%s\" error: varity name duplicated\n", name);
+			error("declare varity \"%s\" error: varity name duplicated\n", name);
 			return ERROR_VARITY_DUPLICATE;
 		}
 	} else if(scope_flag == VARITY_SCOPE_LOCAL) {
 		if(this->local_varity_stack->find(name)) {
-			debug("declare varity \"%s\" error: varity name duplicated\n", name);
+			error("declare varity \"%s\" error: varity name duplicated\n", name);
 			return ERROR_VARITY_DUPLICATE;
 		}
 	}
@@ -274,7 +282,7 @@ int varity::declare(int scope_flag, char* name, char type, uint size, char attri
 	else
 		varity_stack = analysis_varity_stack;
 	if(varity_stack->is_full()) {
-		debug("declare varity \"%s\" error: varity count reach max\n", name);
+		error("declare varity \"%s\" error: varity count reach max\n", name);
 		return ERROR_VARITY_COUNT_MAX;
 	}
 	varity_ptr = (varity_info*)varity_stack->get_current_ptr();
@@ -283,7 +291,7 @@ int varity::declare(int scope_flag, char* name, char type, uint size, char attri
 	if(attribute != ATTRIBUTE_LINK) {
 		ret = varity_ptr->apply_space();
 		if(ret) {
-			debug("declare varity \"%s\" error: space is insufficient\n", name);
+			error("declare varity \"%s\" error: space is insufficient\n", name);
 			return ERROR_VARITY_NOSPACE;
 		}
 	}
@@ -365,7 +373,7 @@ int varity::destroy_local_varity_cur_depth(void)
 		if(varity_ptr)
 			varity_ptr->reset();
 		else {
-			debug("data struct error,varity.cpp: %d\n", __LINE__);
+			error("data struct error,varity.cpp: %d\n", __LINE__);
 			return 1;
 		}
 	}

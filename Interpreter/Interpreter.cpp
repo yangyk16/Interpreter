@@ -359,12 +359,16 @@ int c_interpreter::function_analysis(char* str, uint len)
 	this->varity_declare->destroy_local_varity_cur_depth(); \
 	this->varity_declare->local_varity_stack->dedeep(); \
 	this->analysis_buf_ptr = analysis_buf_ptr_backup; \
+	vfree(this->analysis_info); \
+	this->analysis_info = analysis_info_backup; \
 	return x
 int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
-{//TODO: apply memory for non_seq_info(analysis_info_struct).
+{
 	int ret, arg_count;
 	int varity_global_flag_backup = this->varity_global_flag;
+	analysis_info_struct* analysis_info_backup = this->analysis_info;
 	char* analysis_buf_ptr_backup = this->analysis_buf_ptr;
+	this->analysis_info = (analysis_info_struct*)vmalloc(sizeof(analysis_info_struct));
 	int arg_end_pos = arg_len - 1;
 	varity_info arg_varity;
 	this->varity_global_flag = VARITY_SCOPE_LOCAL;
@@ -586,7 +590,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	if(str[0] == '{' || str[0] == '}')
 		return 0;
 	if(str[len-1] != ';' && need_semicolon) {
-		debug("Missing ;\n");
+		error("Missing ;\n");
 		str[source_len] = ch_last;
 		return ERROR_MISS_SEMICOLON;
 	}
