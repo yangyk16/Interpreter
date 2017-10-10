@@ -87,6 +87,7 @@
     <ClInclude Include="operator.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="string_lib.h" />
+    <ClInclude Include="struct.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="type.h" />
     <ClInclude Include="varity.h" />
@@ -101,6 +102,7 @@
     <ClCompile Include="operator_overloading.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="string_lib.cpp" />
+    <ClCompile Include="struct.cpp" />
     <ClCompile Include="varity.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

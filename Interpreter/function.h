@@ -14,6 +14,7 @@ public:
 	char* analysis_buf;
 	stack* arg_list;
 	int init(char*, stack*);
+	int reset(void);
 	int save_sentence(char* ,uint);
 };
 
@@ -22,7 +23,7 @@ class function {
 	stack* function_stack_ptr;
 public:
 	function(stack*);
-	void* find(char* name) {return this->function_stack_ptr->find(name);}
+	function_info* find(char* name) {return (function_info*)this->function_stack_ptr->find(name);}
 	void current_node_abort(void);
 	int save_sentence(char* ,uint);
 	int declare(char*, stack*);

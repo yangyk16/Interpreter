@@ -14,15 +14,18 @@ stack a_varity_list(sizeof(varity_info), a_varity_node, MAX_A_VARITY_NODE);
 indexed_stack l_varity_list(sizeof(varity_info), l_varity_node, MAX_L_VARITY_NODE);
 stack g_varity_list(sizeof(varity_info), g_varity_node, MAX_G_VARITY_NODE);
 varity c_varity(&g_varity_list, &l_varity_list, &a_varity_list);
-analysis_info_struct analysis_info_s;
+nonseq_info_struct nonseq_info_s;
 function_info function_node[MAX_FUNCTION_NODE];
 stack function_list(sizeof(function_info), function_node, MAX_FUNCTION_NODE);
 function c_function(&function_list);
-c_interpreter myinterpreter(&stdio, &c_varity, &analysis_info_s, &c_function);
+struct_info struct_node[MAX_STRUCT_NODE];
+stack struct_list(sizeof(struct_info), struct_node, MAX_STRUCT_NODE);
+struct_define c_struct(&struct_list);
+c_interpreter myinterpreter(&stdio, &c_varity, &nonseq_info_s, &c_function, &c_struct);
 
-void analysis_info_struct::reset(void)
+void nonseq_info_struct::reset(void)
 {
-	memset(this, 0, sizeof(analysis_info_struct));
+	memset(this, 0, sizeof(nonseq_info_struct));
 }
 
 int c_interpreter::pre_treat(void)
@@ -66,11 +69,11 @@ int c_interpreter::run_interpreter(void)
 	}
 }
 
-c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, analysis_info_struct* analysis_info, function* function_declare)
+c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_info_struct* nonseq_info, function* function_declare, struct_define* struct_declare)
 {
 	this->tty_used = tty_used;
 	this->varity_declare = varity_declare;
-	this->analysis_info = analysis_info;
+	this->nonseq_info = nonseq_info;
 	this->function_declare = function_declare;
 	this->function_return_value = (varity_info*)vmalloc(sizeof(varity_info));
 	this->row_pretreat_fifo.set_base(this->pretreat_buf);
@@ -79,7 +82,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, analysi
 	this->non_seq_code_fifo.set_length(sizeof(this->non_seq_tmp_buf));
 	this->non_seq_code_fifo.set_element_size(1);
 	this->analysis_buf_ptr = this->analysis_buf;
-	this->analysis_info->nonseq_begin_stack_ptr = 0;
+	this->nonseq_info->nonseq_begin_stack_ptr = 0;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 	this->c_opt_caculate_func_list[2]=&c_interpreter::multiply_opt;
 	this->c_opt_caculate_func_list[3]=&c_interpreter::plus_opt;
@@ -90,8 +93,8 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, analysi
 
 int c_interpreter::save_sentence(char* str, uint len)
 {
-	analysis_info->row_info_node[analysis_info->row_num].row_ptr = &non_seq_tmp_buf[non_seq_code_fifo.wptr];
-	analysis_info->row_info_node[analysis_info->row_num].row_len = len;
+	nonseq_info->row_info_node[nonseq_info->row_num].row_ptr = &non_seq_tmp_buf[non_seq_code_fifo.wptr];
+	nonseq_info->row_info_node[nonseq_info->row_num].row_len = len;
 	non_seq_code_fifo.write(str, len);
 	non_seq_code_fifo.write("\n", 1);
 	return 0;
@@ -99,91 +102,91 @@ int c_interpreter::save_sentence(char* str, uint len)
 
 int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 {
-	analysis_info->last_non_seq_check_ret = analysis_info->non_seq_check_ret;
+	nonseq_info->last_non_seq_check_ret = nonseq_info->non_seq_check_ret;
 	if(len == 0) {
-		if(analysis_info->non_seq_struct_depth && analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE) {
+		if(nonseq_info->non_seq_struct_depth && nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE) {
 			error("blank shouldn't appear here.\n");
-			analysis_info->reset();
+			nonseq_info->reset();
 			return ERROR_NONSEQ_GRAMMER;
 		}
 	}
-	analysis_info->non_seq_check_ret = non_seq_struct_check(str);
-	if(len && (analysis_info->non_seq_check_ret || analysis_info->non_seq_struct_depth)) {
+	nonseq_info->non_seq_check_ret = non_seq_struct_check(str);
+	if(len && (nonseq_info->non_seq_check_ret || nonseq_info->non_seq_struct_depth)) {
 		this->save_sentence(str, len);
-		analysis_info->row_num++;
+		nonseq_info->row_num++;
 	}
-	if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
-		if(analysis_info->brace_depth == 0) {
-			if(len != 0 && analysis_info->non_seq_check_ret != NONSEQ_KEY_ELSE) {
+	if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
+		if(nonseq_info->brace_depth == 0) {
+			if(len != 0 && nonseq_info->non_seq_check_ret != NONSEQ_KEY_ELSE) {
 				error("if is unmatch with else or blank\n");
-				analysis_info->reset();
+				nonseq_info->reset();
 				return ERROR_NONSEQ_GRAMMER;
 			} else if(len == 0) {
-				while(this->analysis_info->nonseq_begin_bracket_stack[this->analysis_info->non_seq_struct_depth] == 0 && this->analysis_info->non_seq_struct_depth > 0) {
-					analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth--]=0;
-					if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
-						analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+				while(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == 0 && this->nonseq_info->non_seq_struct_depth > 0) {
+					nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth--]=0;
+					if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
+						nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
 						//break;
-					} else if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_DO) {
-						analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
+					} else if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_DO) {
+						nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
 						break;
 					}
 				}
-				analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_depth = analysis_info->non_seq_struct_depth + 1;
-				analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_info = 1;
-				if(analysis_info->non_seq_struct_depth == 0) {
-					if(analysis_info->non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE) {
+				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
+				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 1;
+				if(nonseq_info->non_seq_struct_depth == 0) {
+					if(nonseq_info->non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE) {
 						//save_sentence(str, len);
-						analysis_info->non_seq_exec = 1;
+						nonseq_info->non_seq_exec = 1;
 						return OK_NONSEQ_FINISH;
 					} else {
 						//save_sentence(str, len);
 						return OK_NONSEQ_INPUTING;
 					}
 				}
-			} else { //analysis_info->non_seq_check_ret == NONSEQ_KEY_ELSE
-				analysis_info->row_info_node[analysis_info->row_num - 2].non_seq_info = 3;
+			} else { //nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE
+				nonseq_info->row_info_node[nonseq_info->row_num - 2].non_seq_info = 3;
 			}
 		} else {
-			if(analysis_info->non_seq_check_ret != NONSEQ_KEY_ELSE && len != 0) {
-				while(this->analysis_info->nonseq_begin_bracket_stack[this->analysis_info->non_seq_struct_depth] == 0 && this->analysis_info->non_seq_struct_depth > 0) {
+			if(nonseq_info->non_seq_check_ret != NONSEQ_KEY_ELSE && len != 0) {
+				while(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == 0 && this->nonseq_info->non_seq_struct_depth > 0) {
 					//没清掉type_stack
-					analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth--] = 0;
-					if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
-						analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = 0;
-						//analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+					nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth--] = 0;
+					if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
+						nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = 0;
+						//nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
 						//break;
-					} else if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_DO) {
-						analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
+					} else if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_DO) {
+						nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
 						break;
 					}
 				}
-				analysis_info->row_info_node[analysis_info->row_num - 2].non_seq_depth = analysis_info->non_seq_struct_depth + 1;
-				analysis_info->row_info_node[analysis_info->row_num - 2].non_seq_info = 1;
-			} else if(analysis_info->non_seq_check_ret == NONSEQ_KEY_ELSE) {
-				analysis_info->row_info_node[analysis_info->row_num - 2].non_seq_info = 3;
+				nonseq_info->row_info_node[nonseq_info->row_num - 2].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
+				nonseq_info->row_info_node[nonseq_info->row_num - 2].non_seq_info = 1;
+			} else if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE) {
+				nonseq_info->row_info_node[nonseq_info->row_num - 2].non_seq_info = 3;
 			}
 		}
-	} else if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_WHILE) {
-		if(analysis_info->non_seq_check_ret != NONSEQ_KEY_WHILE && len != 0) {
+	} else if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_WHILE) {
+		if(nonseq_info->non_seq_check_ret != NONSEQ_KEY_WHILE && len != 0) {
 			error("do is unmatch with while\n");
-			analysis_info->reset();
+			nonseq_info->reset();
 			return ERROR_NONSEQ_GRAMMER;
-		} else if(analysis_info->non_seq_check_ret == NONSEQ_KEY_WHILE) {
-			analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WHILE;
-			while(this->analysis_info->nonseq_begin_bracket_stack[this->analysis_info->non_seq_struct_depth] == 0 && this->analysis_info->non_seq_struct_depth > 0) {
-				analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth--]=0;
-				if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
-					analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+		} else if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_WHILE) {
+			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WHILE;
+			while(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == 0 && this->nonseq_info->non_seq_struct_depth > 0) {
+				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth--]=0;
+				if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
+					nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
 					break;
-				} else if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_DO) {
-					analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
+				} else if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_DO) {
+					nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
 					break;
 				}
 			}
-			if(analysis_info->non_seq_struct_depth == 0 && analysis_info->non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE && analysis_info->non_seq_type_stack[0] != NONSEQ_KEY_WAIT_ELSE) {
+			if(nonseq_info->non_seq_struct_depth == 0 && nonseq_info->non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE && nonseq_info->non_seq_type_stack[0] != NONSEQ_KEY_WAIT_ELSE) {
 				//save_sentence(str, len);
-				analysis_info->non_seq_exec = 1;
+				nonseq_info->non_seq_exec = 1;
 				return OK_NONSEQ_FINISH;
 			} else {
 				//save_sentence(str, len);
@@ -191,86 +194,86 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 			}
 		}
 	}
-	if(analysis_info->non_seq_check_ret) {
-		analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_info = 0;
-		if(analysis_info->non_seq_check_ret == NONSEQ_KEY_ELSE) {
-			analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_info = 2;
-			if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE || analysis_info->nonseq_begin_bracket_stack[this->analysis_info->non_seq_struct_depth] != analysis_info->brace_depth) {
+	if(nonseq_info->non_seq_check_ret) {
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 0;
+		if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE) {
+			nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 2;
+			if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE || nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] != nonseq_info->brace_depth) {
 				error("else is unmatch with if\n");
-				analysis_info->reset();
+				nonseq_info->reset();
 				return ERROR_NONSEQ_GRAMMER;
 			}
-			analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_IF;
+			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_IF;
 		}
-		analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = analysis_info->non_seq_check_ret;
-		analysis_info->non_seq_struct_depth++;
-		analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_depth = analysis_info->non_seq_struct_depth;
+		nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = nonseq_info->non_seq_check_ret;
+		nonseq_info->non_seq_struct_depth++;
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth = nonseq_info->non_seq_struct_depth;
 	}
 	if(len == 0)
 		return OK_NONSEQ_INPUTING;
-	if(analysis_info->non_seq_struct_depth) {
+	if(nonseq_info->non_seq_struct_depth) {
 		//save_sentence(str, len);
 	}
 	if(str[0] == '{') {
-		analysis_info->brace_depth++;
-		if(analysis_info->last_non_seq_check_ret) {
-			this->analysis_info->nonseq_begin_bracket_stack[this->analysis_info->non_seq_struct_depth] = analysis_info->brace_depth;
+		nonseq_info->brace_depth++;
+		if(nonseq_info->last_non_seq_check_ret) {
+			this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] = nonseq_info->brace_depth;
 		}
 	} else if(str[0] == '}') {
-		if(analysis_info->brace_depth > 0) {
-			if(analysis_info->non_seq_struct_depth > 0 && this->analysis_info->nonseq_begin_bracket_stack[this->analysis_info->non_seq_struct_depth] == analysis_info->brace_depth) {
+		if(nonseq_info->brace_depth > 0) {
+			if(nonseq_info->non_seq_struct_depth > 0 && this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == nonseq_info->brace_depth) {
 				do {
-					analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth--]=0;
-					if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
-						analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+					nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth--]=0;
+					if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
+						nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
 						break;
-					} else if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_DO) {
-						analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
+					} else if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_DO) {
+						nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
 						break;
 					}
-				} while(this->analysis_info->nonseq_begin_bracket_stack[this->analysis_info->non_seq_struct_depth] == 0 && this->analysis_info->non_seq_struct_depth > 0);
-				analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_info = 1;
-				analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_depth = analysis_info->non_seq_struct_depth + 1;
-				if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
-					//analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_depth++;
+				} while(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == 0 && this->nonseq_info->non_seq_struct_depth > 0);
+				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 1;
+				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
+				if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
+					//nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth++;
 				}
-				this->analysis_info->nonseq_begin_stack_ptr--;
-				if(analysis_info->non_seq_struct_depth == 0)
-					if(analysis_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
-					} else if(analysis_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_WHILE) {
+				this->nonseq_info->nonseq_begin_stack_ptr--;
+				if(nonseq_info->non_seq_struct_depth == 0)
+					if(nonseq_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
+					} else if(nonseq_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_WHILE) {
 					} else {
-						analysis_info->non_seq_exec = 1;
+						nonseq_info->non_seq_exec = 1;
 					}
 			}
-			analysis_info->brace_depth--;
+			nonseq_info->brace_depth--;
 		} else {
 			error("there is no { to match\n");
 			return ERROR_NONSEQ_GRAMMER;
 		}
 	}
-	if(analysis_info->last_non_seq_check_ret && analysis_info->non_seq_struct_depth && str[len-1] == ';') {// && analysis_info->brace_depth == 0
+	if(nonseq_info->last_non_seq_check_ret && nonseq_info->non_seq_struct_depth && str[len-1] == ';') {// && nonseq_info->brace_depth == 0
 		do {
-			analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth--]=0;
-			if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
-				analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
+			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth--]=0;
+			if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
+				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_ELSE;
 				break;
-			} else if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_DO) {
-				analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
+			} else if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_DO) {
+				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WAIT_WHILE;
 				break;
 			}
-		} while(this->analysis_info->nonseq_begin_bracket_stack[this->analysis_info->non_seq_struct_depth] == 0 && this->analysis_info->non_seq_struct_depth > 0);
-		analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_info = 1;
-		analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_depth = analysis_info->non_seq_struct_depth + 1;
-		if(analysis_info->non_seq_type_stack[analysis_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
-			//analysis_info->row_info_node[analysis_info->row_num - 1].non_seq_depth++;
+		} while(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == 0 && this->nonseq_info->non_seq_struct_depth > 0);
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 1;
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
+		if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
+			//nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth++;
 		}
-		if(analysis_info->non_seq_struct_depth == 0) {
-			if(analysis_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
+		if(nonseq_info->non_seq_struct_depth == 0) {
+			if(nonseq_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
 				return OK_NONSEQ_INPUTING;
-			} else if(analysis_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_WHILE) {
+			} else if(nonseq_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_WHILE) {
 				return OK_NONSEQ_INPUTING;
 			} else {
-				analysis_info->non_seq_exec = 1;
+				nonseq_info->non_seq_exec = 1;
 				return OK_NONSEQ_FINISH;
 			}
 		}
@@ -284,7 +287,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 	if(this->function_flag_set.function_flag) {
 		this->function_declare->save_sentence(str, len);
 		if(this->function_flag_set.function_begin_flag) {
-			if(str[0] != '{' && len != 1) {
+			if(str[0] != '{' || len != 1) {
 				return ERROR_FUNC_ERROR;
 			}
 			this->function_flag_set.function_begin_flag = 0;
@@ -360,23 +363,23 @@ int c_interpreter::function_analysis(char* str, uint len)
 	this->varity_declare->destroy_local_varity_cur_depth(); \
 	this->varity_declare->local_varity_stack->dedeep(); \
 	this->analysis_buf_ptr = analysis_buf_ptr_backup; \
-	vfree(this->analysis_info); \
-	this->analysis_info = analysis_info_backup; \
+	vfree(this->nonseq_info); \
+	this->nonseq_info = nonseq_info_backup; \
 	return x
 int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 {
 	int ret, arg_count;
 	int varity_global_flag_backup = this->varity_global_flag;
-	analysis_info_struct* analysis_info_backup = this->analysis_info;
+	nonseq_info_struct* nonseq_info_backup = this->nonseq_info;
 	char* analysis_buf_ptr_backup = this->analysis_buf_ptr;
-	this->analysis_info = (analysis_info_struct*)vmalloc(sizeof(analysis_info_struct));
+	this->nonseq_info = (nonseq_info_struct*)vmalloc(sizeof(nonseq_info_struct));
 	int arg_end_pos = arg_len - 1;
 	varity_info arg_varity;
 	this->varity_global_flag = VARITY_SCOPE_LOCAL;
 	this->varity_declare->local_varity_stack->visible_depth = this->varity_declare->local_varity_stack->current_depth;
 	this->varity_declare->local_varity_stack->endeep();
 	arg_string[0] = 0;
-	function_info* called_function_ptr = (function_info*)this->function_declare->find(name);
+	function_info* called_function_ptr = this->function_declare->find(name);
 	this->analysis_buf_ptr = called_function_ptr->analysis_buf;
 	arg_string[0] = ',';
 	arg_count = called_function_ptr->arg_list->get_count();
@@ -417,14 +420,14 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		;//return ERROR_NO;
 	else if(ret == ERROR_NONSEQ_GRAMMER)
 		return ret;
-	if(analysis_info->non_seq_exec) {
+	if(nonseq_info->non_seq_exec) {
 		debug("exec non seq struct\n");
-		analysis_info->non_seq_exec = 0;
-		ret = this->non_seq_section_exec(0, analysis_info->row_num - 1);
-		analysis_info->reset();
+		nonseq_info->non_seq_exec = 0;
+		ret = this->non_seq_section_exec(0, nonseq_info->row_num - 1);
+		nonseq_info->reset();
 		return ret;//avoid continue to exec single sentence.
 	}
-	if(!analysis_info->non_seq_struct_depth && str[0] != '}') {
+	if(!nonseq_info->non_seq_struct_depth && str[0] != '}') {
 		ret = sentence_exec(str, len, true, NULL);
 		return ret;
 	}
@@ -436,10 +439,10 @@ int c_interpreter::nesting_nonseq_section_exec(int line_begin, int line_end)
 	int single_sentence_ret;
 	int row_line;
 	for(row_line=line_begin+1; row_line<=line_end; row_line++) {
-		if(analysis_info->row_info_node[row_line].non_seq_depth > analysis_info->row_info_node[line_begin].non_seq_depth && analysis_info->row_info_node[row_line].non_seq_info == 0) {
+		if(nonseq_info->row_info_node[row_line].non_seq_depth > nonseq_info->row_info_node[line_begin].non_seq_depth && nonseq_info->row_info_node[row_line].non_seq_info == 0) {
 			int i;
 			for(i=row_line+1; i<=line_end; i++) {
-				if(analysis_info->row_info_node[i].non_seq_depth < analysis_info->row_info_node[row_line].non_seq_depth && analysis_info->row_info_node[i].non_seq_depth || analysis_info->row_info_node[i].non_seq_depth == analysis_info->row_info_node[row_line].non_seq_depth && analysis_info->row_info_node[i].non_seq_info == 1) {
+				if(nonseq_info->row_info_node[i].non_seq_depth < nonseq_info->row_info_node[row_line].non_seq_depth && nonseq_info->row_info_node[i].non_seq_depth || nonseq_info->row_info_node[i].non_seq_depth == nonseq_info->row_info_node[row_line].non_seq_depth && nonseq_info->row_info_node[i].non_seq_info == 1) {
 					non_seq_section_exec(row_line, i);
 					break;
 				}
@@ -447,7 +450,7 @@ int c_interpreter::nesting_nonseq_section_exec(int line_begin, int line_end)
 			row_line = i;
 			continue;
 		}
-		single_sentence_ret = this->sentence_exec(analysis_info->row_info_node[row_line].row_ptr, analysis_info->row_info_node[row_line].row_len, 1, 0);
+		single_sentence_ret = this->sentence_exec(nonseq_info->row_info_node[row_line].row_ptr, nonseq_info->row_info_node[row_line].row_len, 1, 0);
 		if(single_sentence_ret < 0)
 			return single_sentence_ret;
 	}
@@ -468,7 +471,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 	this->varity_global_flag = VARITY_SCOPE_LOCAL;
 	this->varity_declare->local_varity_stack->endeep();
 	row_line = line_begin;
-	row_ptr = analysis_info->row_info_node[row_line].row_ptr;
+	row_ptr = nonseq_info->row_info_node[row_line].row_ptr;
 	section_type = non_seq_struct_check(row_ptr);
 	varity_info::en_echo = 0;
 	if(section_type == NONSEQ_KEY_FOR) {
@@ -501,7 +504,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 		int condition_type;
 		int block_ret;
 		for(else_line=line_begin+1; else_line<line_end; else_line++)
-			if(analysis_info->row_info_node[else_line].non_seq_info == 2 && analysis_info->row_info_node[else_line].non_seq_depth == analysis_info->row_info_node[line_begin].non_seq_depth)
+			if(nonseq_info->row_info_node[else_line].non_seq_info == 2 && nonseq_info->row_info_node[else_line].non_seq_depth == nonseq_info->row_info_node[line_begin].non_seq_depth)
 				break;
 		this->sentence_exec(row_ptr + l_bracket_pos + 1, r_bracket_pos - l_bracket_pos - 1, false, &condition_varity);
 		condition_type = condition_varity.get_type();
@@ -528,6 +531,66 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 	RETURN(0);
 }
 #undef RETURN(x)
+
+int c_interpreter::struct_analysis(char* str, uint len)
+{
+	int is_varity_declare = optcmp(str);
+	if(this->struct_info_set.declare_flag) {
+		if(this->struct_info_set.struct_begin_flag) {
+			struct_info_set.struct_begin_flag = 0;
+			if(str[0] != '{' || len != 1) {
+				struct_info_set.declare_flag = 0;
+				error("struct definition error\n");
+				return ERROR_STRUCT_ERROR;
+			}
+		} else {
+			if(str[0] == '}') {
+				struct_info_set.declare_flag = 0;
+				int total_line = this->struct_declare->current_node->row_line;
+				stack *arg_list = this->struct_declare->current_node->arg_list;
+				int varity_type, varity_name_begin_pos, ptr_level, key_len;
+				for(int row_line=0; row_line<total_line; row_line++) {
+					varity_type = optcmp(this->struct_declare->current_node->row_begin_pos[row_line]);
+					key_len = strlen(type_key[varity_type]);
+					varity_name_begin_pos = key_len + (str[key_len] == ' ' ? 1 : 0); 
+					for(int j=varity_name_begin_pos; str[j]=='*'; j++)
+						ptr_level++;
+					varity_name_begin_pos += ptr_level;
+
+				}
+				//重写reset，一次保留name，stack，二次全部reset。
+				//vfree(this->struct_declare->current_node);
+			} else {
+				this->struct_declare->save_sentence(str, len);
+				return OK_STRUCT_INPUTING;
+			}
+		}
+	}
+	if(is_varity_declare == STRUCT) {
+		int space_count = char_count(str + 6, ' ');
+		if(space_count == 1) {//1:define 2+:declare
+			int symbol_begin_pos, ptr_level = 0;
+			int keylen = strlen(type_key[is_varity_declare]);
+			stack* arg_stack;
+			char struct_name[32];
+			this->struct_info_set.declare_flag = 1;
+			this->struct_info_set.struct_begin_flag = 1;
+			int i = keylen + 1;
+			symbol_begin_pos = i;
+			for(int j=symbol_begin_pos; str[j]=='*'; j++)
+				ptr_level++;
+			symbol_begin_pos += ptr_level;
+			memcpy(struct_name, str + symbol_begin_pos, len - symbol_begin_pos);
+			struct_name[len - symbol_begin_pos] = 0;
+			varity_attribute* arg_node_ptr = (varity_attribute*)vmalloc(sizeof(varity_attribute) * MAX_VARITY_COUNT_IN_STRUCT);
+			arg_stack = (stack*)vmalloc(sizeof(stack));
+			arg_stack->init(sizeof(varity_attribute), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
+			this->struct_declare->declare(struct_name, arg_stack);
+			this->struct_info_set.declare_flag = 1;
+			return OK_STRUCT_INPUTING;
+		}
+	}
+}
 
 int c_interpreter::key_word_analysis(char* str, uint len)
 {
@@ -670,7 +733,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 		int expression_type = check_symbol(analysis_buf_ptr, len);
 		if(expression_type == OPERAND_VARITY) {
 			analysis_buf_ptr[len] = 0;
-			varity_info *ret_varity_ptr = (varity_info*)this->varity_declare->find(analysis_buf_ptr, PRODUCED_ALL);
+			varity_info *ret_varity_ptr = this->varity_declare->find(analysis_buf_ptr, PRODUCED_ALL);
 			if(ret_varity_ptr == NULL) {
 				str[source_len] = ch_last;
 				return ERROR_VARITY_NONEXIST;

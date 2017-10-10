@@ -7,6 +7,7 @@
 #include "config.h"
 #include "varity.h"
 #include "function.h"
+#include "struct.h"
 #include "operator.h"
 
 #define NONSEQ_KEY_IF		1
@@ -30,7 +31,7 @@ typedef struct row_info_relative_nonseq_s {
 	int non_seq_info;
 } row_info_struct;
 
-typedef struct analysis_info_struct_s {
+typedef struct nonseq_info_struct_s {
 	int brace_depth;
 	int non_seq_struct_depth;
 	int non_seq_check_ret;
@@ -43,13 +44,19 @@ typedef struct analysis_info_struct_s {
 	char non_seq_type_stack[MAX_STACK_INDEX];
 	int nonseq_begin_stack_ptr;
 	void reset(void);
-} analysis_info_struct;
+} nonseq_info_struct;
 
 typedef struct function_flag_struct_s {
 	int function_flag;
 	int function_begin_flag;
 	int brace_depth;
 } function_flag_struct;
+
+typedef struct struct_info_s {
+	int declare_flag;
+	int struct_begin_flag;
+	char struct_define_buf[STRUCT_BUF_LEN];
+} struct_info_struct;
 
 class interpreter {
 protected:
@@ -71,8 +78,10 @@ public:
 class c_interpreter: public interpreter {
 	char pretreat_buf[MAX_PRETREAT_BUFLEN];
 	round_queue row_pretreat_fifo;
-	analysis_info_struct* analysis_info;
+	nonseq_info_struct* nonseq_info;
+	struct_info_struct struct_info_set;
 	function_flag_struct function_flag_set;
+	struct_define* struct_declare;
 	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
 	char* analysis_buf_ptr;
 	round_queue non_seq_code_fifo;
@@ -81,6 +90,7 @@ class c_interpreter: public interpreter {
 	int save_sentence(char*, uint);
 	int non_seq_struct_check(char* str);
 	int function_analysis(char*, uint);
+	int struct_analysis(char*, uint);
 	int non_seq_struct_analysis(char*, uint);
 	int sub_sentence_analysis(char*, uint* size);
 	int key_word_analysis(char*, uint);
@@ -99,7 +109,7 @@ class c_interpreter: public interpreter {
 	int bracket_opt(char*, char*, char*, uint*);
 	opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT];
 public:
-	c_interpreter(terminal*, varity*, analysis_info_struct*, function*);
+	c_interpreter(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
 	virtual int run_interpreter(void);
 };
 

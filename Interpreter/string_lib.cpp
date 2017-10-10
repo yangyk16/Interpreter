@@ -254,3 +254,15 @@ int strequ(char* str1, char* str2, int len)
 	}
 	return 0;
 }
+
+int char_count(char* str, char ch)
+{
+	int i = 0;
+	int ret = 0;
+	while(str[i] != 0) {
+		if(str[i++] == ch) {
+			ret++;
+		}
+	}
+	return ret;
+}

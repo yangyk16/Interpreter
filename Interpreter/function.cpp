@@ -19,6 +19,21 @@ int function_info::init(char* name, stack* arg_list)
 	return 0;
 }
 
+int function_info::reset(void)
+{
+	if(this->buffer)
+		vfree(this->buffer);
+	if(this->row_begin_pos)
+		vfree(this->row_begin_pos);
+	if(this->row_len)
+		vfree(this->row_len);
+	if(this->arg_list) {
+		vfree(this->arg_list->visit_element_by_index(0));
+		vfree(this->arg_list);
+	}
+	return 0;
+}
+
 int function_info::save_sentence(char* str, uint len)
 {
 	this->row_len[row_line] = len;
@@ -38,12 +53,10 @@ function::function(stack* function_stack_ptr)
 int function::declare(char* name, stack* arg_list)
 {
 	function_info* function_node_ptr;
-
 	if(this->function_stack_ptr->find(name)) {
 		error("declare function \"%s\" error: function name duplicated\n", name);
 		return ERROR_FUNC_DUPLICATE;
 	}
-
 	if(function_stack_ptr->is_full()) {
 		error("declare function \"%s\" error: varity count reach max\n", name);
 		return ERROR_FUNC_COUNT_MAX;
