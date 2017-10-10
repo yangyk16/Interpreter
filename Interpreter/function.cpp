@@ -21,6 +21,8 @@ int function_info::init(char* name, stack* arg_list)
 
 int function_info::reset(void)
 {
+	if(this->name)
+		vfree(this->name);
 	if(this->buffer)
 		vfree(this->buffer);
 	if(this->row_begin_pos)

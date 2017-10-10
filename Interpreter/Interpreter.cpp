@@ -75,6 +75,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->varity_declare = varity_declare;
 	this->nonseq_info = nonseq_info;
 	this->function_declare = function_declare;
+	this->struct_declare = struct_declare;
 	this->function_return_value = (varity_info*)vmalloc(sizeof(varity_info));
 	this->row_pretreat_fifo.set_base(this->pretreat_buf);
 	this->row_pretreat_fifo.set_length(sizeof(this->pretreat_buf));
@@ -349,7 +350,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 				varity_attribute::init(arg_node_ptr, varity_name, type, 0, sizeof_type[type]);
 				arg_stack->push(arg_node_ptr++);
 			}
-			//释放申请的多余空间
+			//TODO: 释放申请的多余空间
 			this->function_declare->declare(function_name, arg_stack);
 			this->function_declare->save_sentence(str, len);
 			return OK_FUNC_INPUTING;
@@ -412,6 +413,9 @@ int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 int c_interpreter::sentence_analysis(char* str, uint len)
 {
 	int ret;
+	ret = struct_analysis(str, len);
+	if(ret != OK_STRUCT_NOSTRUCT)
+		return ERROR_NO;
 	ret = function_analysis(str, len);
 	if(ret != OK_FUNC_NOFUNC)
 		return ERROR_NO;
@@ -542,26 +546,34 @@ int c_interpreter::struct_analysis(char* str, uint len)
 				struct_info_set.declare_flag = 0;
 				error("struct definition error\n");
 				return ERROR_STRUCT_ERROR;
+			} else {
+				return OK_STRUCT_INPUTING;
 			}
 		} else {
 			if(str[0] == '}') {
 				struct_info_set.declare_flag = 0;
-				int total_line = this->struct_declare->current_node->row_line;
-				stack *arg_list = this->struct_declare->current_node->arg_list;
-				int varity_type, varity_name_begin_pos, ptr_level, key_len;
-				for(int row_line=0; row_line<total_line; row_line++) {
-					varity_type = optcmp(this->struct_declare->current_node->row_begin_pos[row_line]);
-					key_len = strlen(type_key[varity_type]);
-					varity_name_begin_pos = key_len + (str[key_len] == ' ' ? 1 : 0); 
-					for(int j=varity_name_begin_pos; str[j]=='*'; j++)
-						ptr_level++;
-					varity_name_begin_pos += ptr_level;
 
-				}
+				return OK_STRUCT_FINISH;
 				//重写reset，一次保留name，stack，二次全部reset。
 				//vfree(this->struct_declare->current_node);
 			} else {
-				this->struct_declare->save_sentence(str, len);
+				//this->struct_declare->save_sentence(str, len);
+				char varity_name[32];
+				stack *varity_stack_ptr = this->struct_declare->current_node->varity_stack_ptr;
+				int varity_type, varity_name_begin_pos, ptr_level = 0, key_len;
+				//for(int row_line=0; row_line<total_line; row_line++) {
+				varity_type = optcmp(str);
+				key_len = strlen(type_key[varity_type]);
+				varity_name_begin_pos = key_len + (str[key_len] == ' ' ? 1 : 0); 
+				for(int j=varity_name_begin_pos; str[j]=='*'; j++)
+					ptr_level++;
+				varity_name_begin_pos += ptr_level;
+
+				memcpy(varity_name, str + varity_name_begin_pos, len - varity_name_begin_pos + 1);
+				varity_name[len - varity_name_begin_pos - 1] = 0;
+				varity_attribute::init(varity_stack_ptr->get_current_ptr(), varity_name, varity_type, 0, sizeof_type[varity_type]);
+				varity_stack_ptr->push();
+				//}
 				return OK_STRUCT_INPUTING;
 			}
 		}
@@ -586,10 +598,10 @@ int c_interpreter::struct_analysis(char* str, uint len)
 			arg_stack = (stack*)vmalloc(sizeof(stack));
 			arg_stack->init(sizeof(varity_attribute), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
 			this->struct_declare->declare(struct_name, arg_stack);
-			this->struct_info_set.declare_flag = 1;
 			return OK_STRUCT_INPUTING;
 		}
 	}
+	return OK_STRUCT_NOSTRUCT;
 }
 
 int c_interpreter::key_word_analysis(char* str, uint len)
