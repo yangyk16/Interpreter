@@ -16,10 +16,13 @@
 10.1-8 函数声明、调用的实现。error/ok返回值分类。修复operator处理函数中可能导致低优先级运算符replace时丢失的bug。修复局部变量销毁时误销毁的bug。
 10.9 operator重载定义宏，增加部分运算符和处理函数。
 10.10 结构体类定义，声明部分实现。结构体node类使用function node类，即将重写。
+10.11 结构体node类重写。增加while的处理。增加struct内varity偏移量简单计算(packed)。struct型变量声明，使用varity的保留字段作为结构定义指针
 
 变量命名：
 non_：否、非
 seq_：顺序结构
+function_(func_)：函数相关
+struct_：结构体相关
 bracket：括号或中小括号
 brace：大括号
 fifo,buf：缓冲区相关

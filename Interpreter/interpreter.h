@@ -55,7 +55,7 @@ typedef struct function_flag_struct_s {
 typedef struct struct_info_s {
 	int declare_flag;
 	int struct_begin_flag;
-	char struct_define_buf[STRUCT_BUF_LEN];
+	int current_offset;
 } struct_info_struct;
 
 class interpreter {

@@ -58,6 +58,7 @@ protected:
 public:
 	static bool en_echo;
 	static void init_varity(void*, char*, char, uint);
+	void arg_init(char*, char, uint, void*);
 	void config_varity(char, void* = 0);
 	varity_info();
 	varity_info(char*, int, uint);

@@ -29,6 +29,16 @@ void varity_info::config_varity(char attribute, void* info) {
 	this->attribute = attribute;
 }
 
+void varity_info::arg_init(char* name, char type, uint size, void* offset)
+{
+	int name_len = strlen(name);
+	this->name = (char*)malloc(name_len + 1);
+	strcpy(this->name, name);
+	this->type = type;
+	this->size = size;
+	this->content_ptr = offset;
+}
+
 void varity_info::init_varity(void* addr, char* name, char type, uint size)
 {
 	varity_info* varity_ptr = (varity_info*)addr;

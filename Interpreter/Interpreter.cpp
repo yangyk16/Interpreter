@@ -529,6 +529,26 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 			if(else_line < line_end)
 				block_ret = nesting_nonseq_section_exec(else_line, line_end);
 		}
+	} else if(section_type == NONSEQ_KEY_WHILE) {
+		int l_bracket_pos = str_find(row_ptr, '(');
+		int r_bracket_pos = str_find(row_ptr, ')', 1);
+		int condition_type;
+		int block_ret;
+		while(1) {
+			this->sentence_exec(row_ptr + l_bracket_pos + 1, r_bracket_pos - l_bracket_pos - 1, false, &condition_varity);
+			condition_type = condition_varity.get_type();
+			if(condition_type == DOUBLE || condition_type == FLOAT){
+				error("Float cannot become condtion\n");
+				RETURN(ERROR_CONDITION_TYPE);
+			}
+			if(!condition_varity.is_non_zero())
+				break;
+			debug("while condition 1\n");
+			block_ret = nesting_nonseq_section_exec(line_begin, line_end);
+			if(block_ret < 0) {
+				RETURN(block_ret);
+			}
+		}
 	}
 	//}
 	varity_info::en_echo = 1;
@@ -552,7 +572,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 		} else {
 			if(str[0] == '}') {
 				struct_info_set.declare_flag = 0;
-
+				this->struct_declare->current_node->struct_size = this->struct_info_set.current_offset;
 				return OK_STRUCT_FINISH;
 				//重写reset，一次保留name，stack，二次全部reset。
 				//vfree(this->struct_declare->current_node);
@@ -560,6 +580,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 				//this->struct_declare->save_sentence(str, len);
 				char varity_name[32];
 				stack *varity_stack_ptr = this->struct_declare->current_node->varity_stack_ptr;
+				varity_info* new_node_ptr = (varity_info*)varity_stack_ptr->get_current_ptr();
 				int varity_type, varity_name_begin_pos, ptr_level = 0, key_len;
 				//for(int row_line=0; row_line<total_line; row_line++) {
 				varity_type = optcmp(str);
@@ -571,7 +592,8 @@ int c_interpreter::struct_analysis(char* str, uint len)
 
 				memcpy(varity_name, str + varity_name_begin_pos, len - varity_name_begin_pos + 1);
 				varity_name[len - varity_name_begin_pos - 1] = 0;
-				varity_attribute::init(varity_stack_ptr->get_current_ptr(), varity_name, varity_type, 0, sizeof_type[varity_type]);
+				new_node_ptr->arg_init(varity_name, varity_type, sizeof_type[varity_type], (void*)this->struct_info_set.current_offset);
+				this->struct_info_set.current_offset += sizeof_type[varity_type];
 				varity_stack_ptr->push();
 				//}
 				return OK_STRUCT_INPUTING;
@@ -587,6 +609,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 			char struct_name[32];
 			this->struct_info_set.declare_flag = 1;
 			this->struct_info_set.struct_begin_flag = 1;
+			this->struct_info_set.current_offset = 0;
 			int i = keylen + 1;
 			symbol_begin_pos = i;
 			for(int j=symbol_begin_pos; str[j]=='*'; j++)
@@ -594,9 +617,9 @@ int c_interpreter::struct_analysis(char* str, uint len)
 			symbol_begin_pos += ptr_level;
 			memcpy(struct_name, str + symbol_begin_pos, len - symbol_begin_pos);
 			struct_name[len - symbol_begin_pos] = 0;
-			varity_attribute* arg_node_ptr = (varity_attribute*)vmalloc(sizeof(varity_attribute) * MAX_VARITY_COUNT_IN_STRUCT);
+			varity_attribute* arg_node_ptr = (varity_attribute*)vmalloc(sizeof(varity_info) * MAX_VARITY_COUNT_IN_STRUCT);
 			arg_stack = (stack*)vmalloc(sizeof(stack));
-			arg_stack->init(sizeof(varity_attribute), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
+			arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
 			this->struct_declare->declare(struct_name, arg_stack);
 			return OK_STRUCT_INPUTING;
 		}
@@ -608,14 +631,30 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 {
 	int is_varity_declare;
 	is_varity_declare = optcmp(str);
+	char struct_name[32];
+	struct_info* struct_node_ptr;
 	if(is_varity_declare >= 0) {
 		int keylen = strlen(type_key[is_varity_declare]);
-		len = remove_char(str + keylen + 1, ' ') + keylen + 1;
-		for(uint i=keylen+1, symbol_begin_pos=(str[keylen]==' '?i:i-1); i<len; i++) {
+		if(is_varity_declare != STRUCT)
+			len = remove_char(str + keylen + 1, ' ') + keylen + 1;
+		else {//TODO: 处理结构名后接*的情况
+			int space_2nd_pos = str_find(str + keylen + 1, len - keylen - 1, ' ') + keylen + 1;
+			memcpy(struct_name, str + keylen + 1, space_2nd_pos - keylen - 1);
+			struct_name[space_2nd_pos - keylen - 1] = 0;
+			struct_node_ptr = this->struct_declare->find(struct_name);
+			if(!struct_node_ptr) {
+				error("There is no struct called %s.\n", struct_name);
+				return ERROR_STRUCT_NONEXIST;
+			}
+			len = remove_char(str + space_2nd_pos + 1, ' ') + space_2nd_pos + 1;
+			keylen = space_2nd_pos;
+		}
+		for(uint i=keylen+1, symbol_begin_pos=(str[i-1]==' '?i:i-1); i<len; i++) {
 			if(str[i] == ',' || str[i] == ';') {
 				int ptr_level = 0;
 				char varity_name[32];
 				int count = 1;
+				varity_info* new_varity_ptr;
 				for(int j=symbol_begin_pos; str[j]=='*'; j++)
 					ptr_level++;
 				symbol_begin_pos += ptr_level;
@@ -629,18 +668,24 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					memcpy(varity_name, str + symbol_begin_pos, i - symbol_begin_pos);
 					varity_name[i - symbol_begin_pos] = 0;	
 				}
+				int ret;
 				if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
-					int ret;
 					if(ptr_level)
 						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT, PLATFORM_WORD_LEN * count);
 					else
 						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * count);
+					new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
 				} else {
-					int ret;
 					if(ptr_level)
 						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT, PLATFORM_WORD_LEN * count);
 					else
 						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * count);
+					new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
+				}
+				if(ret)
+					return ret;
+				if(is_varity_declare == STRUCT) {
+					new_varity_ptr->config_varity(0, struct_node_ptr);
 				}
 				symbol_begin_pos = i + 1;
 			}
