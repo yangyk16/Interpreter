@@ -5,6 +5,7 @@
 #include "function.h"
 #include "config.h"
 #include "type.h"
+#include "varity.h"
 
 #define MAX_VARITY_COUNT_IN_STRUCT (MAX_FUNCTION_LINE - 2)
 
@@ -14,6 +15,7 @@ public:
 	stack* varity_stack_ptr;
 	int init(char*, stack*);
 	int reset(void);
+	varity_info& visit_struct_member(void* struct_content_ptr, varity_info* member_varity_ptr);
 };
 
 class struct_define {

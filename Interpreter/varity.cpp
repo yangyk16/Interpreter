@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "error.h"
+#include "struct.h"
 
 #if PLATFORM_WORD_LEN == 4
 const char type_key[15][19] = {"empty", "struct", "void", "double", "float", "unsigned long long", "long long", "unsigned long", "unsigned int", "long", "int", "unsigned short", "short", "unsigned char", "char"};
@@ -25,8 +26,21 @@ varity_info::varity_info()
 	//this->name = 0;
 }
 
-void varity_info::config_varity(char attribute, void* info) {
-	this->attribute = attribute;
+void varity_info::config_varity(char attribute, void* info_ptr)
+{
+	this->attribute |= attribute;
+	this->comlex_info_ptr = info_ptr;
+}
+
+void varity_info::clear_attribute(char attribute)
+{
+	this->attribute &= ~attribute;
+}
+int varity_info::struct_apply(void)
+{
+	this->size = ((struct_info*)this->comlex_info_ptr)->struct_size;
+	this->apply_space();
+	return 0;
 }
 
 void varity_info::arg_init(char* name, char type, uint size, void* offset)
@@ -37,6 +51,7 @@ void varity_info::arg_init(char* name, char type, uint size, void* offset)
 	this->type = type;
 	this->size = size;
 	this->content_ptr = offset;
+	this->attribute = 0;
 }
 
 void varity_info::init_varity(void* addr, char* name, char type, uint size)
@@ -48,6 +63,7 @@ void varity_info::init_varity(void* addr, char* name, char type, uint size)
 	varity_ptr->type = type;
 	varity_ptr->size = size;
 	varity_ptr->content_ptr = 0;
+	varity_ptr->attribute = 0;
 }
 
 varity_info::varity_info(char* name, int type, uint size)
@@ -140,17 +156,24 @@ void varity_info::create_from_c_varity(void* addr, int type)
 
 varity_info& varity_info::operator=(const varity_info& source)
 {
-	if(!this->size) {
-		type = source.type;
-		size = sizeof_type[type];
-		this->apply_space();
-		memcpy(this->content_ptr, source.content_ptr, size);
+	this->comlex_info_ptr = source.comlex_info_ptr;
+	if(this->attribute & ATTRIBUTE_REFERENCE) {
+		this->type = source.type;
+		this->size = source.size;
+		this->content_ptr = source.content_ptr;
 	} else {
-		if(this->attribute & ATTRIBUTE_TYPE_UNFIXED) {
-			this->type = source.type;
-			this->size = sizeof_type[this->type];
+		if(!this->size) {
+			type = source.type;
+			size = sizeof_type[type];
+			this->apply_space();
+			memcpy(this->content_ptr, source.content_ptr, size);
+		} else {
+			if(this->attribute & ATTRIBUTE_TYPE_UNFIXED) {
+				this->type = source.type;
+				this->size = sizeof_type[this->type];
+			}
+			this->convert(source.content_ptr, source.type);
 		}
-		this->convert(source.content_ptr, source.type);
 	}
 	return *this;
 }
@@ -208,7 +231,7 @@ varity_info& varity_info::operator=(double source)
 
 int varity_info::apply_space(void)
 {
-	if(this->content_ptr && this->attribute != ATTRIBUTE_LINK) {
+	if(this->content_ptr && !(this->attribute & ATTRIBUTE_LINK)) {
 		vfree(this->content_ptr);
 		this->content_ptr = 0;
 	}
@@ -226,7 +249,7 @@ void varity_info::reset(void)
 {
 	this->size = 0;
 	this->type = 0;
-	if(this->content_ptr && this->attribute != ATTRIBUTE_LINK) {
+	if(this->content_ptr && !(this->attribute & ATTRIBUTE_LINK)) {
 		vfree(this->content_ptr);
 	}
 	this->content_ptr = 0;
@@ -255,10 +278,7 @@ int varity_info::is_non_zero(void)
 void varity_info::echo(void)
 {
 	if(en_echo) {
-		varity_info tmp;
 		if(this->type == INT || this->type == LONG || this->type == SHORT || this->type == CHAR || this->type == U_SHORT || this->type == U_CHAR) {
-			tmp.type = INT; tmp.size = sizeof_type[tmp.type]; tmp.apply_space();
-			tmp = *this;
 			debug("%s = %d\n",this->name, *(int*)this->content_ptr);
 		} else if(this->type == U_INT || this->type == U_LONG || this->type == U_SHORT || this->type == U_CHAR)
 			debug("%s = %lu\n",this->name, *(unsigned int*)this->content_ptr);

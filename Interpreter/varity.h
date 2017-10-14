@@ -19,6 +19,10 @@
 #define ATTRIBUTE_NORMAL		0
 #define ATTRIBUTE_LINK			(1 << 0)
 #define ATTRIBUTE_TYPE_UNFIXED	(1 << 1)
+#define ATTRIBUTE_ARRAY			(1 << 2)
+#define ATTRIBUTE_COMPLEX		(1 << 3)
+#define ATTRIBUTE_RIGHT_VALUE	(1 << 4)
+#define ATTRIBUTE_REFERENCE		(1 << 5)
 
 #if PLATFORM_WORD_LEN == 4
 #define U_INT 8
@@ -55,11 +59,13 @@ public:
 class varity_info:public varity_attribute {
 protected:
 	void*	content_ptr;
+	void*	comlex_info_ptr;
 public:
 	static bool en_echo;
 	static void init_varity(void*, char*, char, uint);
 	void arg_init(char*, char, uint, void*);
 	void config_varity(char, void* = 0);
+	void clear_attribute(char);
 	varity_info();
 	varity_info(char*, int, uint);
 	varity_info& operator=(const varity_info&);
@@ -89,8 +95,11 @@ public:
 	operator varity_info();
 	void create_from_c_varity(void*, int);
 	int apply_space(void);
+	int struct_apply(void);
 	void* get_content_ptr(void){return content_ptr;}
+	void* get_complex_ptr(void){return this->comlex_info_ptr;}
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
+	char get_attribute(void){return this->attribute;}
 	void reset(void);
 	void echo(void);
 	void convert(void*,int);

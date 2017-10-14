@@ -8,6 +8,77 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+int c_interpreter::member_opt(char* str, uint* size_ptr)
+{
+	varity_info *tmp_varity = 0, *finded_varity;
+	uint size = *size_ptr;
+	int opt_len = 0, opt_type, last_opt_type;
+	int symbol_pos_last = 0, symbol_pos_once;
+	while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
+		int continuous_plus_begin_pos = symbol_pos_last;
+		int symbol_pos_cur = symbol_pos_last + symbol_pos_once + opt_len;
+		size -= symbol_pos_once + opt_len;
+		if(opt_type == OPT_REFERENCE || opt_type == OPT_MEMBER) {
+			int delta_str_len;
+			char tmp_varity_name[3];
+			this->varity_declare->declare_analysis_varity(0, 0, tmp_varity_name, &tmp_varity);
+			tmp_varity->config_varity(ATTRIBUTE_TYPE_UNFIXED | ATTRIBUTE_REFERENCE | ATTRIBUTE_LINK);
+			char name_buf[32];
+			memcpy(name_buf, str + symbol_pos_last, symbol_pos_once);
+			name_buf[symbol_pos_once] = 0;
+			int tmp_varity_type = check_symbol(name_buf, symbol_pos_once);
+			if(tmp_varity_type == OPERAND_VARITY) {
+				finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
+				if(!finded_varity) {
+					error("Varity \"%s\" doesn't exist\n", name_buf);
+					return ERROR_VARITY_NONEXIST;
+				}
+				*tmp_varity = *finded_varity;
+			} else {
+				error("A constant cannot be used as a operand when using reference operator\n");
+				return ERROR_OPERAND;
+			}
+			symbol_pos_last += symbol_pos_once + opt_len;
+			last_opt_type = opt_type;
+			while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
+				size -= symbol_pos_once + opt_len;
+				memcpy(name_buf, str + symbol_pos_last, symbol_pos_once);
+				name_buf[symbol_pos_once] = 0;
+				int tmp_varity_type = check_symbol(name_buf, symbol_pos_once);
+				if(last_opt_type == OPT_MEMBER || OPT_REFERENCE) {
+					if(tmp_varity_type == OPERAND_MEMBER) {
+						varity_info* member_varity_ptr;
+						struct_info* struct_info_ptr = (struct_info*)tmp_varity->get_complex_ptr();
+						member_varity_ptr = (varity_info*)struct_info_ptr->varity_stack_ptr->find(name_buf);
+						if(last_opt_type == OPT_MEMBER) {
+							*tmp_varity = struct_info_ptr->visit_struct_member(tmp_varity->get_content_ptr(), member_varity_ptr);
+						} else if(last_opt_type == OPT_REFERENCE) {
+							*tmp_varity = struct_info_ptr->visit_struct_member(*(void**)tmp_varity->get_content_ptr(), member_varity_ptr);
+						}
+					} else {
+						error("A constant cannot be used as a operand when using reference operator\n");
+						return ERROR_OPERAND;
+					}
+				}
+				symbol_pos_last += symbol_pos_once + opt_len;
+				if(opt_type != OPT_REFERENCE && opt_type != OPT_MEMBER) {
+					symbol_pos_last -= opt_len;
+					break;
+				}
+				last_opt_type = opt_type;
+			}
+			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
+			*size_ptr += delta_str_len;
+			symbol_pos_last += delta_str_len;
+			tmp_varity->clear_attribute(ATTRIBUTE_REFERENCE | ATTRIBUTE_TYPE_UNFIXED);
+			tmp_varity->echo();
+		} else {
+			symbol_pos_last += symbol_pos_once + opt_len;
+		}
+	}
+	return ERROR_NO;
+}
+
 int c_interpreter::plus_opt(char* str, uint* size_ptr)
 {
 	varity_info ret, *tmp_varity = 0;
@@ -82,12 +153,13 @@ int c_interpreter::plus_opt(char* str, uint* size_ptr)
 			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
 			*size_ptr += delta_str_len;
 			symbol_pos_last += delta_str_len;
+			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
 			tmp_varity->echo();
 		} else {
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}
-	return 0;
+	return ERROR_NO;
 }
 
 int c_interpreter::multiply_opt(char* str, uint* size_ptr)
@@ -165,12 +237,13 @@ int c_interpreter::multiply_opt(char* str, uint* size_ptr)
 			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
 			*size_ptr += delta_str_len;
 			symbol_pos_last += delta_str_len;
+			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
 			tmp_varity->echo();
 		} else {
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}
-	return 0;
+	return ERROR_NO;
 }
 
 int c_interpreter::assign_opt(char* str, uint* len_ptr)
@@ -232,6 +305,7 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 				if(opt_type != OPT_ASSIGN && opt_type != OPT_ADD_ASSIGN)
 					break;
 			}
+			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
 			delta_str_len = sub_replace(str, symbol_pos_once + opt_len, continuous_assign_end_pos, tmp_varity_name);
 			*len_ptr += delta_str_len;
 			size = symbol_pos_cur + 1;
@@ -239,7 +313,7 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 			size = symbol_pos_cur + 1;
 		}
 	}
-	return 0;
+	return ERROR_NO;
 }
 
 int c_interpreter::relational_opt(char* str, uint* size_ptr)
@@ -328,12 +402,13 @@ int c_interpreter::relational_opt(char* str, uint* size_ptr)
 			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
 			*size_ptr += delta_str_len;
 			symbol_pos_last += delta_str_len;
+			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
 			tmp_varity->echo();
 		} else {
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}
-	return 0;
+	return ERROR_NO;
 }
 
 int c_interpreter::equal_opt(char* str, uint* size_ptr)
@@ -410,12 +485,13 @@ int c_interpreter::equal_opt(char* str, uint* size_ptr)
 			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
 			*size_ptr += delta_str_len;
 			symbol_pos_last += delta_str_len;
+			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
 			tmp_varity->echo();
 		} else {
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}
-	return 0;
+	return ERROR_NO;
 }
 
 int c_interpreter::bracket_opt(char* name, char* sub_sentence, char* ret_str, uint* ret_len)
@@ -445,11 +521,11 @@ int c_interpreter::bracket_opt(char* name, char* sub_sentence, char* ret_str, ui
 			index = y_atoi(sub_sentence);
 		}
 		int ret_type = varity_ptr->get_type();
-		this->varity_declare->declare_analysis_varity(ret_type, sizeof_type[ret_type], ret_str, &ret_varity_ptr, 1);
+		this->varity_declare->declare_analysis_varity(ret_type, sizeof_type[ret_type], ret_str, &ret_varity_ptr, ATTRIBUTE_LINK);
 		ret_varity_ptr->set_content_ptr((char*)varity_ptr->get_content_ptr() + sizeof_type[ret_type] * index);
 	}
 	*ret_len = strlen(ret_str);
-	return 0;
+	return ERROR_NO;
 }
 
 /*varity_info c_interpreter::assign_opt(char* str, uint* len_ptr)

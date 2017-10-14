@@ -85,6 +85,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->analysis_buf_ptr = this->analysis_buf;
 	this->nonseq_info->nonseq_begin_stack_ptr = 0;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
+	this->c_opt_caculate_func_list[0]=&c_interpreter::member_opt;
 	this->c_opt_caculate_func_list[2]=&c_interpreter::multiply_opt;
 	this->c_opt_caculate_func_list[3]=&c_interpreter::plus_opt;
 	this->c_opt_caculate_func_list[5]=&c_interpreter::relational_opt;
@@ -496,7 +497,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 				break;
 			block_ret = nesting_nonseq_section_exec(line_begin, line_end);
 			if(block_ret < 0) {
-				error("Non sequence struct exec error!\n");
+				error("for loop exec error!\n");
 				RETURN(block_ret);
 			}
 			this->sentence_exec(row_ptr + l_bracket_pos + semi_pos_1st + semi_pos_2nd + 3, r_bracket_pos, false, 0);
@@ -523,6 +524,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 			else
 				block_ret = nesting_nonseq_section_exec(line_begin, line_end);
 			if(block_ret < 0) {
+				error("if block exec error!\n");
 				RETURN(block_ret);
 			}
 		} else {
@@ -546,6 +548,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 			debug("while condition 1\n");
 			block_ret = nesting_nonseq_section_exec(line_begin, line_end);
 			if(block_ret < 0) {
+				error("while loop exec error!\n");
 				RETURN(block_ret);
 			}
 		}
@@ -572,7 +575,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 		} else {
 			if(str[0] == '}') {
 				struct_info_set.declare_flag = 0;
-				this->struct_declare->current_node->struct_size = this->struct_info_set.current_offset;
+				this->struct_declare->current_node->struct_size = make_align(this->struct_info_set.current_offset, PLATFORM_WORD_LEN);
 				return OK_STRUCT_FINISH;
 				//重写reset，一次保留name，stack，二次全部reset。
 				//vfree(this->struct_declare->current_node);
@@ -593,7 +596,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 				memcpy(varity_name, str + varity_name_begin_pos, len - varity_name_begin_pos + 1);
 				varity_name[len - varity_name_begin_pos - 1] = 0;
 				new_node_ptr->arg_init(varity_name, varity_type, sizeof_type[varity_type], (void*)this->struct_info_set.current_offset);
-				this->struct_info_set.current_offset += sizeof_type[varity_type];
+				this->struct_info_set.current_offset = make_align(this->struct_info_set.current_offset, sizeof_type[varity_type]) + sizeof_type[varity_type];
 				varity_stack_ptr->push();
 				//}
 				return OK_STRUCT_INPUTING;
@@ -639,6 +642,8 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 			len = remove_char(str + keylen + 1, ' ') + keylen + 1;
 		else {//TODO: 处理结构名后接*的情况
 			int space_2nd_pos = str_find(str + keylen + 1, len - keylen - 1, ' ') + keylen + 1;
+			if(str[space_2nd_pos - 1] == '*')
+				space_2nd_pos--;
 			memcpy(struct_name, str + keylen + 1, space_2nd_pos - keylen - 1);
 			struct_name[space_2nd_pos - keylen - 1] = 0;
 			struct_node_ptr = this->struct_declare->find(struct_name);
@@ -686,6 +691,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					return ret;
 				if(is_varity_declare == STRUCT) {
 					new_varity_ptr->config_varity(0, struct_node_ptr);
+					new_varity_ptr->struct_apply();
 				}
 				symbol_begin_pos = i + 1;
 			}

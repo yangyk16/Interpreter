@@ -102,10 +102,11 @@ class c_interpreter: public interpreter {
 	virtual int pre_treat(void);
 
 	int assign_opt(char* str, uint* len);
-	int plus_opt(char* str, uint* size);
-	int multiply_opt(char* str, uint* size);
-	int relational_opt(char* str, uint* size);
-	int equal_opt(char* str, uint* size);
+	int plus_opt(char* str, uint* size_ptr);
+	int multiply_opt(char* str, uint* size_ptr);
+	int relational_opt(char* str, uint* size_ptr);
+	int equal_opt(char* str, uint* size_ptr);
+	int member_opt(char* str, uint* size_ptr);
 	int bracket_opt(char*, char*, char*, uint*);
 	opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT];
 public:

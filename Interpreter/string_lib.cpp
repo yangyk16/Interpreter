@@ -266,3 +266,8 @@ int char_count(char* str, char ch)
 	}
 	return ret;
 }
+
+int make_align(int value, int align_byte)
+{
+	return value % align_byte == 0 ? value : value + align_byte - (value % align_byte);
+}
