@@ -96,8 +96,11 @@ public:
 	void create_from_c_varity(void*, int);
 	int apply_space(void);
 	int struct_apply(void);
+	int get_element_size(void);
 	void* get_content_ptr(void){return content_ptr;}
 	void* get_complex_ptr(void){return this->comlex_info_ptr;}
+	void* get_element_ptr(int);
+	void set_to_single(int);
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
 	char get_attribute(void){return this->attribute;}
 	void reset(void);

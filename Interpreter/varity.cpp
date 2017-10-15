@@ -77,6 +77,26 @@ varity_info::varity_info(char* name, int type, uint size)
 	this->content_ptr = 0;
 }
 
+int varity_info::get_element_size(void)
+{
+	if(this->type == STRUCT) {
+		return ((struct_info*)this->comlex_info_ptr)->struct_size;
+	} else {
+		return sizeof_type[this->type];
+	}
+}
+
+void* varity_info::get_element_ptr(int index)
+{
+	return (char*)this->get_content_ptr() + index * this->get_element_size();
+}
+
+void varity_info::set_to_single(int index)
+{
+	this->size = this->get_element_size();
+	this->content_ptr = this->get_element_ptr(index);
+}
+
 void varity_info::convert(void* addr, int type)
 {
 	if(this->type == VOID) {

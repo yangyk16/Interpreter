@@ -64,15 +64,25 @@ int c_interpreter::member_opt(char* str, uint* size_ptr)
 						return ERROR_OPERAND;
 					}
 				} else if(last_opt_type == OPT_L_MID_BRACKET) {
-					finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
-					if(!finded_varity) {
-						error("Varity \"%s\" doesn't exist\n", name_buf);
-						return ERROR_VARITY_NONEXIST;
+					int index;
+					int tmp_varity_type = check_symbol(name_buf, symbol_pos_once);
+					if(tmp_varity_type == OPERAND_VARITY) {
+						finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
+						if(!finded_varity) {
+							error("Varity \"%s\" doesn't exist\n", name_buf);
+							return ERROR_VARITY_NONEXIST;
+						}
+						index = *(int*)(finded_varity->get_content_ptr());
+					} else if(tmp_varity_type == OPERAND_INTEGER) {
+						index = y_atoi(name_buf);
+					} else if(tmp_varity_type == OPERAND_FLOAT) {
+						error("Float can not used as index\n");
+						return ERROR_FLOAT_USED_INDEX;
 					}
-					tmp_varity->set_content_ptr((char*)tmp_varity->get_content_ptr() + *(int*)(finded_varity->get_content_ptr()) * sizeof_type[tmp_varity->get_type()]);//TODO: 增加获取变量值整数值的函数，增加count字段
+					tmp_varity->set_to_single(index);//TODO: 增加获取变量值整数值的函数，增加count字段
+					//tmp_varity->set_content_ptr((char*)tmp_varity->get_content_ptr() + index * sizeof_type[tmp_varity->get_type()]);
 					//str[symbol_pos_last + symbol_pos_once] = 0;
 					//this->bracket_opt(tmp_varity->get_name(), str + symbol_pos_last, 0, 0);
-
 				}
 				symbol_pos_last += symbol_pos_once + opt_len;
 				if(opt_type != OPT_REFERENCE && opt_type != OPT_MEMBER && opt_type != OPT_L_MID_BRACKET && opt_type != OPT_R_MID_BRACKET) {
