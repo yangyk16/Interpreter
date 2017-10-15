@@ -367,9 +367,12 @@ int varity::declare_analysis_varity(char type, uint size, char* ret_name, varity
 	int ret;
 	char tmp_varity_name[3];
 	sprintf(tmp_varity_name, "%c%c", TMP_VAIRTY_PREFIX, 128 + this->cur_analysis_varity_count++);
-	strcpy(ret_name, tmp_varity_name);
+	if(ret_name)
+		strcpy(ret_name, tmp_varity_name);
 	ret = this->declare(VARITY_SCOPE_ANALYSIS, tmp_varity_name, type, size, attribute);
-	*varity_ptr = (varity_info*)this->analysis_varity_stack->find(ret_name);
+	//if(ret_name)
+	//	*varity_ptr = (varity_info*)this->analysis_varity_stack->find(ret_name);
+	*varity_ptr = (varity_info*)this->analysis_varity_stack->get_lastest_element();
 	return ret;
 }
 
