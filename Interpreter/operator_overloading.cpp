@@ -1,6 +1,6 @@
 #include "varity.h"
 #include <stdio.h>
-
+//TODO: 4 macros rewrite to avoid char in struct be used as integer.
 #define OPERATOR_OVERLOAD_MACRO(opt) \
 	if(obj1.type == obj2.type) { \
 		if(ret.type == U_LONG || ret.type == LONG || ret.type == U_INT || ret.type == INT) { \
@@ -111,6 +111,27 @@
 					*(int*)(ret.content_ptr) = (float)(*(uint*)(obj1.content_ptr)) opt *(float*)(obj2.content_ptr); \
 				} \
 			} \
+		} \
+	} \
+	return ret
+
+#define OPERATOR_OVERLOAD_MACRO_RET_INT_WITHOUT_FLOAT(opt) \
+	if(obj1.type == obj2.type) { \
+		if(ret.type == U_LONG || ret.type == LONG || ret.type == U_INT || ret.type == INT) { \
+			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) opt *(int*)(obj2.content_ptr); \
+		} else if(ret.type == U_SHORT || ret.type == SHORT) { \
+			*(int*)(ret.content_ptr) = *(short*)(obj1.content_ptr) opt *(short*)(obj2.content_ptr); \
+		} else if(ret.type == U_CHAR || ret.type == CHAR) { \
+			*(int*)(ret.content_ptr) = *(char*)(obj1.content_ptr) opt *(char*)(obj2.content_ptr); \
+		} \
+	} else { \
+		int mintype = min(obj1.type, obj2.type); \
+		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) { \
+			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) opt *(int*)(obj2.content_ptr); \
+		} else if(mintype == U_SHORT || mintype == SHORT) { \
+			*(int*)(ret.content_ptr) = *(short*)(obj1.content_ptr) opt *(short*)(obj2.content_ptr); \
+		} else if(mintype == U_CHAR) { \
+			*(int*)(ret.content_ptr) = *(char*)(obj1.content_ptr) opt *(char*)(obj2.content_ptr); \
 		} \
 	} \
 	return ret

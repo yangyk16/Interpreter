@@ -87,7 +87,7 @@ void varity_info::convert(void* addr, int type)
 		return;
 	}
 	if(this->type == type) {
-		memcpy(this->content_ptr, addr, sizeof_type[type]);
+		memcpy(this->content_ptr, addr, this->size);
 	} else if(this->type < type) {
 		if(this->type == INT || this->type == U_INT || this->type == LONG || this->type == U_LONG)
 			*(int*)(this->content_ptr) = *(int*)(addr);
@@ -164,7 +164,9 @@ varity_info& varity_info::operator=(const varity_info& source)
 	} else {
 		if(!this->size) {
 			type = source.type;
-			size = sizeof_type[type];
+			size = source.size;
+			attribute = source.attribute;
+			comlex_info_ptr = source.comlex_info_ptr;
 			this->apply_space();
 			memcpy(this->content_ptr, source.content_ptr, size);
 		} else {

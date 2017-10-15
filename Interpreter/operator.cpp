@@ -50,6 +50,10 @@ int c_interpreter::member_opt(char* str, uint* size_ptr)
 						varity_info* member_varity_ptr;
 						struct_info* struct_info_ptr = (struct_info*)tmp_varity->get_complex_ptr();
 						member_varity_ptr = (varity_info*)struct_info_ptr->varity_stack_ptr->find(name_buf);
+						if(!member_varity_ptr) {
+							error("Member %s is not exist in struct\n", name_buf);
+							return ERROR_STRUCT_MEMBER;
+						}
 						if(last_opt_type == OPT_MEMBER) {
 							*tmp_varity = struct_info_ptr->visit_struct_member(tmp_varity->get_content_ptr(), member_varity_ptr);
 						} else if(last_opt_type == OPT_REFERENCE) {
