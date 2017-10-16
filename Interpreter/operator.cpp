@@ -93,7 +93,7 @@ int c_interpreter::member_opt(char* str, uint* size_ptr)
 			}
 			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
 			*size_ptr += delta_str_len;
-			symbol_pos_last += delta_str_len;
+			symbol_pos_last += delta_str_len + opt_len;
 			tmp_varity->clear_attribute(ATTRIBUTE_REFERENCE | ATTRIBUTE_TYPE_UNFIXED);
 			tmp_varity->echo();
 		} else {
@@ -176,7 +176,7 @@ int c_interpreter::plus_opt(char* str, uint* size_ptr)
 			}
 			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
 			*size_ptr += delta_str_len;
-			symbol_pos_last += delta_str_len;
+			symbol_pos_last += delta_str_len + opt_len; //跳过此次忽略的运算符，继续找后续的
 			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
 			tmp_varity->echo();
 		} else {
@@ -260,7 +260,7 @@ int c_interpreter::multiply_opt(char* str, uint* size_ptr)
 			}
 			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
 			*size_ptr += delta_str_len;
-			symbol_pos_last += delta_str_len;
+			symbol_pos_last += delta_str_len + opt_len;
 			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
 			tmp_varity->echo();
 		} else {
@@ -425,7 +425,7 @@ int c_interpreter::relational_opt(char* str, uint* size_ptr)
 			}
 			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
 			*size_ptr += delta_str_len;
-			symbol_pos_last += delta_str_len;
+			symbol_pos_last += delta_str_len + opt_len;
 			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
 			tmp_varity->echo();
 		} else {
@@ -508,7 +508,7 @@ int c_interpreter::equal_opt(char* str, uint* size_ptr)
 			}
 			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
 			*size_ptr += delta_str_len;
-			symbol_pos_last += delta_str_len;
+			symbol_pos_last += delta_str_len + opt_len;
 			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
 			tmp_varity->echo();
 		} else {
