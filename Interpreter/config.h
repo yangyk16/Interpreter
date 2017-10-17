@@ -19,6 +19,8 @@
 #define MAX_FUNCTION_NODE		32
 #define MAX_FUNCTION_ARGC		8
 #define MAX_STRUCT_NODE			32
+#define VARITY_DEF_BUF_LEN		256
+#define MAX_COUNT_VARITY_DEF	8
 #define PLATFORM_WORD_LEN		4
 
 #define debug	printf

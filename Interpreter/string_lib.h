@@ -62,4 +62,5 @@ int key_match(char* str, int size, int* type);
 int strequ(char* str1, char* str2, int len);
 int char_count(char* str, char ch);
 int make_align(int value, int align_byte);
+int varity_check(char* str, char tailed, char**& buf, int*& count);
 #endif

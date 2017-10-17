@@ -585,11 +585,51 @@ int c_interpreter::struct_analysis(char* str, uint len)
 				stack *varity_stack_ptr = this->struct_declare->current_node->varity_stack_ptr;
 				varity_info* new_node_ptr = (varity_info*)varity_stack_ptr->get_current_ptr();
 				int varity_type, varity_name_begin_pos, ptr_level = 0, key_len;
-				//for(int row_line=0; row_line<total_line; row_line++) {
 				varity_type = optcmp(str);
 				key_len = strlen(type_key[varity_type]);
 				varity_name_begin_pos = key_len + (str[key_len] == ' ' ? 1 : 0); 
-				for(int j=varity_name_begin_pos; str[j]=='*'; j++)
+				int opt_len, opt_type, symbol_pos_once, symbol_pos_last = str[key_len]==' '?key_len+1:key_len, size = len - symbol_pos_last;
+				int array_flag = 0, element_count = 1;
+				ptr_level = 0;
+				while(1) {
+					for(; str[symbol_pos_last]=='*'; symbol_pos_last++)
+						ptr_level++;
+					size -= ptr_level;
+					if((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) >= 0) {
+						if(opt_type != OPT_COMMA && opt_type != OPT_EDGE && opt_type != OPT_L_MID_BRACKET && opt_type != OPT_R_MID_BRACKET) {
+							error("Wrong operator exist in struct definition\n");
+							return -1;
+						} else if(opt_type == OPT_L_MID_BRACKET) {
+							memcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
+							varity_name[symbol_pos_once] = 0;
+							array_flag = 1;
+						} else if(opt_type == OPT_R_MID_BRACKET) {
+							array_flag = 2;
+							element_count = y_atoi(str + symbol_pos_last, symbol_pos_once);
+						} else {
+							if(array_flag == 0) {
+								memcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
+								varity_name[symbol_pos_once] = 0;
+							} else if(array_flag == 2) {
+
+							} else {
+								
+							}
+							this->struct_info_set.current_offset = make_align(this->struct_info_set.current_offset, sizeof_type[varity_type]);
+							new_node_ptr->arg_init(varity_name, varity_type, sizeof_type[varity_type] * element_count, (void*)this->struct_info_set.current_offset);
+							this->struct_info_set.current_offset += sizeof_type[varity_type] * element_count;
+							varity_stack_ptr->push();
+							array_flag = 0;
+							element_count = 1;
+							ptr_level = 0;
+						}
+					} else {
+						break;
+					}
+					symbol_pos_last += symbol_pos_once + opt_len;
+					size -= symbol_pos_once + opt_len;
+				}
+				/*for(int j=varity_name_begin_pos; str[j]=='*'; j++)
 					ptr_level++;
 				varity_name_begin_pos += ptr_level;
 
@@ -597,8 +637,8 @@ int c_interpreter::struct_analysis(char* str, uint len)
 				varity_name[len - varity_name_begin_pos - 1] = 0;
 				new_node_ptr->arg_init(varity_name, varity_type, sizeof_type[varity_type], (void*)this->struct_info_set.current_offset);
 				this->struct_info_set.current_offset = make_align(this->struct_info_set.current_offset, sizeof_type[varity_type]) + sizeof_type[varity_type];
-				varity_stack_ptr->push();
-				//}
+				varity_stack_ptr->push();*/
+
 				return OK_STRUCT_INPUTING;
 			}
 		}

@@ -90,6 +90,8 @@ int remove_substring(char* str, int index1, int index2)
 int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 {
 	int i, j;
+	if(size <= 0)
+		return -1;
 	if(!direction) {
 		//direction=0: left->right; direction=1: right->left;
 		//merge 2 cycles to 1 can save space, but not merge is easily to read.
@@ -270,4 +272,42 @@ int char_count(char* str, char ch)
 int make_align(int value, int align_byte)
 {
 	return value % align_byte == 0 ? value : value + align_byte - (value % align_byte);
+}
+
+int varity_check(char* str, char tailed, char**& buf, int*& count)
+{
+	static char* varity_ptr[MAX_COUNT_VARITY_DEF];
+	static char varity_buf[VARITY_DEF_BUF_LEN];
+	static int varity_element_count[MAX_COUNT_VARITY_DEF];
+	int varity_count = 0;
+	int namelen = 0;
+	int index_begin_pos, name_flag = 1;
+	buf = varity_ptr;
+	count = varity_element_count;
+	buf[0] = varity_buf;
+	count[0] = 1;
+	for(int i=0, ptrlevel=0; str[i]!=tailed; i++) {
+		if(str[i] == '*')
+			ptrlevel++;
+		else if(str[i] == ',') {
+			ptrlevel = 0;
+			buf[varity_count + 1] = &buf[varity_count][namelen + 1];
+			buf[varity_count++][namelen] = 0;
+			count[varity_count] = 1;
+			namelen = 0;
+			name_flag = 1;
+		} else if(str[i] == '[') {
+			index_begin_pos = i + 1;
+			name_flag = 0;
+		} else if(str[i] == ']') {
+			if(str[i+1] != ',' && str[i+1] != ';') {
+				error("It's not allowed that any letter exist after bracket\n");
+				return -1;
+			}
+		} else {
+			buf[varity_count][namelen++] = str[i];
+		}
+	}
+	buf[varity_count++][namelen] = 0;
+	return varity_count;
 }
