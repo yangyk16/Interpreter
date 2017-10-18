@@ -178,6 +178,7 @@ int c_interpreter::plus_opt(char* str, uint* size_ptr)
 			*size_ptr += delta_str_len;
 			symbol_pos_last += delta_str_len + opt_len; //跳过此次忽略的运算符，继续找后续的
 			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
+			tmp_varity->config_varity(ATTRIBUTE_RIGHT_VALUE);
 			tmp_varity->echo();
 		} else {
 			symbol_pos_last += symbol_pos_once + opt_len;
@@ -262,6 +263,7 @@ int c_interpreter::multiply_opt(char* str, uint* size_ptr)
 			*size_ptr += delta_str_len;
 			symbol_pos_last += delta_str_len + opt_len;
 			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
+			tmp_varity->config_varity(ATTRIBUTE_RIGHT_VALUE);
 			tmp_varity->echo();
 		} else {
 			symbol_pos_last += symbol_pos_once + opt_len;
@@ -314,6 +316,10 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 						error("Varity \"%s\" doesn't exist\n", name_buf);
 						return ERROR_VARITY_NONEXIST;
 					}
+					if(finded_varity->get_attribute() & ATTRIBUTE_RIGHT_VALUE) {
+						error("Only left value can be assigned.\n");
+						return ERROR_NEED_LEFT_VALUE;
+					}
 					*finded_varity = *tmp_varity;
 					finded_varity->echo();
 				} else if(tmp_varity_type == OPERAND_FLOAT) {
@@ -329,7 +335,8 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 				if(opt_type != OPT_ASSIGN && opt_type != OPT_ADD_ASSIGN)
 					break;
 			}
-			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
+			memcpy((char*)tmp_varity + sizeof(element), (char*)finded_varity + sizeof(element), sizeof(varity_info) - sizeof(tmp_varity->get_name()));
+			tmp_varity->config_varity(ATTRIBUTE_LINK);
 			delta_str_len = sub_replace(str, symbol_pos_once + opt_len, continuous_assign_end_pos, tmp_varity_name);
 			*len_ptr += delta_str_len;
 			size = symbol_pos_cur + 1;
@@ -427,6 +434,7 @@ int c_interpreter::relational_opt(char* str, uint* size_ptr)
 			*size_ptr += delta_str_len;
 			symbol_pos_last += delta_str_len + opt_len;
 			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
+			tmp_varity->config_varity(ATTRIBUTE_RIGHT_VALUE);
 			tmp_varity->echo();
 		} else {
 			symbol_pos_last += symbol_pos_once + opt_len;
@@ -510,6 +518,7 @@ int c_interpreter::equal_opt(char* str, uint* size_ptr)
 			*size_ptr += delta_str_len;
 			symbol_pos_last += delta_str_len + opt_len;
 			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
+			tmp_varity->config_varity(ATTRIBUTE_RIGHT_VALUE);
 			tmp_varity->echo();
 		} else {
 			symbol_pos_last += symbol_pos_once + opt_len;

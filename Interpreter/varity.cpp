@@ -29,13 +29,15 @@ varity_info::varity_info()
 void varity_info::config_varity(char attribute, void* info_ptr)
 {
 	this->attribute |= attribute;
-	this->comlex_info_ptr = info_ptr;
+	if(info_ptr)
+		this->comlex_info_ptr = info_ptr;
 }
 
 void varity_info::clear_attribute(char attribute)
 {
 	this->attribute &= ~attribute;
 }
+
 int varity_info::struct_apply(void)
 {
 	this->size = ((struct_info*)this->comlex_info_ptr)->struct_size;

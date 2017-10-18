@@ -25,21 +25,22 @@ int optcmp(char* str)
 int key_match(char* str, int size, int* type)
 {
 	int i, j;
-	for(i=0; i<size; i++) {
+	for(i=0; i<1; i++) {//i<size, TODO: ÓëoptcmpºÏ²¢
 		for(j=0; j<sizeof(type_key)/sizeof(*type_key); j++) {
 			if(str[i] == type_key[j][0]) {
 				int k;
-				for(k=1; k<=type_len[j]; k++) {
+				for(k=1; k<type_len[j]; k++) {
 					if(str[i + k] != type_key[j][k])
 						break;
 				}
-				if(k == type_len[j] && (str[i + k] == ' ' || str[i + k] == '*')) {
+				if(k == type_len[j] && (str[i + k] == ' ' || str[i + k] == '*' || str[i+k] == ')')) {
 					*type = j;
 					return i;
 				}
 			}
 		}
 	}
+	*type = 0;
 	return -1;
 }
 
@@ -90,8 +91,10 @@ int remove_substring(char* str, int index1, int index2)
 int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 {
 	int i, j;
-	if(size <= 0)
+	if(size <= 0) {
+		*opt_len = 0;
 		return -1;
+	}
 	if(!direction) {
 		//direction=0: left->right; direction=1: right->left;
 		//merge 2 cycles to 1 can save space, but not merge is easily to read.

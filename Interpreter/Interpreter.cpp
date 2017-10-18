@@ -330,15 +330,31 @@ int c_interpreter::function_analysis(char* str, uint len)
 			arg_stack->init(sizeof(varity_attribute), arg_node_ptr, MAX_FUNCTION_ARGC);
 			varity_attribute::init(arg_node_ptr, "", ret_function_define, 0, sizeof_type[ret_function_define]);
 			arg_stack->push(arg_node_ptr++);
-
+			bool void_flag = false;
 			for(int i=l_bracket_pos+1; i<r_bracket_pos; i++) {
 				char varity_name[32];
 				int type, arg_name_begin_pos, arg_name_end_pos;
 				int pos = key_match(str + i, r_bracket_pos-i+1, &type);
+				if(pos < 0) {
+					error("arg type error.\n");
+					return ERROR_FUNC_ARG_LIST;					
+				}
 				keylen = strlen(type_key[type]);
 				arg_name_begin_pos = i + pos + keylen + (str[i + pos + keylen] == ' ' ? 1 : 0);
 				for(int j=arg_name_begin_pos; str[j]=='*'; j++)
 					ptr_level++;
+				if(type == VOID && !ptr_level) {
+					if(arg_stack->get_count() > 1) {
+						error("arg list error.\n");
+						return ERROR_FUNC_ARG_LIST;
+					}
+					void_flag = true;
+				} else {
+					if(void_flag) {
+						error("arg cannot use void type.\n");
+						return ERROR_FUNC_ARG_LIST;
+					}
+				}
 				arg_name_begin_pos += ptr_level;
 				for(int j=arg_name_begin_pos; j<=r_bracket_pos; j++)
 					if(str[j] == ',' || str[j] == ')') {
@@ -348,8 +364,15 @@ int c_interpreter::function_analysis(char* str, uint len)
 					}
 				memcpy(varity_name, str + arg_name_begin_pos, arg_name_end_pos - arg_name_begin_pos + 1);
 				varity_name[arg_name_end_pos - arg_name_begin_pos + 1] = 0;
-				varity_attribute::init(arg_node_ptr, varity_name, type, 0, sizeof_type[type]);
-				arg_stack->push(arg_node_ptr++);
+				if(!void_flag) {
+					varity_attribute::init(arg_node_ptr, varity_name, type, 0, sizeof_type[type]);
+					arg_stack->push(arg_node_ptr++);
+				} else {
+					if(varity_name[0] != 0) {
+						error("arg cannot use void type.\n");
+						return ERROR_FUNC_ARG_LIST;
+					}
+				}
 			}
 			//TODO: 释放申请的多余空间
 			this->function_declare->declare(function_name, arg_stack);
@@ -864,7 +887,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 					int opt_len, opt_type, symbol_begin_pos;//先检查是否是函数调用
 					sub_sentence_end_pos = j;
 					symbol_begin_pos = search_opt(analysis_buf_ptr, sub_sentence_begin_pos, 1, &opt_len, &opt_type) + opt_len;
-					if(symbol_begin_pos < sub_sentence_begin_pos && analysis_buf_ptr[symbol_begin_pos] != ' ' && analysis_buf_ptr[j] == ')') {
+					if(0 < symbol_begin_pos && symbol_begin_pos < sub_sentence_begin_pos && analysis_buf_ptr[symbol_begin_pos] != ' ' && analysis_buf_ptr[j] == ')') {
 						char tmp_varity_name[3];
 						varity_info *tmp_varity = 0;
 						int ret = this->call_func(analysis_buf_ptr + symbol_begin_pos, analysis_buf_ptr + sub_sentence_begin_pos, sub_sentence_end_pos - sub_sentence_begin_pos + 1);

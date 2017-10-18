@@ -50,5 +50,9 @@
 #define OPT_ASSIGN				40
 #define OPT_COMMA				41
 #define OPT_EDGE				42
+#define OPT_NEGATIVE			43
+#define OPT_POSITIVE			44
+#define OPT_PTR_CONTENT			45
+#define OPT_ADDRESS_OF			46
 
 #endif
