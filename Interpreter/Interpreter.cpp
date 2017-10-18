@@ -677,24 +677,103 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 	char struct_name[32];
 	struct_info* struct_node_ptr;
 	if(is_varity_declare >= 0) {
-		int keylen = strlen(type_key[is_varity_declare]);
+		int key_len = strlen(type_key[is_varity_declare]);
 		if(is_varity_declare != STRUCT)
-			len = remove_char(str + keylen + 1, ' ') + keylen + 1;
+			len = remove_char(str + key_len + 1, ' ') + key_len + 1;
 		else {//TODO: 处理结构名后接*的情况
-			int space_2nd_pos = str_find(str + keylen + 1, len - keylen - 1, ' ') + keylen + 1;
+			int space_2nd_pos = str_find(str + key_len + 1, len - key_len - 1, ' ') + key_len + 1;
 			if(str[space_2nd_pos - 1] == '*')
 				space_2nd_pos--;
-			memcpy(struct_name, str + keylen + 1, space_2nd_pos - keylen - 1);
-			struct_name[space_2nd_pos - keylen - 1] = 0;
+			memcpy(struct_name, str + key_len + 1, space_2nd_pos - key_len - 1);
+			struct_name[space_2nd_pos - key_len - 1] = 0;
 			struct_node_ptr = this->struct_declare->find(struct_name);
 			if(!struct_node_ptr) {
 				error("There is no struct called %s.\n", struct_name);
 				return ERROR_STRUCT_NONEXIST;
 			}
 			len = remove_char(str + space_2nd_pos + 1, ' ') + space_2nd_pos + 1;
-			keylen = space_2nd_pos;
+			key_len = space_2nd_pos;
 		}
-		for(uint i=keylen+1, symbol_begin_pos=(str[i-1]==' '?i:i-1); i<len; i++) {
+		/////////////////
+		char varity_name[32];
+		varity_info* new_varity_ptr;
+		int array_flag = 0, element_count = 1, ptr_level = 0;
+		int opt_len, opt_type, symbol_pos_once, symbol_pos_last = str[key_len]==' '?key_len+1:key_len, size = len - symbol_pos_last;
+		while(size > 0) {
+			for(; str[symbol_pos_last]=='*'; symbol_pos_last++)
+				ptr_level++;
+			size -= ptr_level;
+			if((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) >= 0) {
+				if(opt_type != OPT_COMMA && opt_type != OPT_EDGE && opt_type != OPT_L_MID_BRACKET && opt_type != OPT_R_MID_BRACKET && opt_type != OPT_ASSIGN) {
+					error("Wrong operator exist in struct definition\n");
+					return -1;
+				} else if(opt_type == OPT_L_MID_BRACKET) {
+					memcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
+					varity_name[symbol_pos_once] = 0;
+					array_flag = 1;
+				} else if(opt_type == OPT_R_MID_BRACKET) {
+					array_flag = 2;
+					element_count = y_atoi(str + symbol_pos_last, symbol_pos_once);
+				} else {
+					if(array_flag == 0) {
+						memcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
+						varity_name[symbol_pos_once] = 0;
+					} else if(array_flag == 2) {
+
+					} else {
+								
+					}
+					int ret;
+					if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
+						if(ptr_level)
+							ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT, PLATFORM_WORD_LEN * element_count);
+						else
+							ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * element_count);
+						new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
+					} else {
+						if(ptr_level)
+							ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT, PLATFORM_WORD_LEN * element_count);
+						else
+							ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * element_count);
+						new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
+					}
+					if(ret)
+						return ret;
+					if(is_varity_declare == STRUCT) {
+						new_varity_ptr->config_varity(0, struct_node_ptr);
+						new_varity_ptr->struct_apply();
+					}
+
+					array_flag = 0;
+					element_count = 1;
+					ptr_level = 0;
+					if(opt_type == OPT_ASSIGN) {
+						int comma_pos;
+						symbol_pos_last += symbol_pos_once + opt_len;
+						for(comma_pos=symbol_pos_last; comma_pos<len; comma_pos++) {
+							if(str[comma_pos] == ',' || str[comma_pos] == ';') {
+								break;
+							}
+						}
+						char assign_exec_buf[VARITY_ASSIGN_BUFLEN];
+						char* analysis_buf_ptr_backup = this->analysis_buf_ptr;
+						this->analysis_buf_ptr = assign_exec_buf;
+						this->sentence_exec(str + symbol_pos_last, comma_pos - symbol_pos_last, false, new_varity_ptr);
+						this->analysis_buf_ptr = analysis_buf_ptr_backup;
+						size -= symbol_pos_once + opt_len + comma_pos - symbol_pos_last + 1;
+						symbol_pos_last = comma_pos + 1;
+						new_varity_ptr->echo();
+						continue;
+					}
+				}
+			} else {
+				break;
+			}
+			symbol_pos_last += symbol_pos_once + opt_len;
+			size -= symbol_pos_once + opt_len;
+		}
+		/////////////////
+		/*for(uint i=keylen+1, symbol_begin_pos=(str[i-1]==' '?i:i-1); i<len; i++) {
 			if(str[i] == ',' || str[i] == ';') {
 				int ptr_level = 0;
 				char varity_name[32];
@@ -735,7 +814,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 				}
 				symbol_begin_pos = i + 1;
 			}
-		}
+		}*/
 		return OK_VARITY_DECLARE;
 	}
 	if(!strequ(str, "return ", 7)) {

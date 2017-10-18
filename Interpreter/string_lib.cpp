@@ -274,7 +274,7 @@ int make_align(int value, int align_byte)
 	return value % align_byte == 0 ? value : value + align_byte - (value % align_byte);
 }
 
-int varity_check(char* str, char tailed, char**& buf, int*& count)
+/*int varity_check(char* str, char tailed, char**& buf, int*& count)
 {
 	static char* varity_ptr[MAX_COUNT_VARITY_DEF];
 	static char varity_buf[VARITY_DEF_BUF_LEN];
@@ -310,4 +310,4 @@ int varity_check(char* str, char tailed, char**& buf, int*& count)
 	}
 	buf[varity_count++][namelen] = 0;
 	return varity_count;
-}
+}*/
