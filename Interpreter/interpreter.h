@@ -101,6 +101,7 @@ class c_interpreter: public interpreter {
 	virtual int sentence_analysis(char*, uint);
 	virtual int pre_treat(void);
 
+	int auto_inc_opt(char* str, uint* size_ptr);
 	int assign_opt(char* str, uint* len);
 	int plus_opt(char* str, uint* size_ptr);
 	int multiply_opt(char* str, uint* size_ptr);

@@ -277,6 +277,13 @@ int make_align(int value, int align_byte)
 	return value % align_byte == 0 ? value : value + align_byte - (value % align_byte);
 }
 
+bool is_valid_c_char(char ch)
+{
+	if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || ch == '_')
+		return true;
+	return false;
+}
+
 /*int varity_check(char* str, char tailed, char**& buf, int*& count)
 {
 	static char* varity_ptr[MAX_COUNT_VARITY_DEF];
