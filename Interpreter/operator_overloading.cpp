@@ -1,6 +1,9 @@
 #include "varity.h"
 #include <stdio.h>
 //TODO: 4 macros rewrite to avoid char in struct be used as integer.
+#define CHAR_VALUE(x) *(char*)(x)
+#define SHORT_VALUE(x) *(short*)(x)
+#define INT_VALUE(x) *(int*)(x)
 #define OPERATOR_OVERLOAD_MACRO(opt) \
 	if(obj1.type == obj2.type) { \
 		if(ret.type == U_LONG || ret.type == LONG || ret.type == U_INT || ret.type == INT) { \
@@ -456,4 +459,21 @@ varity_info& operator!=(varity_info& obj1, varity_info& obj2)
 	ret.size = sizeof_type[ret.type];
 	ret.apply_space();
 	OPERATOR_OVERLOAD_MACRO_RET_INT(!=);
+}
+
+varity_info& operator~(varity_info& obj)
+{
+	static varity_info ret;
+	ret.reset();
+	ret.type = INT;//bit revert return int type.
+	ret.size = sizeof_type[ret.type];
+	ret.apply_space();
+	if(ret.type == U_LONG || ret.type == LONG || ret.type == U_INT || ret.type == INT) {
+		*(int*)(ret.content_ptr) = ~*(int*)(obj.content_ptr);
+	} else if(ret.type == U_SHORT || ret.type == SHORT) {
+		*(int*)(ret.content_ptr) = ~*(short*)(obj.content_ptr);
+	} else if(ret.type == U_CHAR || ret.type == CHAR) {
+		*(int*)(ret.content_ptr) = ~*(char*)(obj.content_ptr);
+	}
+	return ret;
 }

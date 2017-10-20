@@ -79,6 +79,7 @@ public:
 	varity_info& operator=(unsigned long long);
 	varity_info& operator=(float);
 	varity_info& operator=(double);
+	friend varity_info& operator~(varity_info&);
 	friend varity_info& operator*(varity_info&, varity_info&);
 	friend varity_info& operator/(varity_info&, varity_info&);
 	friend varity_info& operator%(varity_info&, varity_info&);
