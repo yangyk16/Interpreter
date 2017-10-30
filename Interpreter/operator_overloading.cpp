@@ -1,9 +1,7 @@
 #include "varity.h"
 #include <stdio.h>
+#include "operator.h"
 //TODO: 4 macros rewrite to avoid char in struct be used as integer.
-#define CHAR_VALUE(x) *(char*)(x)
-#define SHORT_VALUE(x) *(short*)(x)
-#define INT_VALUE(x) *(int*)(x)
 #define OPERATOR_OVERLOAD_MACRO(opt) \
 	if(obj1.type == obj2.type) { \
 		if(ret.type == U_LONG || ret.type == LONG || ret.type == U_INT || ret.type == INT) { \
@@ -475,5 +473,93 @@ varity_info& operator~(varity_info& obj)
 	} else if(ret.type == U_CHAR || ret.type == CHAR) {
 		*(int*)(ret.content_ptr) = ~*(char*)(obj.content_ptr);
 	}
+	return ret;
+}
+
+varity_info& operator!(varity_info& obj)
+{
+	static varity_info ret;
+	ret.reset();
+	ret.type = INT;//bit revert return int type.
+	ret.size = sizeof_type[ret.type];
+	ret.apply_space();
+	if(ret.type == U_LONG || ret.type == LONG || ret.type == U_INT || ret.type == INT) {
+		*(int*)(ret.content_ptr) = !*(int*)(obj.content_ptr);
+	} else if(ret.type == U_SHORT || ret.type == SHORT) {
+		*(int*)(ret.content_ptr) = !*(short*)(obj.content_ptr);
+	} else if(ret.type == U_CHAR || ret.type == CHAR) {
+		*(int*)(ret.content_ptr) = !*(char*)(obj.content_ptr);
+	}
+	return ret;
+}
+
+varity_info& operator-(varity_info& obj)
+{
+	static varity_info ret;
+	ret.reset();
+	ret.type = obj.type;//bit revert return int type.
+	ret.size = sizeof_type[ret.type];
+	ret.apply_space();
+	if(ret.type == U_LONG || ret.type == LONG || ret.type == U_INT || ret.type == INT) {
+		INT_VALUE(ret.content_ptr) = -INT_VALUE(obj.content_ptr);
+	} else if(ret.type == U_SHORT || ret.type == SHORT) {
+		SHORT_VALUE(ret.content_ptr) = -SHORT_VALUE(obj.content_ptr);
+	} else if(ret.type == U_CHAR || ret.type == CHAR) {
+		CHAR_VALUE(ret.content_ptr) = -CHAR_VALUE(obj.content_ptr);
+	} else if(ret.type == FLOAT) {
+		FLOAT_VALUE(ret.content_ptr) = -FLOAT_VALUE(ret.content_ptr);
+	} else if(ret.type == DOUBLE) {
+		DOUBLE_VALUE(ret.content_ptr) = -DOUBLE_VALUE(ret.content_ptr);
+	}
+	return ret;
+}
+
+varity_info& varity_info::operator++(void)
+{
+	if(this->type == CHAR || this->type == U_CHAR)
+		CHAR_VALUE(this->content_ptr)++;
+	else if(this->type == SHORT || this->type == U_SHORT)
+		SHORT_VALUE(this->content_ptr)++;
+	else if(this->type == INT || this->type == U_INT)
+		INT_VALUE(this->content_ptr)++;
+	return *this;
+}
+
+varity_info& varity_info::operator++(int)
+{
+	static varity_info ret;
+	ret.reset();
+	ret = *this;
+	if(this->type == CHAR || this->type == U_CHAR)
+		CHAR_VALUE(this->content_ptr)++;
+	else if(this->type == SHORT || this->type == U_SHORT)
+		SHORT_VALUE(this->content_ptr)++;
+	else if(this->type == INT || this->type == U_INT)
+		INT_VALUE(this->content_ptr)++;
+	return ret;
+}
+
+varity_info& varity_info::operator--(void)
+{
+	if(this->type == CHAR || this->type == U_CHAR)
+		CHAR_VALUE(this->content_ptr)--;
+	else if(this->type == SHORT || this->type == U_SHORT)
+		SHORT_VALUE(this->content_ptr)--;
+	else if(this->type == INT || this->type == U_INT)
+		INT_VALUE(this->content_ptr)--;
+	return *this;
+}
+
+varity_info& varity_info::operator--(int)
+{
+	static varity_info ret;
+	ret.reset();
+	ret = *this;
+	if(this->type == CHAR || this->type == U_CHAR)
+		CHAR_VALUE(this->content_ptr)--;
+	else if(this->type == SHORT || this->type == U_SHORT)
+		SHORT_VALUE(this->content_ptr)--;
+	else if(this->type == INT || this->type == U_INT)
+		INT_VALUE(this->content_ptr)--;
 	return ret;
 }

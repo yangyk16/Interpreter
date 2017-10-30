@@ -79,7 +79,14 @@ public:
 	varity_info& operator=(unsigned long long);
 	varity_info& operator=(float);
 	varity_info& operator=(double);
+	varity_info& operator++(void);//Ç°ÖÃ++
+	varity_info& operator++(int);//ºóÖÃ++
+	varity_info& operator--(void);
+	varity_info& operator--(int);
 	friend varity_info& operator~(varity_info&);
+	friend varity_info& operator!(varity_info&);
+	friend varity_info& operator+(varity_info&);
+	friend varity_info& operator-(varity_info&);
 	friend varity_info& operator*(varity_info&, varity_info&);
 	friend varity_info& operator/(varity_info&, varity_info&);
 	friend varity_info& operator%(varity_info&, varity_info&);
@@ -103,6 +110,7 @@ public:
 	void* get_element_ptr(int);
 	void set_to_single(int);
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
+	void set_type(int type){this->type = type;}
 	char get_attribute(void){return this->attribute;}
 	void reset(void);
 	void echo(void);

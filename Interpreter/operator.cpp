@@ -8,6 +8,41 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+//从右向左的运算符统统压栈，集中出栈处理。
+static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_len_ptr)
+{
+	if(*opt_type_ptr == OPT_PLUS || *opt_type_ptr == OPT_MINUS) {
+		if(!is_valid_c_char(str[opt_pos - 1])) {
+			if(*opt_type_ptr == OPT_PLUS) {
+				*opt_type_ptr = OPT_POSITIVE;
+			} else {
+				*opt_type_ptr = OPT_NEGATIVE;
+			}
+			return 1;
+		} else {
+			return 0;
+		}
+	} else if(*opt_type_ptr == OPT_PLUS_PLUS || *opt_type_ptr == OPT_MINUS_MINUS) {
+		if(is_valid_c_char(str[opt_pos - 1]) && is_valid_c_char(str[opt_pos + *opt_len_ptr])) {
+			if(*opt_type_ptr == OPT_PLUS_PLUS) {
+				*opt_type_ptr = OPT_PLUS;
+			} else {
+				*opt_type_ptr = OPT_MINUS;
+			}
+			*opt_len_ptr = 1;
+			return 1;
+		}
+	} else if(*opt_type_ptr == OPT_MUL || *opt_type_ptr == OPT_BIT_AND) {
+		if(!is_valid_c_char(str[opt_pos - 1])) {
+			if(*opt_type_ptr == OPT_MUL)
+				*opt_type_ptr = OPT_PTR_CONTENT;
+			else
+				*opt_type_ptr = OPT_ADDRESS_OF;
+			return 1;
+		}
+	}
+	return 0;
+}
 int c_interpreter::member_opt(char* str, uint* size_ptr)
 {
 	varity_info *tmp_varity = 0, *finded_varity;
@@ -111,93 +146,99 @@ int c_interpreter::auto_inc_opt(char* str, uint* size_ptr)
 	int opt_len = 0, opt_type, last_opt_type;
 	int symbol_pos_last = 0, symbol_pos_once, continuous_plus_begin_pos;
 	char opt_stack[32], stack_ptr = 0, symbol_stack_ptr = 0;
-	bool first_flag = true;
 	while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) >= 0) {
-		int symbol_pos_cur = symbol_pos_last + symbol_pos_once + opt_len;
-		size -= symbol_pos_once + opt_len;
-		if(opt_type == OPT_PLUS || opt_type == OPT_MINUS || opt_type == OPT_PLUS_PLUS || opt_type == OPT_MINUS_MINUS || opt_type == OPT_NOT || opt_type == OPT_BIT_REVERT) {
-			int delta_str_len;
-			char tmp_varity_name[3];
-			if(first_flag)
-				continuous_plus_begin_pos = symbol_pos_last;
-			this->varity_declare->declare_analysis_varity(0, 0, tmp_varity_name, &tmp_varity);
-			tmp_varity->config_varity(ATTRIBUTE_TYPE_UNFIXED);
-			char name_buf[32];
+		if(opt_type == OPT_PLUS || opt_type == OPT_MINUS || opt_type == OPT_PLUS_PLUS || opt_type == OPT_MINUS_MINUS || opt_type == OPT_NOT || opt_type == OPT_BIT_REVERT || opt_type == OPT_BIT_AND || opt_type == OPT_MUL) {
+			int delta_str_len, is_convert;
+			char tmp_varity_name[3], name_buf[32];;
+			continuous_plus_begin_pos = symbol_pos_last;
 			name_buf[0] = 0;
-			if(opt_type == OPT_PLUS || opt_type == OPT_MINUS) {
-				if(!is_valid_c_char(str[symbol_pos_last + symbol_pos_once - 1])) {
-					if(opt_type == OPT_PLUS)
-						opt_type == OPT_POSITIVE;
-					else
-						opt_type == OPT_NEGATIVE;
-				} else {
-					symbol_pos_last += symbol_pos_once + opt_len;
-					continue;
-				}
-			} else if(opt_type == OPT_PLUS_PLUS || opt_type == OPT_MINUS_MINUS) {
-				if(is_valid_c_char(str[symbol_pos_last + symbol_pos_once - 1]) && is_valid_c_char(str[symbol_pos_last + symbol_pos_once + opt_len])) {
-					if(opt_type == OPT_PLUS_PLUS)
-						opt_type = OPT_POSITIVE;
-					else
-						opt_type = OPT_NEGATIVE;
-					symbol_pos_once++;
-				}
+			is_convert = operator_convert(str, &opt_type, symbol_pos_last + symbol_pos_once, &opt_len);
+			size -= symbol_pos_once + opt_len;
+			if(opt_type != OPT_POSITIVE && opt_type != OPT_NEGATIVE && opt_type != OPT_PLUS_PLUS && opt_type != OPT_MINUS_MINUS && opt_type != OPT_NOT && opt_type != OPT_BIT_REVERT && opt_type != OPT_ADDRESS_OF && opt_type != OPT_PTR_CONTENT) {
+				symbol_pos_last += symbol_pos_once + opt_len;
+				continue;
 			}
-			opt_stack[stack_ptr++] = opt_type;
 			if(symbol_pos_once) {
-				if(name_buf[0] != 0) {
-					error("operator error\n");
-					return ERROR_OPERATOR;
-				}
 				symbol_stack_ptr = stack_ptr;
 				memcpy(name_buf, str + symbol_pos_last, 32);
 				name_buf[symbol_pos_once] = 0;
 			}
+			opt_stack[stack_ptr++] = opt_type;
 			symbol_pos_last += symbol_pos_once + opt_len;
-			if(opt_type != OPT_PLUS || opt_type != OPT_MINUS || opt_type != OPT_PLUS_PLUS || opt_type != OPT_MINUS_MINUS || opt_type != OPT_NOT || opt_type != OPT_BIT_REVERT) {
-				int tmp_varity_type = check_symbol(name_buf, symbol_pos_once);
-				if(tmp_varity_type == OPERAND_VARITY) {
-					finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
-					if(!finded_varity) {
-						error("Varity \"%s\" doesn't exist\n", name_buf);
-						return ERROR_VARITY_NONEXIST;
+			this->varity_declare->declare_analysis_varity(0, 0, tmp_varity_name, &tmp_varity);
+			tmp_varity->config_varity(ATTRIBUTE_TYPE_UNFIXED);
+			while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) >= 0) {
+				is_convert = operator_convert(str, &opt_type, symbol_pos_last + symbol_pos_once, &opt_len);
+				size -= symbol_pos_once + opt_len;
+				if(symbol_pos_once) {
+					if(name_buf[0] != 0) {
+						error("operator error\n");
+						return ERROR_OPERATOR;
 					}
-					*tmp_varity = *finded_varity;
-				} else if(tmp_varity_type == OPERAND_FLOAT) {
-					*tmp_varity = y_atof(name_buf);
-				} else if(tmp_varity_type == OPERAND_INTEGER) {
-					*tmp_varity = y_atoi(name_buf);
+					symbol_stack_ptr = stack_ptr;
+					memcpy(name_buf, str + symbol_pos_last, 32);
+					name_buf[symbol_pos_once] = 0;
 				}
-				while(stack_ptr--) {
-					if(opt_stack[stack_ptr] == OPT_BIT_REVERT) {
-						*tmp_varity = ~*tmp_varity;
-					} else if(opt_stack[stack_ptr] == OPT_PLUS_PLUS) {
-						if(stack_ptr < symbol_stack_ptr) {//前置++
-							//*tmp_varity = *tmp_varity + 1;
-						}
-						//*finded_varity = *finded_varity + 1;
-					} else if(opt_stack[stack_ptr] == OPT_MINUS_MINUS) {
-						if(stack_ptr < symbol_stack_ptr) {//前置--
-							//*tmp_varity = *tmp_varity - 1;
-						}
-						//*finded_varity = *finded_varity - 1;
-					} 
+				if(opt_type != OPT_POSITIVE && opt_type != OPT_NEGATIVE && opt_type != OPT_PLUS_PLUS && opt_type != OPT_MINUS_MINUS && opt_type != OPT_NOT && opt_type != OPT_BIT_REVERT && opt_type != OPT_ADDRESS_OF && opt_type != OPT_PTR_CONTENT) {
+					symbol_pos_last += symbol_pos_once;
+					break;
 				}
-
-				delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
-				*size_ptr += delta_str_len;
-				
-				tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
-				//tmp_varity->config_varity(ATTRIBUTE_RIGHT_VALUE);
-				tmp_varity->echo();
-				symbol_pos_last -= opt_len;
-				stack_ptr = 0;
-				break;
+				opt_stack[stack_ptr++] = opt_type;
+				symbol_pos_last += symbol_pos_once + opt_len;
+			}	
+			int tmp_varity_type = check_symbol(name_buf, 32);
+			if(tmp_varity_type == OPERAND_VARITY) {
+				finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
+				if(!finded_varity) {
+					error("Varity \"%s\" doesn't exist\n", name_buf);
+					return ERROR_VARITY_NONEXIST;
+				}
+				*tmp_varity = *finded_varity;
+			} else if(tmp_varity_type == OPERAND_FLOAT) {
+				*tmp_varity = y_atof(name_buf);
+			} else if(tmp_varity_type == OPERAND_INTEGER) {
+				*tmp_varity = y_atoi(name_buf);
 			}
-
-		
-
+			while(stack_ptr--) {
+				if(opt_stack[stack_ptr] == OPT_BIT_REVERT) {
+					*tmp_varity = ~*tmp_varity;
+				} else if(opt_stack[stack_ptr] == OPT_PLUS_PLUS) {
+					if(stack_ptr < symbol_stack_ptr) {//前置++,TODO:避免++a=b的错误执行，即a赋值失败(考虑链接变量？)
+						*tmp_varity = ++(*finded_varity);
+					} else {
+						*tmp_varity = (*finded_varity)++;
+						tmp_varity->config_varity(ATTRIBUTE_RIGHT_VALUE);
+					}
+				} else if(opt_stack[stack_ptr] == OPT_MINUS_MINUS) {
+					if(stack_ptr < symbol_stack_ptr) {//前置--
+						*tmp_varity = --(*finded_varity);
+					} else {
+						*tmp_varity = (*finded_varity)--;
+						tmp_varity->config_varity(ATTRIBUTE_RIGHT_VALUE);
+					}
+				} else if(opt_stack[stack_ptr] == OPT_NOT) {
+					*tmp_varity = !*tmp_varity;
+				} else if(opt_stack[stack_ptr] == OPT_NEGATIVE) {
+					*tmp_varity = -*tmp_varity;
+				} else if(opt_stack[stack_ptr] == OPT_ADDRESS_OF) {
+					*tmp_varity = (int)finded_varity->get_content_ptr();
+					tmp_varity->set_type(finded_varity->get_type() + BASIC_VARITY_TYPE_COUNT);
+				} else if(opt_stack[stack_ptr] == OPT_PTR_CONTENT) {
+					tmp_varity->config_varity(ATTRIBUTE_LINK);
+					tmp_varity->set_type(tmp_varity->get_type() - BASIC_VARITY_TYPE_COUNT);
+					tmp_varity->set_content_ptr((void*)INT_VALUE(tmp_varity->get_content_ptr()));
+				}
+			}
+			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
+			symbol_pos_last += delta_str_len + opt_len;
+			*size_ptr += delta_str_len;
+			tmp_varity->clear_attribute(ATTRIBUTE_TYPE_UNFIXED);
+			//tmp_varity->config_varity(ATTRIBUTE_RIGHT_VALUE);
+			tmp_varity->echo();
+			//symbol_pos_last -= opt_len;
+			stack_ptr = 0;
 		} else {
+			size -= symbol_pos_once + opt_len;
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}

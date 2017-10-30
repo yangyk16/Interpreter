@@ -86,6 +86,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->nonseq_info->nonseq_begin_stack_ptr = 0;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 	this->c_opt_caculate_func_list[0]=&c_interpreter::member_opt;
+	this->c_opt_caculate_func_list[1]=&c_interpreter::auto_inc_opt;
 	this->c_opt_caculate_func_list[2]=&c_interpreter::multiply_opt;
 	this->c_opt_caculate_func_list[3]=&c_interpreter::plus_opt;
 	this->c_opt_caculate_func_list[5]=&c_interpreter::relational_opt;

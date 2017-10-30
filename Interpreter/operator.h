@@ -2,6 +2,12 @@
 #ifndef OPERATOR_H
 #define OPERATOR_H
 
+#define CHAR_VALUE(x) (*(char*)(x))
+#define SHORT_VALUE(x) (*(short*)(x))
+#define INT_VALUE(x) (*(int*)(x))
+#define FLOAT_VALUE(x) (*(float*)(x))
+#define DOUBLE_VALUE(x) (*(double*)(x))
+
 #define OPERAND_VARITY		0
 #define OPERAND_MEMBER		0
 #define OPERAND_FLOAT		1

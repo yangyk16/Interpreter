@@ -310,6 +310,9 @@ void varity_info::echo(void)
 			debug("%s = %f\n",this->name, *(double*)this->content_ptr);
 		else if(this->type == FLOAT)
 			debug("%s = %f\n",this->name, *(float*)this->content_ptr);
+		else if(this->type >= BASIC_VARITY_TYPE_COUNT) {
+			debug("%s = 0x%x\n",this->name, *(int*)this->content_ptr);
+		}
 	}
 }
 
