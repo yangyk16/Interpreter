@@ -2,6 +2,7 @@
 #ifndef STRING_LIB_H
 #define STRING_LIB_H
 #include <string.h>
+#include "varity.h"
 
 inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
 //need a bracket stack save outer bracket
@@ -46,6 +47,7 @@ inline int get_bracket_depth(char* str)
 }
 
 int optcmp(char* str);
+int is_type_convert(char* str, varity_info* covert_type_ptr);
 int nonseq_key_cmp(char* str);
 int remove_char(char* str, char ch);
 int remove_substring(char* str, int index1, int index2);
@@ -63,5 +65,5 @@ int strequ(char* str1, char* str2, int len);
 int char_count(char* str, char ch);
 int make_align(int value, int align_byte);
 int varity_check(char* str, char tailed, char**& buf, int*& count);
-bool is_valid_c_char(char ch);
+bool is_valid_c_char(unsigned char ch);
 #endif

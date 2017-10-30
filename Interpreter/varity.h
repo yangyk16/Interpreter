@@ -50,6 +50,7 @@ protected:
 	char type;
 	char attribute;
 	uint size;
+	void*	comlex_info_ptr;
 public:
 	inline uint get_size(void){return this->size;}
 	inline int get_type(void) {return this->type;}
@@ -59,7 +60,6 @@ public:
 class varity_info:public varity_attribute {
 protected:
 	void*	content_ptr;
-	void*	comlex_info_ptr;
 public:
 	static bool en_echo;
 	static void init_varity(void*, char*, char, uint);

@@ -909,15 +909,19 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 						sub_sentence_length = sub_sentence_end_pos - sub_sentence_begin_pos - 1;
 						memcpy(sub_analysis_buf, analysis_buf_ptr + sub_sentence_begin_pos + 1, sub_sentence_length);
 						sub_analysis_buf[sub_sentence_length] = 0;
-						sub_sentence_analysis(sub_analysis_buf, &sub_sentence_length);
-						if(analysis_buf_ptr[j] == ')') {
-							sub_replace(analysis_buf_ptr, sub_sentence_begin_pos, sub_sentence_end_pos, sub_analysis_buf);
-							len -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
-							j -= sub_sentence_end_pos - sub_sentence_begin_pos + 1 - sub_sentence_length;
-						} else {//TODO:中括号只算括号内，留待低级括号时作运算符处理，便于前述运算符的正确执行。
-							int delta_len = sub_replace(analysis_buf_ptr, sub_sentence_begin_pos + 1, sub_sentence_end_pos - 1, sub_analysis_buf);
+						if(!is_type_convert(sub_analysis_buf, 0)) {
+							//执行括号内语句并替换为结果;
+							int delta_len;
+							sub_sentence_analysis(sub_analysis_buf, &sub_sentence_length);
+							if(analysis_buf_ptr[j] == ')') {
+								delta_len = sub_replace(analysis_buf_ptr, sub_sentence_begin_pos, sub_sentence_end_pos, sub_analysis_buf);
+							} else {
+								delta_len = sub_replace(analysis_buf_ptr, sub_sentence_begin_pos + 1, sub_sentence_end_pos - 1, sub_analysis_buf);
+							}
 							len += delta_len;
 							j += delta_len;
+						} else {
+
 						}
 					}
 				}

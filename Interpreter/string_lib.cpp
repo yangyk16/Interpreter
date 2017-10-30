@@ -22,6 +22,27 @@ int optcmp(char* str)
 	return -1;
 }
 
+int is_type_convert(char* str, varity_info* covert_type_ptr)
+{
+	int ret, varity_type;
+	varity_type = optcmp(str);
+	if(varity_type >= 0) {
+		int ptr_level;
+		int i = strlen(type_key[varity_type]);
+		while(str[i]) {
+			if(str[i] != '*')
+				return 0;
+			else
+				ptr_level++;
+		}
+		if(covert_type_ptr) {
+			covert_type_ptr->set_type(varity_type + ptr_level * BASIC_VARITY_TYPE_COUNT);
+		}
+		return 1;
+	} else 
+		return 0;
+}
+
 int key_match(char* str, int size, int* type)
 {
 	int i, j;
@@ -277,9 +298,9 @@ int make_align(int value, int align_byte)
 	return value % align_byte == 0 ? value : value + align_byte - (value % align_byte);
 }
 
-bool is_valid_c_char(char ch)
+bool is_valid_c_char(unsigned char ch)
 {
-	if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || ch == '_')
+	if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || ch == '_' || ch >= 128)//TODO: 128 use macro, also as varity.cpp
 		return true;
 	return false;
 }
