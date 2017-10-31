@@ -456,7 +456,8 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		nonseq_info->reset();
 		return ret;//avoid continue to exec single sentence.
 	}
-	if(!nonseq_info->non_seq_struct_depth && str[0] != '}') {
+	if(!nonseq_info->non_seq_struct_depth && ret != OK_NONSEQ_INPUTING && str[0] != '}') {
+	//if(!nonseq_info->non_seq_struct_depth && str[0] != '}') {
 		ret = sentence_exec(str, len, true, NULL);
 		return ret;
 	}
@@ -962,6 +963,7 @@ int c_interpreter::sub_sentence_analysis(char* str, uint *len)//无括号或仅含类型
 			int ret = (this->*c_opt_caculate_func_list[i])(str,len);
 			if(ret < 0)
 				return ret;
+			//debug("opt_prio=%d\n", i);
 		}
 	return ERROR_NO;
 }

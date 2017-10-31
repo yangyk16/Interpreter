@@ -113,7 +113,8 @@ int c_interpreter::member_opt(char* str, uint* size_ptr)
 					} else if(tmp_varity_type == OPERAND_FLOAT) {
 						error("Float can not used as index\n");
 						return ERROR_FLOAT_USED_INDEX;
-					}
+					} else
+						return tmp_varity_type;
 					tmp_varity->set_to_single(index);//TODO: 增加获取变量值整数值的函数，增加count字段
 					//tmp_varity->set_content_ptr((char*)tmp_varity->get_content_ptr() + index * sizeof_type[tmp_varity->get_type()]);
 					//str[symbol_pos_last + symbol_pos_once] = 0;
@@ -135,6 +136,8 @@ int c_interpreter::member_opt(char* str, uint* size_ptr)
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}
+	if(symbol_pos_once < -1)//operand error
+		return symbol_pos_once;
 	return ERROR_NO;
 }
 
@@ -146,17 +149,21 @@ int c_interpreter::auto_inc_opt(char* str, uint* size_ptr)
 	int opt_len = 0, opt_type, last_opt_type;
 	int symbol_pos_last = 0, symbol_pos_once, continuous_plus_begin_pos;
 	char opt_stack[32], stack_ptr = 0, symbol_stack_ptr = 0;
+	varity_info type_convert_stack[16];
+	int l_bracket_pos, convert_stack_ptr = 0;
 	while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) >= 0) {
-		if(opt_type == OPT_PLUS || opt_type == OPT_MINUS || opt_type == OPT_PLUS_PLUS || opt_type == OPT_MINUS_MINUS || opt_type == OPT_NOT || opt_type == OPT_BIT_REVERT || opt_type == OPT_BIT_AND || opt_type == OPT_MUL) {
+		if(opt_type == OPT_PLUS || opt_type == OPT_MINUS || opt_type == OPT_PLUS_PLUS || opt_type == OPT_MINUS_MINUS || opt_type == OPT_NOT || opt_type == OPT_BIT_REVERT || opt_type == OPT_BIT_AND || opt_type == OPT_MUL || opt_type == OPT_L_SMALL_BRACKET || opt_type == OPT_R_SMALL_BRACKET) {
 			int delta_str_len, is_convert;
 			char tmp_varity_name[3], name_buf[32];;
 			continuous_plus_begin_pos = symbol_pos_last;
 			name_buf[0] = 0;
 			is_convert = operator_convert(str, &opt_type, symbol_pos_last + symbol_pos_once, &opt_len);
 			size -= symbol_pos_once + opt_len;
-			if(opt_type != OPT_POSITIVE && opt_type != OPT_NEGATIVE && opt_type != OPT_PLUS_PLUS && opt_type != OPT_MINUS_MINUS && opt_type != OPT_NOT && opt_type != OPT_BIT_REVERT && opt_type != OPT_ADDRESS_OF && opt_type != OPT_PTR_CONTENT) {
+			if(opt_type != OPT_POSITIVE && opt_type != OPT_NEGATIVE && opt_type != OPT_PLUS_PLUS && opt_type != OPT_MINUS_MINUS && opt_type != OPT_NOT && opt_type != OPT_BIT_REVERT && opt_type != OPT_ADDRESS_OF && opt_type != OPT_PTR_CONTENT && opt_type != OPT_L_SMALL_BRACKET && opt_type != OPT_R_SMALL_BRACKET) {
 				symbol_pos_last += symbol_pos_once + opt_len;
 				continue;
+			} else if(opt_type == OPT_L_SMALL_BRACKET) {
+				l_bracket_pos = symbol_pos_last + symbol_pos_once;
 			}
 			if(symbol_pos_once) {
 				symbol_stack_ptr = stack_ptr;
@@ -170,7 +177,7 @@ int c_interpreter::auto_inc_opt(char* str, uint* size_ptr)
 			while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) >= 0) {
 				is_convert = operator_convert(str, &opt_type, symbol_pos_last + symbol_pos_once, &opt_len);
 				size -= symbol_pos_once + opt_len;
-				if(symbol_pos_once) {
+				if(symbol_pos_once && opt_type != OPT_R_SMALL_BRACKET) {
 					if(name_buf[0] != 0) {
 						error("operator error\n");
 						return ERROR_OPERATOR;
@@ -179,13 +186,20 @@ int c_interpreter::auto_inc_opt(char* str, uint* size_ptr)
 					memcpy(name_buf, str + symbol_pos_last, 32);
 					name_buf[symbol_pos_once] = 0;
 				}
-				if(opt_type != OPT_POSITIVE && opt_type != OPT_NEGATIVE && opt_type != OPT_PLUS_PLUS && opt_type != OPT_MINUS_MINUS && opt_type != OPT_NOT && opt_type != OPT_BIT_REVERT && opt_type != OPT_ADDRESS_OF && opt_type != OPT_PTR_CONTENT) {
+				if(opt_type != OPT_POSITIVE && opt_type != OPT_NEGATIVE && opt_type != OPT_PLUS_PLUS && opt_type != OPT_MINUS_MINUS && opt_type != OPT_NOT && opt_type != OPT_BIT_REVERT && opt_type != OPT_ADDRESS_OF && opt_type != OPT_PTR_CONTENT && opt_type != OPT_L_SMALL_BRACKET && opt_type != OPT_R_SMALL_BRACKET) {
 					symbol_pos_last += symbol_pos_once;
 					break;
+				} else if(opt_type == OPT_L_SMALL_BRACKET) {
+					l_bracket_pos = symbol_pos_last + symbol_pos_once;
+				} else if(opt_type == OPT_R_SMALL_BRACKET) {
+					char type_str[32];
+					memcpy(type_str, str + l_bracket_pos + 1, symbol_pos_last + symbol_pos_once - l_bracket_pos - 1);
+					type_str[symbol_pos_last + symbol_pos_once - l_bracket_pos - 1] = 0;
+					is_type_convert(type_str, &type_convert_stack[convert_stack_ptr++]);
 				}
 				opt_stack[stack_ptr++] = opt_type;
 				symbol_pos_last += symbol_pos_once + opt_len;
-			}	
+			}
 			int tmp_varity_type = check_symbol(name_buf, 32);
 			if(tmp_varity_type == OPERAND_VARITY) {
 				finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
@@ -198,7 +212,8 @@ int c_interpreter::auto_inc_opt(char* str, uint* size_ptr)
 				*tmp_varity = y_atof(name_buf);
 			} else if(tmp_varity_type == OPERAND_INTEGER) {
 				*tmp_varity = y_atoi(name_buf);
-			}
+			} else
+				return tmp_varity_type;
 			while(stack_ptr--) {
 				if(opt_stack[stack_ptr] == OPT_BIT_REVERT) {
 					*tmp_varity = ~*tmp_varity;
@@ -227,6 +242,10 @@ int c_interpreter::auto_inc_opt(char* str, uint* size_ptr)
 					tmp_varity->config_varity(ATTRIBUTE_LINK);
 					tmp_varity->set_type(tmp_varity->get_type() - BASIC_VARITY_TYPE_COUNT);
 					tmp_varity->set_content_ptr((void*)INT_VALUE(tmp_varity->get_content_ptr()));
+				} else if(opt_stack[stack_ptr] == OPT_L_SMALL_BRACKET) {
+					int source_type = tmp_varity->get_type();
+					tmp_varity->set_type(type_convert_stack[--convert_stack_ptr].get_type());
+					tmp_varity->convert(tmp_varity->get_content_ptr(), source_type);
 				}
 			}
 			delta_str_len = sub_replace(str, continuous_plus_begin_pos, symbol_pos_last - 1, tmp_varity_name);
@@ -242,6 +261,8 @@ int c_interpreter::auto_inc_opt(char* str, uint* size_ptr)
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}
+	if(symbol_pos_once < -1)
+		return symbol_pos_once;
 	return ERROR_NO;
 }
 
@@ -276,7 +297,8 @@ int c_interpreter::plus_opt(char* str, uint* size_ptr)
 				*tmp_varity = y_atof(name_buf);
 			} else if(tmp_varity_type == OPERAND_INTEGER) {
 				*tmp_varity = y_atoi(name_buf);
-			}
+			} else
+				return tmp_varity_type;
 			symbol_pos_last += symbol_pos_once + opt_len;
 			last_opt_type = opt_type;
 			while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
@@ -308,7 +330,8 @@ int c_interpreter::plus_opt(char* str, uint* size_ptr)
 						*tmp_varity = *tmp_varity + sub_tmp_varity;
 					else if(last_opt_type == OPT_MINUS)
 						*tmp_varity = *tmp_varity - sub_tmp_varity;
-				}
+				} else
+					return tmp_varity_type;
 				symbol_pos_last += symbol_pos_once + opt_len;
 				if(opt_type != OPT_PLUS && opt_type != OPT_MINUS) {
 					symbol_pos_last -= opt_len;
@@ -326,6 +349,8 @@ int c_interpreter::plus_opt(char* str, uint* size_ptr)
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}
+	if(symbol_pos_once < -1)
+		return symbol_pos_once;
 	return ERROR_NO;
 }
 
@@ -360,7 +385,8 @@ int c_interpreter::multiply_opt(char* str, uint* size_ptr)
 				*tmp_varity = y_atof(name_buf);
 			} else if(tmp_varity_type == OPERAND_INTEGER) {
 				*tmp_varity = y_atoi(name_buf);
-			}
+			} else
+				return tmp_varity_type;
 			symbol_pos_last += symbol_pos_once + opt_len;
 			last_opt_type = opt_type;
 			while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
@@ -393,7 +419,8 @@ int c_interpreter::multiply_opt(char* str, uint* size_ptr)
 						*tmp_varity = *tmp_varity / sub_tmp_varity;
 					else if(last_opt_type == OPT_MOD)
 						*tmp_varity = *tmp_varity % sub_tmp_varity;
-				}
+				} else
+					return tmp_varity_type;
 				symbol_pos_last += symbol_pos_once + opt_len;
 				if(opt_type != OPT_MUL && opt_type != OPT_DIVIDE && opt_type != OPT_MOD) {
 					symbol_pos_last -= opt_len;
@@ -411,6 +438,8 @@ int c_interpreter::multiply_opt(char* str, uint* size_ptr)
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}
+	if(symbol_pos_once < -1)
+		return symbol_pos_once;
 	return ERROR_NO;
 }
 
@@ -444,7 +473,8 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 				*tmp_varity = y_atof(name_buf);
 			} else if(tmp_varity_type == OPERAND_INTEGER) {
 				*tmp_varity = y_atoi(name_buf);
-			}
+			} else
+				return tmp_varity_type;
 			size = symbol_pos_cur + 1;
 			while(size > 0) {
 				symbol_pos_once = search_opt(str, size, 1, &opt_len, &opt_type);
@@ -472,7 +502,8 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 					//*tmp_varity = *tmp_varity;
 					error("A constant cannot be assigned\n");
 					return ERROR_CONST_ASSIGNED;
-				}
+				} else
+					return tmp_varity_type;
 				size = symbol_pos_cur + 1;
 				if(opt_type != OPT_ASSIGN && opt_type != OPT_ADD_ASSIGN)
 					break;
@@ -486,6 +517,8 @@ int c_interpreter::assign_opt(char* str, uint* len_ptr)
 			size = symbol_pos_cur + 1;
 		}
 	}
+	if(symbol_pos_once < -1)
+		return symbol_pos_once;
 	return ERROR_NO;
 }
 
@@ -520,7 +553,8 @@ int c_interpreter::relational_opt(char* str, uint* size_ptr)
 				*tmp_varity = y_atof(name_buf);
 			} else if(tmp_varity_type == OPERAND_INTEGER) {
 				*tmp_varity = y_atoi(name_buf);
-			}
+			} else
+				return tmp_varity_type;
 			symbol_pos_last += symbol_pos_once + opt_len;
 			last_opt_type = opt_type;
 			while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
@@ -564,7 +598,8 @@ int c_interpreter::relational_opt(char* str, uint* size_ptr)
 						*tmp_varity = *tmp_varity >= sub_tmp_varity;
 					else if(last_opt_type == OPT_SMALL_EQU)
 						*tmp_varity = *tmp_varity <= sub_tmp_varity;
-				}
+				} else
+					return tmp_varity_type;
 				symbol_pos_last += symbol_pos_once + opt_len;
 				if(opt_type != OPT_BIG && opt_type != OPT_SMALL && opt_type != OPT_BIG_EQU && opt_type != OPT_SMALL_EQU) {
 					symbol_pos_last -= opt_len;
@@ -582,6 +617,8 @@ int c_interpreter::relational_opt(char* str, uint* size_ptr)
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}
+	if(symbol_pos_once < -1)
+		return symbol_pos_once;
 	return ERROR_NO;
 }
 
@@ -616,7 +653,8 @@ int c_interpreter::equal_opt(char* str, uint* size_ptr)
 				*tmp_varity = y_atof(name_buf);
 			} else if(tmp_varity_type == OPERAND_INTEGER) {
 				*tmp_varity = y_atoi(name_buf);
-			}
+			} else
+				return tmp_varity_type;
 			symbol_pos_last += symbol_pos_once + opt_len;
 			last_opt_type = opt_type;
 			while((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) > 0) {
@@ -648,7 +686,8 @@ int c_interpreter::equal_opt(char* str, uint* size_ptr)
 						*tmp_varity = *tmp_varity == sub_tmp_varity;
 					else if(last_opt_type == OPT_NOT_EQU)
 						*tmp_varity = *tmp_varity != sub_tmp_varity;
-				}
+				} else
+					return tmp_varity_type;
 				symbol_pos_last += symbol_pos_once + opt_len;
 				if(opt_type != OPT_EQU && opt_type != OPT_NOT_EQU) {
 					symbol_pos_last -= opt_len;
@@ -666,92 +705,7 @@ int c_interpreter::equal_opt(char* str, uint* size_ptr)
 			symbol_pos_last += symbol_pos_once + opt_len;
 		}
 	}
+	if(symbol_pos_once < -1)
+		return symbol_pos_once;
 	return ERROR_NO;
 }
-
-/*int c_interpreter::bracket_opt(char* name, char* sub_sentence, char* ret_str_ptr, uint* ret_len_ptr)
-{
-	varity_info* varity_ptr, *index_varity_ptr, *ret_varity_ptr;
-	int index;
-	varity_ptr = this->varity_declare->find(name, PRODUCED_ALL);
-	if(varity_ptr) {
-		if(!(varity_ptr->get_size() != sizeof_type[varity_ptr->get_type()] || varity_ptr->get_type() >= sizeof(sizeof_type) / sizeof(sizeof_type[0])))
-			return 1;
-		int tmp_varity_type = check_symbol(sub_sentence, MAX_INT);
-		if(tmp_varity_type == OPERAND_VARITY) {
-			index_varity_ptr = this->varity_declare->find(sub_sentence, MAX_INT);
-			if(!index_varity_ptr) {
-				error("Varity \"%s\" doesn't exist\n");
-				return 1;
-			}
-			if(index_varity_ptr->get_type() == FLOAT || index_varity_ptr->get_type() == DOUBLE) {
-				error("Float can not used as index\n");
-				return 1;
-			}
-			index = *(int*)index_varity_ptr->get_content_ptr();
-		} else if(tmp_varity_type == OPERAND_FLOAT) {
-			error("Float can not used as index\n");
-			return 1;
-		} else if(tmp_varity_type == OPERAND_INTEGER) {
-			index = y_atoi(sub_sentence);
-		}
-		int ret_type = varity_ptr->get_type();
-		this->varity_declare->declare_analysis_varity(ret_type, sizeof_type[ret_type], ret_str_ptr, &ret_varity_ptr, ATTRIBUTE_LINK);
-		ret_varity_ptr->set_content_ptr((char*)varity_ptr->get_content_ptr() + sizeof_type[ret_type] * index);
-	}
-	if(ret_len_ptr && ret_str_ptr)
-		*ret_len_ptr = strlen(ret_str_ptr);
-	return ERROR_NO;
-}*/
-
-/*varity_info c_interpreter::assign_opt(char* str, uint* len_ptr)
-{
-	varity_info ret;
-	varity_info tmp_varity;
-	varity_info* finded_varity;
-	char tmpbuf[32];
-	int len = *len_ptr;
-	int i;
-	int symbol_begin_pos;
-	for(int num_flag=1, i=len-1, symbol_begin_pos=len; i>=-1; i--) {
-		if(i == -1 || str[i] == '=' || str[i] == ',' || str[i] == ';') {
-			memcpy(tmpbuf, str + i + 1, symbol_begin_pos - i - 1);
-			tmpbuf[symbol_begin_pos - i - 1] = 0;
-			if(num_flag == 1) {
-				remove_substring(str, i + 1, symbol_begin_pos - 1);
-				tmp_varity = atoi(tmpbuf);
-			} else if(num_flag == 2) {
-				remove_substring(str, i + 1, symbol_begin_pos - 1);
-				tmp_varity = atof(tmpbuf);
-			} else if(num_flag == 0) {
-				finded_varity = (varity_info*)this->varity_declare->analysis_varity_stack->find(tmpbuf);
-				if(!finded_varity)
-					finded_varity = (varity_info*)this->varity_declare->global_varity_stack->find(tmpbuf);
-				if(!finded_varity) {
-					debug("varity \"%s\" doesn't exist\n", tmpbuf);
-					return ret;
-				}
-				if(str[symbol_begin_pos] == '=') {
-					remove_substring(str, symbol_begin_pos, symbol_begin_pos);
-					*finded_varity = tmp_varity;
-					finded_varity->echo();
-				}
-				tmp_varity = *finded_varity;
-			}
-			if(str[i] == ',')
-				tmp_varity.reset();
-			symbol_begin_pos = i;
-			num_flag = 1;
-		} else if(str[i] == '.')
-			if(num_flag == 1)
-				num_flag = 2;
-			else
-				num_flag = 3;
-		else if(str[i] == '-')
-			;
-		else if(str[i] < '0' || str[i] > '9')
-			num_flag = false;
-		
-	}
-	return ret;
-}*/

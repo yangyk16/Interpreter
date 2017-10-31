@@ -2,6 +2,7 @@
 #include "string_lib.h"
 #include "varity.h"
 #include "operator.h"
+#include "error.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -16,7 +17,7 @@ int optcmp(char* str)
 			if(str[j] != type_key[i][j])
 				break;
 		}
-		if(type_key[i][j] == 0 && (str[j] == ' ' || str[j] == '*'))
+		if(type_key[i][j] == 0 && (str[j] == ' ' || str[j] == '*' || str[j] == 0))
 			return i;
 	}
 	return -1;
@@ -27,10 +28,10 @@ int is_type_convert(char* str, varity_info* covert_type_ptr)
 	int ret, varity_type;
 	varity_type = optcmp(str);
 	if(varity_type >= 0) {
-		int ptr_level;
+		int ptr_level = 0;
 		int i = strlen(type_key[varity_type]);
 		while(str[i]) {
-			if(str[i] != '*')
+			if(str[i] != '*' && str[i] != 0)
 				return 0;
 			else
 				ptr_level++;
@@ -137,6 +138,45 @@ int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 					if(!opt_str[j][1]) {
 						*opt_len = 1;
 						*opt_type = j;
+						if(*opt_type == OPT_PLUS || *opt_type == OPT_MINUS) {
+							if(i != 0 && (str[i-1] == 'e' || str[i-1] == 'E')) {
+								int k;
+								for(k=0; k<i-1; k++) {
+									if(str[k] != '.' && (str[k] < '0' || str[k] > '9')) {
+										break;
+									}
+								}
+								if(k == i-1) {
+									for(k=i+1; is_valid_c_char(str[k]); k++) {
+										if(str[k] != '.' && (str[k] < '0' || str[k] > '9')) {
+											error("float const is invalid\n");
+											return ERROR_OPERAND;
+										}
+									}
+									break;
+								}
+							}
+						} else if(*opt_type == OPT_MEMBER) {
+							int k;
+							for(k=0; k<i-1; k++) {
+								if(str[k] != '.' && (str[k] < '0' || str[k] > '9')) {
+									break;
+								}
+							}
+							if(k == i-1) {
+								for(k=i+1; is_valid_c_char(str[k]) || str[k]=='.'; k++) {
+									if((str[k] < '0' || str[k] > '9') && (str[k] != 'e' && str[k] != 'E')) {
+										error("float const is invalid\n");
+										return ERROR_OPERAND;
+									}
+								}
+								if(str[k-1] == 'e' || str[k-1] == 'E') {
+									error("float const is invalid\n");
+									return ERROR_OPERAND;
+								}
+								break;
+							}
+						}
 						return i;
 					}
 				}
@@ -181,11 +221,31 @@ int check_symbol(char* str, int size)
 {
 	int ret = OPERAND_INTEGER;
 	for(int i=0; i<size && str[i]; i++)
-		if(str[i] == '.')
-			ret = OPERAND_FLOAT;
-		else if((str[i] >'9' || str[i] < '0') && str[i] != '.') {
-			ret = OPERAND_VARITY;
-			break;
+		if(str[i] == '.') {
+			if(ret == OPERAND_INTEGER)
+				ret = OPERAND_FLOAT;
+			else if(ret == OPERAND_FLOAT) {
+				error("float const error\n");
+				return ERROR_OPERAND;
+			}
+		} else if((str[i] > '9' || str[i] < '0') && str[i] != '.') {
+			if(str[i] == 'e' || str[i] == 'E') {
+				if(i == size - 1) {
+					error("float const error\n");
+					return ERROR_OPERAND;
+				}
+				for(int j=i+1; j<size && str[j]; j++) {
+					if((str[j] > '9' || str[j] < '0') && str[j] != '+' && str[j] != '-') {
+						error("float const error\n");
+						return ERROR_OPERAND;
+					}
+				}
+				ret = OPERAND_FLOAT;
+				break;
+			} else {
+				ret = OPERAND_VARITY;
+				break;
+			}
 		}
 	return ret;
 }

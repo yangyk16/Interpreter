@@ -132,29 +132,29 @@ void varity_info::convert(void* addr, int type)
 				*(float*)(this->content_ptr) = (float)*(int*)(addr);
 			}
 		}
-	} else if(this->type > type) {	
+	} else if(this->type > type) {
 		if(type == DOUBLE) {
 			*(int*)(this->content_ptr) = (int)*(double*)(addr);
 		} else if(type == FLOAT) {
 			*(int*)(this->content_ptr) = (int)*(float*)(addr);
-		} else {
+		} else if(type == INT || type == U_INT){
 			*(int*)(this->content_ptr) = *(int*)(addr);
-		}
-	} else if(this->type == U_SHORT || this->type == SHORT) {
-		if(type == DOUBLE) {
-			*(short*)(this->content_ptr) = (short)*(double*)(addr);
-		} else if(type == FLOAT) {
-			*(short*)(this->content_ptr) = (short)*(float*)(addr);
-		} else {
-			*(short*)(this->content_ptr) = *(short*)(addr);
-		}
-	} else if(this->type == U_CHAR || this->type == CHAR) {
-		if(type == DOUBLE) {
-			*(char*)(this->content_ptr) = (char)*(double*)(addr);
-		} else if(type == FLOAT) {
-			*(char*)(this->content_ptr) = (char)*(float*)(addr);
-		} else {
-			*(char*)(this->content_ptr) = *(char*)(addr);
+		} else if(this->type == U_SHORT || this->type == SHORT) {
+			if(type == DOUBLE) {
+				*(short*)(this->content_ptr) = (short)*(double*)(addr);
+			} else if(type == FLOAT) {
+				*(short*)(this->content_ptr) = (short)*(float*)(addr);
+			} else {
+				*(short*)(this->content_ptr) = *(short*)(addr);
+			}
+		} else if(this->type == U_CHAR || this->type == CHAR) {
+			if(type == DOUBLE) {
+				*(char*)(this->content_ptr) = (char)*(double*)(addr);
+			} else if(type == FLOAT) {
+				*(char*)(this->content_ptr) = (char)*(float*)(addr);
+			} else {
+				*(char*)(this->content_ptr) = *(char*)(addr);
+			}
 		}
 	}
 	return;
