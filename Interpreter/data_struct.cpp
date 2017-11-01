@@ -66,6 +66,18 @@ indexed_stack::indexed_stack(int esize, void* base_addr, int capacity)
 	memset(this->bottom_addr, 0, this->length * this->element_size);
 }
 
+void* indexed_stack::find(char* name)
+{
+	char* element_name;
+	int visible_index = this->index_table[this->visible_depth];
+	for(uint i=visible_index; i<this->count; i++) {
+		element_name = ((element*)((char*)this->bottom_addr + i * this->element_size))->get_name();
+		if(!strcmp(element_name, name))
+			return (char*)this->bottom_addr + i * this->element_size;
+	}
+	return NULL;
+}
+
 round_queue::round_queue()
 {
 	this->wptr = this->rptr = 0;

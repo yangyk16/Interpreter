@@ -385,53 +385,65 @@ int c_interpreter::function_analysis(char* str, uint len)
 	return OK_FUNC_NOFUNC;
 }
 
-#define RETURN(x) arg_string[0] = '('; \
+#define RETURN(ret, is_dedeep) arg_string[0] = '('; \
 	varity_global_flag = varity_global_flag_backup; \
 	this->varity_declare->destroy_local_varity_cur_depth(); \
-	this->varity_declare->local_varity_stack->dedeep(); \
+	if(is_dedeep) \
+		this->varity_declare->local_varity_stack->dedeep(); \
 	this->analysis_buf_ptr -= this->analysis_buf_inc_stack[--this->function_depth]; \
+	this->varity_declare->local_varity_stack->visible_depth = visible_depth_backup; \
 	vfree(this->nonseq_info); \
 	this->nonseq_info = nonseq_info_backup; \
-	return x
+	return ret
 int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 {
 	int ret, arg_count;
 	int varity_global_flag_backup = this->varity_global_flag;
+	int visible_depth_backup = this->varity_declare->local_varity_stack->visible_depth;
 	nonseq_info_struct* nonseq_info_backup = this->nonseq_info;
 	this->analysis_buf_ptr += this->analysis_buf_inc_stack[this->function_depth++];
 	this->nonseq_info = (nonseq_info_struct*)vmalloc(sizeof(nonseq_info_struct));
 	int arg_end_pos = arg_len - 1;
-	varity_info arg_varity;
+	varity_info* arg_varity;
 	this->varity_global_flag = VARITY_SCOPE_LOCAL;
-	this->varity_declare->local_varity_stack->visible_depth = this->varity_declare->local_varity_stack->current_depth;
-	this->varity_declare->local_varity_stack->endeep();
 	arg_string[0] = 0;
 	function_info* called_function_ptr = this->function_declare->find(name);
 	arg_string[0] = ',';
 	arg_count = called_function_ptr->arg_list->get_count();
-	while(arg_count-- > 1) {
-		varity_attribute* arg_ptr = (varity_attribute*)called_function_ptr->arg_list->visit_element_by_index(arg_count);
-		this->varity_declare->declare(VARITY_SCOPE_LOCAL, arg_ptr->get_name(), arg_ptr->get_type(), arg_ptr->get_size());
+	arg_varity = (varity_info*)vmalloc(arg_count * sizeof(varity_info));//TODO:核查内存泄漏
+	//while(arg_count-- > 1) {
+	for(int i=arg_count-1; i>=1; i--) {
+		varity_attribute* arg_ptr = (varity_attribute*)called_function_ptr->arg_list->visit_element_by_index(i);
+		//this->varity_declare->declare(VARITY_SCOPE_LOCAL, arg_ptr->get_name(), arg_ptr->get_type(), arg_ptr->get_size());
 		int comma_pos = str_find(arg_string, arg_end_pos, ',', 1);
 		if(comma_pos >= 0) {
-			this->sentence_exec(arg_string + comma_pos + 1, arg_end_pos - comma_pos - 1, false, &arg_varity);
-			*(varity_info*)this->varity_declare->local_varity_stack->get_lastest_element() = arg_varity;
-			arg_varity.reset();
+			this->sentence_exec(arg_string + comma_pos + 1, arg_end_pos - comma_pos - 1, false, &arg_varity[i]);
+			//*(varity_info*)this->varity_declare->local_varity_stack->get_lastest_element() = arg_varity;
+			//arg_varity[arg_count].reset();
 		} else {
 			error("Args insufficient\n");
-			RETURN(ERROR_FUNC_ARGS);
+			RETURN(ERROR_FUNC_ARGS, 0);
 		}
 		arg_end_pos = comma_pos;
 	}
+	this->varity_declare->local_varity_stack->endeep();//先用完旧局部变量算参数才能endeep
+	this->varity_declare->local_varity_stack->visible_depth = this->varity_declare->local_varity_stack->current_depth;
+	for(int i=arg_count-1; i>=0; i--) {
+		varity_attribute* arg_ptr = (varity_attribute*)called_function_ptr->arg_list->visit_element_by_index(i);
+		this->varity_declare->declare(VARITY_SCOPE_LOCAL, arg_ptr->get_name(), arg_ptr->get_type(), arg_ptr->get_size());
+		*(varity_info*)this->varity_declare->local_varity_stack->get_lastest_element() = arg_varity[i];
+		arg_varity[i].reset();
+	}
+	vfree(arg_varity);
 	varity_attribute* arg_ptr = (varity_attribute*)called_function_ptr->arg_list->visit_element_by_index(0);
 	this->function_return_value->init(arg_ptr, "", arg_ptr->get_type(), 0, arg_ptr->get_size());//TODO: check attribute.
 	for(int row_line=2; row_line<called_function_ptr->row_line-1; row_line++) {
 		ret = sentence_analysis(called_function_ptr->row_begin_pos[row_line], called_function_ptr->row_len[row_line]);
 		if(ret < 0) {
-			RETURN(ret);
+			RETURN(ret, 1);
 		}
 	}
-	RETURN(ERROR_NO);
+	RETURN(ERROR_NO, 1);
 }
 #undef RETURN(x)
 
@@ -490,6 +502,7 @@ int c_interpreter::nesting_nonseq_section_exec(int line_begin, int line_end)
 #define RETURN(x)	this->varity_global_flag = varity_global_flag_backup; \
 	this->varity_declare->destroy_local_varity_cur_depth(); \
 	this->varity_declare->local_varity_stack->dedeep(); \
+	varity_info::en_echo = 1; \
 	return x
 int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 {
@@ -549,12 +562,18 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 			else
 				block_ret = nesting_nonseq_section_exec(line_begin, line_end);
 			if(block_ret < 0) {
-				error("if block exec error!\n");
+				if(block_ret != OK_FUNC_RETURN)
+					error("if block exec error!\n");
 				RETURN(block_ret);
 			}
 		} else {
 			if(else_line < line_end)
 				block_ret = nesting_nonseq_section_exec(else_line, line_end);
+			if(block_ret < 0) {
+				if(block_ret != OK_FUNC_RETURN)
+					error("if block exec error!\n");
+				RETURN(block_ret);
+			}
 		}
 	} else if(section_type == NONSEQ_KEY_WHILE) {
 		int l_bracket_pos = str_find(row_ptr, '(');
@@ -579,7 +598,7 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 		}
 	}
 	//}
-	varity_info::en_echo = 1;
+
 	RETURN(0);
 }
 #undef RETURN(x)

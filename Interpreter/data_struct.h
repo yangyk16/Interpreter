@@ -46,7 +46,7 @@ public:
 	void push(void*);
 	void push(void) {this->top += this->element_size; this->count++;}
 	void* pop(void);
-	void* find(char*);
+	virtual void* find(char*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	//inline void set_length(uint len) {this->length = len;}
 	stack();
@@ -64,9 +64,10 @@ class indexed_stack: public stack {
 public:
 	friend class c_interpreter;
 	friend class varity;
+	virtual void* find(char*);
 	indexed_stack(int esize, void* base_addr, int capacity);
-	void* get_layer_begin_pos(void) {return (char*)this->bottom_addr + index_table[current_depth];}
-	inline void endeep(void) {index_table[++current_depth] = top;}
+	void* get_layer_begin_pos(void) {return (char*)this->bottom_addr + index_table[current_depth] * element_size;}
+	inline void endeep(void) {index_table[++current_depth] = this->count;}
 	inline void dedeep(void) {index_table[current_depth--] = 0;}
 };
 
