@@ -65,7 +65,6 @@ int function::declare(char* name, stack* arg_list)
 	}
 	function_node_ptr = (function_info*)function_stack_ptr->get_current_ptr();
 	function_node_ptr->init(name, arg_list);
-	function_node_ptr->analysis_buf = (char*)vmalloc(MAX_ANALYSIS_BUFLEN);
 	this->current_node = function_node_ptr;
 	function_stack_ptr->push();
 	return 0;

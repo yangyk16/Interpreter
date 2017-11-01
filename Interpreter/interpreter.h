@@ -87,6 +87,8 @@ class c_interpreter: public interpreter {
 	round_queue non_seq_code_fifo;
 	int varity_global_flag;
 	varity_info* function_return_value;
+	int function_depth;
+	unsigned int analysis_buf_inc_stack[MAX_FUNCTION_DEPTH];
 	int save_sentence(char*, uint);
 	int non_seq_struct_check(char* str);
 	int function_analysis(char*, uint);

@@ -84,6 +84,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->non_seq_code_fifo.set_element_size(1);
 	this->analysis_buf_ptr = this->analysis_buf;
 	this->nonseq_info->nonseq_begin_stack_ptr = 0;
+	this->function_depth = 0;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 	this->c_opt_caculate_func_list[0]=&c_interpreter::member_opt;
 	this->c_opt_caculate_func_list[1]=&c_interpreter::auto_inc_opt;
@@ -99,7 +100,7 @@ int c_interpreter::save_sentence(char* str, uint len)
 	nonseq_info->row_info_node[nonseq_info->row_num].row_ptr = &non_seq_tmp_buf[non_seq_code_fifo.wptr];
 	nonseq_info->row_info_node[nonseq_info->row_num].row_len = len;
 	non_seq_code_fifo.write(str, len);
-	non_seq_code_fifo.write("\n", 1);
+	non_seq_code_fifo.write("\0", 1);
 	return 0;
 }
 
@@ -388,7 +389,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 	varity_global_flag = varity_global_flag_backup; \
 	this->varity_declare->destroy_local_varity_cur_depth(); \
 	this->varity_declare->local_varity_stack->dedeep(); \
-	this->analysis_buf_ptr = analysis_buf_ptr_backup; \
+	this->analysis_buf_ptr -= this->analysis_buf_inc_stack[--this->function_depth]; \
 	vfree(this->nonseq_info); \
 	this->nonseq_info = nonseq_info_backup; \
 	return x
@@ -397,7 +398,7 @@ int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 	int ret, arg_count;
 	int varity_global_flag_backup = this->varity_global_flag;
 	nonseq_info_struct* nonseq_info_backup = this->nonseq_info;
-	char* analysis_buf_ptr_backup = this->analysis_buf_ptr;
+	this->analysis_buf_ptr += this->analysis_buf_inc_stack[this->function_depth++];
 	this->nonseq_info = (nonseq_info_struct*)vmalloc(sizeof(nonseq_info_struct));
 	int arg_end_pos = arg_len - 1;
 	varity_info arg_varity;
@@ -406,7 +407,6 @@ int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 	this->varity_declare->local_varity_stack->endeep();
 	arg_string[0] = 0;
 	function_info* called_function_ptr = this->function_declare->find(name);
-	this->analysis_buf_ptr = called_function_ptr->analysis_buf;
 	arg_string[0] = ',';
 	arg_count = called_function_ptr->arg_list->get_count();
 	while(arg_count-- > 1) {
@@ -889,9 +889,11 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 					int opt_len, opt_type, symbol_begin_pos;//先检查是否是函数调用
 					sub_sentence_end_pos = j;
 					symbol_begin_pos = search_opt(analysis_buf_ptr, sub_sentence_begin_pos, 1, &opt_len, &opt_type) + opt_len;
-					if(0 < symbol_begin_pos && symbol_begin_pos < sub_sentence_begin_pos && analysis_buf_ptr[symbol_begin_pos] != ' ' && analysis_buf_ptr[j] == ')') {
+					if(0 <= symbol_begin_pos && symbol_begin_pos < sub_sentence_begin_pos && analysis_buf_ptr[symbol_begin_pos] != ' ' && analysis_buf_ptr[j] == ')') {
 						char tmp_varity_name[3];
 						varity_info *tmp_varity = 0;
+						this->analysis_buf_inc_stack[this->function_depth] = len + 1;
+						this->analysis_buf_ptr[len] = 0;
 						int ret = this->call_func(analysis_buf_ptr + symbol_begin_pos, analysis_buf_ptr + sub_sentence_begin_pos, sub_sentence_end_pos - sub_sentence_begin_pos + 1);
 						this->varity_declare->declare_analysis_varity(0, 0, tmp_varity_name, &tmp_varity);
 						if(this->function_return_value->get_content_ptr() == NULL && tmp_varity->get_type() != VOID) {
