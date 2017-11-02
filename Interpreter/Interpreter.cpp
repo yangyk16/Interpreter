@@ -634,11 +634,11 @@ int c_interpreter::struct_analysis(char* str, uint len)
 				varity_name_begin_pos = key_len + (str[key_len] == ' ' ? 1 : 0); 
 				int opt_len, opt_type, symbol_pos_once, symbol_pos_last = str[key_len]==' '?key_len+1:key_len, size = len - symbol_pos_last;
 				int array_flag = 0, element_count = 1;
-				ptr_level = 0;
 				while(1) {
-					for(; str[symbol_pos_last]=='*'; symbol_pos_last++)
+					for(ptr_level=0; str[symbol_pos_last]=='*'; symbol_pos_last++)
 						ptr_level++;
 					size -= ptr_level;
+					varity_type += ptr_level * BASIC_VARITY_TYPE_COUNT;
 					if((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) >= 0) {
 						if(opt_type != OPT_COMMA && opt_type != OPT_EDGE && opt_type != OPT_L_MID_BRACKET && opt_type != OPT_R_MID_BRACKET) {
 							error("Wrong operator exist in struct definition\n");
@@ -659,9 +659,14 @@ int c_interpreter::struct_analysis(char* str, uint len)
 							} else {
 								
 							}
-							this->struct_info_set.current_offset = make_align(this->struct_info_set.current_offset, sizeof_type[varity_type]);
-							new_node_ptr->arg_init(varity_name, varity_type, sizeof_type[varity_type] * element_count, (void*)this->struct_info_set.current_offset);
-							this->struct_info_set.current_offset += sizeof_type[varity_type] * element_count;
+							int varity_size;
+							if(varity_type < BASIC_VARITY_TYPE_COUNT)
+								varity_size = sizeof_type[varity_type];
+							else
+								varity_size = PLATFORM_WORD_LEN;
+							this->struct_info_set.current_offset = make_align(this->struct_info_set.current_offset, varity_size);
+							new_node_ptr->arg_init(varity_name, varity_type, varity_size * element_count, (void*)this->struct_info_set.current_offset);
+							this->struct_info_set.current_offset += varity_size * element_count;
 							varity_stack_ptr->push();
 							array_flag = 0;
 							element_count = 1;
@@ -749,10 +754,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 				ptr_level++;
 			size -= ptr_level;
 			if((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) >= 0) {
-				if(opt_type != OPT_COMMA && opt_type != OPT_EDGE && opt_type != OPT_L_MID_BRACKET && opt_type != OPT_R_MID_BRACKET && opt_type != OPT_ASSIGN) {
-					error("Wrong operator exist in struct definition\n");
-					return -1;
-				} else if(opt_type == OPT_L_MID_BRACKET) {
+				if(opt_type == OPT_L_MID_BRACKET) {
 					memcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
 					varity_name[symbol_pos_once] = 0;
 					array_flag = 1;
@@ -766,7 +768,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					} else if(array_flag == 2) {
 
 					} else {
-								
+						
 					}
 					int ret;
 					if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {

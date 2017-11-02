@@ -257,7 +257,7 @@ int c_interpreter::auto_inc_opt(char* str, uint* size_ptr)
 						error("There is no ptr varity exist!\n");
 						return ERROR_ILLEGAL_OPERAND;				
 					}else if(INT_VALUE(tmp_varity->get_content_ptr()) == NULL) {
-						error("Using null ptr\n!");
+						error("Using null ptr!\n");
 						return ERROR_INVALID_OPERAND;
 					}
 					tmp_varity->config_varity(ATTRIBUTE_LINK);
