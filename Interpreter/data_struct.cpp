@@ -4,12 +4,14 @@ using namespace std;
 
 stack::stack()
 {
+	this->count = 0;
 	this->top = 0;
 }
 
 void stack::init(int esize, void* base_addr, int capacity)
 {
-	stack();
+	this->count = 0;
+	this->top = 0;	
 	this->element_size = esize;
 	this->bottom_addr = base_addr;
 	this->length = capacity;
@@ -18,7 +20,6 @@ void stack::init(int esize, void* base_addr, int capacity)
 
 stack::stack(int esize, void* base_addr, int capacity)
 {
-	stack();
 	this->init(esize, base_addr, capacity);
 }
 

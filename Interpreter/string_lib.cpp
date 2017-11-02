@@ -150,7 +150,7 @@ int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 									for(k=i+1; is_valid_c_char(str[k]); k++) {
 										if(str[k] != '.' && (str[k] < '0' || str[k] > '9')) {
 											error("float const is invalid\n");
-											return ERROR_OPERAND;
+											return ERROR_ILLEGAL_OPERAND;
 										}
 									}
 									break;
@@ -158,21 +158,21 @@ int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 							}
 						} else if(*opt_type == OPT_MEMBER) {
 							int k;
-							for(k=0; k<i-1; k++) {
+							for(k=0; k<i; k++) {
 								if(str[k] != '.' && (str[k] < '0' || str[k] > '9')) {
 									break;
 								}
 							}
-							if(k == i-1) {
+							if(k == i) {
 								for(k=i+1; is_valid_c_char(str[k]) || str[k]=='.'; k++) {
 									if((str[k] < '0' || str[k] > '9') && (str[k] != 'e' && str[k] != 'E')) {
 										error("float const is invalid\n");
-										return ERROR_OPERAND;
+										return ERROR_ILLEGAL_OPERAND;
 									}
 								}
 								if(str[k-1] == 'e' || str[k-1] == 'E') {
 									error("float const is invalid\n");
-									return ERROR_OPERAND;
+									return ERROR_ILLEGAL_OPERAND;
 								}
 								break;
 							}
@@ -226,18 +226,18 @@ int check_symbol(char* str, int size)
 				ret = OPERAND_FLOAT;
 			else if(ret == OPERAND_FLOAT) {
 				error("float const error\n");
-				return ERROR_OPERAND;
+				return ERROR_ILLEGAL_OPERAND;
 			}
 		} else if((str[i] > '9' || str[i] < '0') && str[i] != '.') {
 			if(str[i] == 'e' || str[i] == 'E') {
 				if(i == size - 1) {
 					error("float const error\n");
-					return ERROR_OPERAND;
+					return ERROR_ILLEGAL_OPERAND;
 				}
 				for(int j=i+1; j<size && str[j]; j++) {
 					if((str[j] > '9' || str[j] < '0') && str[j] != '+' && str[j] != '-') {
 						error("float const error\n");
-						return ERROR_OPERAND;
+						return ERROR_ILLEGAL_OPERAND;
 					}
 				}
 				ret = OPERAND_FLOAT;

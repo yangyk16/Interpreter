@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "error.h"
 #include "struct.h"
+#include "operator.h"
 
 #if PLATFORM_WORD_LEN == 4
 const char type_key[15][19] = {"empty", "struct", "void", "double", "float", "unsigned long long", "long long", "unsigned long", "unsigned int", "long", "int", "unsigned short", "short", "unsigned char", "char"};
@@ -106,6 +107,19 @@ void varity_info::convert(void* addr, int type)
 		this->size = sizeof_type[type];
 		this->apply_space();
 		memcpy(this->content_ptr, addr, size);
+		return;
+	} else if(this->type > CHAR) {
+		if(type == INT || type == U_INT || type == LONG || type == U_LONG) {
+			INT_VALUE(this->content_ptr) = INT_VALUE(addr);
+		} else if(type == CHAR || type == U_CHAR) {
+			INT_VALUE(this->content_ptr) = CHAR_VALUE(addr);
+		} else if(type == SHORT || type == U_SHORT) {
+			INT_VALUE(this->content_ptr) = SHORT_VALUE(addr);
+		} else if(type > CHAR) {
+			INT_VALUE(this->content_ptr) = INT_VALUE(addr);
+		} else {
+			error("There is no method for coverting ptr type from float\n");
+		}
 		return;
 	}
 	if(this->type == type) {

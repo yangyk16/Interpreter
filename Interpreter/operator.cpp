@@ -65,13 +65,13 @@ int c_interpreter::member_opt(char* str, uint* size_ptr)
 			if(tmp_varity_type == OPERAND_VARITY) {
 				finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 				if(!finded_varity) {
-					error("Varity \"%s\" doesn't exist\n", name_buf);
+					error("Varity \"%s\" doesn't exist!\n", name_buf);
 					return ERROR_VARITY_NONEXIST;
 				}
 				*tmp_varity = *finded_varity;
 			} else {
-				error("A constant cannot be used as a operand when using reference operator\n");
-				return ERROR_OPERAND;
+				error("A constant cannot be used as a operand when using reference operator!\n");
+				return ERROR_ILLEGAL_OPERAND;
 			}
 			symbol_pos_last += symbol_pos_once + opt_len;
 			last_opt_type = opt_type;
@@ -84,9 +84,23 @@ int c_interpreter::member_opt(char* str, uint* size_ptr)
 					if(tmp_varity_type == OPERAND_MEMBER) {
 						varity_info* member_varity_ptr;
 						struct_info* struct_info_ptr = (struct_info*)tmp_varity->get_complex_ptr();
+						if(last_opt_type == OPT_MEMBER && tmp_varity->get_type() != STRUCT) {
+							error("Expression must contain struct!\n");
+							return ERROR_ILLEGAL_OPERAND;
+						}
+						if(last_opt_type == OPT_REFERENCE) {
+							if(tmp_varity->get_type() != STRUCT + BASIC_VARITY_TYPE_COUNT) {
+								error("Expression must contain struct ptr!\n");
+								return ERROR_ILLEGAL_OPERAND;
+							}
+							if(INT_VALUE(tmp_varity->get_content_ptr()) == NULL) {
+								error("Using null ptr!\n");
+								return ERROR_INVALID_OPERAND;
+							}
+						}
 						member_varity_ptr = (varity_info*)struct_info_ptr->varity_stack_ptr->find(name_buf);
 						if(!member_varity_ptr) {
-							error("Member %s is not exist in struct\n", name_buf);
+							error("Member %s is not exist in struct!\n", name_buf);
 							return ERROR_STRUCT_MEMBER;
 						}
 						if(last_opt_type == OPT_MEMBER) {
@@ -95,8 +109,8 @@ int c_interpreter::member_opt(char* str, uint* size_ptr)
 							*tmp_varity = struct_info_ptr->visit_struct_member(*(void**)tmp_varity->get_content_ptr(), member_varity_ptr);
 						}
 					} else {
-						error("A constant cannot be used as a operand when using reference operator\n");
-						return ERROR_OPERAND;
+						error("A constant cannot be used as a operand when using reference operator!\n");
+						return ERROR_ILLEGAL_OPERAND;
 					}
 				} else if(last_opt_type == OPT_L_MID_BRACKET) {
 					int index;
@@ -104,14 +118,14 @@ int c_interpreter::member_opt(char* str, uint* size_ptr)
 					if(tmp_varity_type == OPERAND_VARITY) {
 						finded_varity = (varity_info*)this->varity_declare->find(name_buf, PRODUCED_ALL);
 						if(!finded_varity) {
-							error("Varity \"%s\" doesn't exist\n", name_buf);
+							error("Varity \"%s\" doesn't exist!\n", name_buf);
 							return ERROR_VARITY_NONEXIST;
 						}
 						index = *(int*)(finded_varity->get_content_ptr());
 					} else if(tmp_varity_type == OPERAND_INTEGER) {
 						index = y_atoi(name_buf);
 					} else if(tmp_varity_type == OPERAND_FLOAT) {
-						error("Float can not used as index\n");
+						error("Float can not used as index!\n");
 						return ERROR_FLOAT_USED_INDEX;
 					} else
 						return tmp_varity_type;
@@ -236,9 +250,16 @@ int c_interpreter::auto_inc_opt(char* str, uint* size_ptr)
 				} else if(opt_stack[stack_ptr] == OPT_NEGATIVE) {
 					*tmp_varity = -*tmp_varity;
 				} else if(opt_stack[stack_ptr] == OPT_ADDRESS_OF) {
-					*tmp_varity = (int)finded_varity->get_content_ptr();
 					tmp_varity->set_type(finded_varity->get_type() + BASIC_VARITY_TYPE_COUNT);
+					*tmp_varity = (int)finded_varity->get_content_ptr();
 				} else if(opt_stack[stack_ptr] == OPT_PTR_CONTENT) {
+					if(tmp_varity->get_type() < BASIC_VARITY_TYPE_COUNT) {
+						error("There is no ptr varity exist!\n");
+						return ERROR_ILLEGAL_OPERAND;				
+					}else if(INT_VALUE(tmp_varity->get_content_ptr()) == NULL) {
+						error("Using null ptr\n!");
+						return ERROR_INVALID_OPERAND;
+					}
 					tmp_varity->config_varity(ATTRIBUTE_LINK);
 					tmp_varity->set_type(tmp_varity->get_type() - BASIC_VARITY_TYPE_COUNT);
 					tmp_varity->set_content_ptr((void*)INT_VALUE(tmp_varity->get_content_ptr()));

@@ -706,7 +706,8 @@ int c_interpreter::struct_analysis(char* str, uint len)
 			struct_name[len - symbol_begin_pos] = 0;
 			varity_attribute* arg_node_ptr = (varity_attribute*)vmalloc(sizeof(varity_info) * MAX_VARITY_COUNT_IN_STRUCT);
 			arg_stack = (stack*)vmalloc(sizeof(stack));
-			arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
+			memcpy(arg_stack, &stack(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT), sizeof(stack));
+			//arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
 			this->struct_declare->declare(struct_name, arg_stack);
 			return OK_STRUCT_INPUTING;
 		}
@@ -896,6 +897,8 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 		return ERROR_BRACKET_UNMATCH;
 	//从最深级循环解析深度递减的各级，以立即数/临时变量？表示各级返回结果
 	char sub_analysis_buf[MAX_SUB_ANA_BUFLEN];
+	sub_analysis_buf[0] = 0;
+	char* sub_analysis_buf_ptr = sub_analysis_buf + 1;
 	for(i=total_bracket_depth; i>0; i--) {
 		int current_depth = 0, sub_sentence_begin_pos, sub_sentence_end_pos;
 		for(uint j=0; j<len; j++) {
@@ -929,16 +932,16 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 						uint sub_sentence_length;
 						sub_sentence_end_pos = j;
 						sub_sentence_length = sub_sentence_end_pos - sub_sentence_begin_pos - 1;
-						memcpy(sub_analysis_buf, analysis_buf_ptr + sub_sentence_begin_pos + 1, sub_sentence_length);
-						sub_analysis_buf[sub_sentence_length] = 0;
-						if(!is_type_convert(sub_analysis_buf, 0)) {
+						memcpy(sub_analysis_buf_ptr, analysis_buf_ptr + sub_sentence_begin_pos + 1, sub_sentence_length);
+						sub_analysis_buf_ptr[sub_sentence_length] = 0;
+						if(!is_type_convert(sub_analysis_buf_ptr, 0)) {
 							//执行括号内语句并替换为结果;
 							int delta_len;
-							sub_sentence_analysis(sub_analysis_buf, &sub_sentence_length);
+							sub_sentence_analysis(sub_analysis_buf_ptr, &sub_sentence_length);
 							if(analysis_buf_ptr[j] == ')') {
-								delta_len = sub_replace(analysis_buf_ptr, sub_sentence_begin_pos, sub_sentence_end_pos, sub_analysis_buf);
+								delta_len = sub_replace(analysis_buf_ptr, sub_sentence_begin_pos, sub_sentence_end_pos, sub_analysis_buf_ptr);
 							} else {
-								delta_len = sub_replace(analysis_buf_ptr, sub_sentence_begin_pos + 1, sub_sentence_end_pos - 1, sub_analysis_buf);
+								delta_len = sub_replace(analysis_buf_ptr, sub_sentence_begin_pos + 1, sub_sentence_end_pos - 1, sub_analysis_buf_ptr);
 							}
 							len += delta_len;
 							j += delta_len;
