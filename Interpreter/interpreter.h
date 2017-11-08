@@ -9,6 +9,7 @@
 #include "function.h"
 #include "struct.h"
 #include "operator.h"
+#include "data_struct.h"
 
 #define NONSEQ_KEY_IF		1
 #define NONSEQ_KEY_SWITCH	2
@@ -62,19 +63,21 @@ typedef union operand_value {
 	double double_value;
 	int int_value;
 	long long long_long_value;
+	char* ptr_value;
 } operand_value_t;
 
 typedef struct node_attribute_s {
 	int node_type;
 	int value_type;
-	operand_value_t value; 
+	operand_value_t value;
 } node_attribute_t;
 
-typedef struct sentence_analysis_data_struct {
+typedef struct sentence_analysis_data_struct_s {
 	stack expression_tmp_stack;
 	stack expression_final_stack;
-	node_attribute_t node[MAX_ANALYSIS_NODE];
-} sentence_analys_data_struct_t;
+	node_attribute_t node_attribute[MAX_ANALYSIS_NODE];
+	node node_struct[MAX_ANALYSIS_NODE];
+} sentence_analysis_data_struct_t;
 
 class interpreter {
 protected:
@@ -119,8 +122,9 @@ class c_interpreter: public interpreter {
 	int nesting_nonseq_section_exec(int, int);
 	//////////////////////////////////////////////////////////////////////
 	round_queue token_fifo;
-	int get_token(char *str, void *info);
-
+	sentence_analysis_data_struct_t sentence_analysis_data_struct;
+	int get_token(char *str, node_attribute_t *info);
+	int construct_expression_tree(char *str, uint len);
 	//////////////////////////////////////////////////////////////////////
 	virtual int call_func(char*, char*, uint);
 	virtual int sentence_analysis(char*, uint);

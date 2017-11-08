@@ -28,6 +28,7 @@
 #define ERROR_FUNC_ARG_LIST		-23
 #define ERROR_OPERATOR			-24
 #define ERROR_INVALID_OPERAND	-25
+#define ERROR_TOKEN				-26
 #define OK_FUNC_RETURN			-99
 
 #define OK_NONSEQ_FINISH		1

@@ -11,6 +11,7 @@
 #define TOKEN_OPERATOR			5
 #define TOKEN_NAME				6
 #define TOKEN_CONST_VALUE		7
+#define TOKEN_ERROR				8
 
 inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
 //need a bracket stack save outer bracket
@@ -69,7 +70,7 @@ double y_atof(char* str);
 int str_find(char* str, char ch, int direction = 0);
 int str_find(char* str, int len, char ch, int direction = 0);
 int key_match(char* str, int size, int* type);
-int strmcmp(char* str1, char* str2, int len);
+int strmcmp(const char* str1, const char* str2, int len);
 int char_count(char* str, char ch);
 int make_align(int value, int align_byte);
 int varity_check(char* str, char tailed, char**& buf, int*& count);

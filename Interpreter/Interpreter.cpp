@@ -26,8 +26,10 @@ c_interpreter myinterpreter(&stdio, &c_varity, &nonseq_info_s, &c_function, &c_s
 char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
 const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
 char opt_str[43][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
+const char opt_str_len[] = {3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+const char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,1,1,1,1,4,2,3,8,2,3,3,4,6,6,9,10,13,13,14,15,16};
 
-int c_interpreter::get_token(char *str, void *info)
+int c_interpreter::get_token(char *str, node_attribute_t *info)
 {
 	int i = 0;
 	char* symbol_ptr = this->token_fifo.wptr + (char*)this->token_fifo.get_base_addr();
@@ -39,31 +41,39 @@ int c_interpreter::get_token(char *str, void *info)
 		this->token_fifo.write("\0",1);
 		for(int j=0; j<sizeof(type_key)/sizeof(type_key[0]); j++) {
 			if(!strcmp(symbol_ptr, type_key[j])) {
-				INT_VALUE(info) = j;
-				return TOKEN_KEYWORD_TYPE;
+				info->value.int_value = j;
+				info->node_type = TOKEN_KEYWORD_TYPE;
+				return i;
 			}
 		}
 		for(int j=0; j<sizeof(non_seq_key)/sizeof(non_seq_key[0]); j++) {
 			if(!strcmp(symbol_ptr, type_key[j])) {
-				INT_VALUE(info) = j;
-				return TOKEN_KEYWORD_NONSEQ;
+				info->value.int_value = j;
+				info->node_type = TOKEN_KEYWORD_NONSEQ;
+				return i;
 			}
 		}
-		PTR_VALUE(info) = PTR_VALUE(symbol_ptr);
+		info->value.ptr_value = symbol_ptr;
+		info->node_type = TOKEN_NAME;
 		return TOKEN_NAME;
 	} else if(is_number(str[i])) {
 		i++;
 		while(is_number(str[i++]));
-		INT_VALUE(info) = INT;
-		INT_VALUE((int)info + 4) = y_atoi(str, i);
-		return TOKEN_CONST_VALUE;
+		info->value_type = INT;
+		info->value.int_value = y_atoi(str, i);
+		info->node_type = TOKEN_CONST_VALUE;
+		return i;
 	} else {
 		for(int j=0; j<sizeof(opt_str)/sizeof(opt_str[0]); j++) {
-			if(!strcmp(symbol_ptr, type_key[j])) {
-				INT_VALUE(info) = j;
-				return TOKEN_OPERATOR;
+			if(!strmcmp(str + i, type_key[j], opt_str_len[j])) {
+				info->value.int_value = j;
+				info->node_type = TOKEN_OPERATOR;
+				info->value_type = opt_prio[j];
+				return i + j;
 			}
 		}
+		info->node_type = TOKEN_ERROR;
+		return ERROR_TOKEN;
 	}
 	return 0;
 }
@@ -492,6 +502,29 @@ int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 	RETURN(ERROR_NO, 1);
 }
 #undef RETURN(x)
+
+int c_interpreter::construct_expression_tree(char *str, uint len)
+{
+	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
+	int token_len;
+	node_attribute_t node_attribute, *stack_top_node_ptr;
+	int last_token_type = TOKEN_OPERATOR;
+	token_len = this->get_token(str, &node_attribute);
+	if(node_attribute.node_type == TOKEN_OPERATOR) {
+		while(1) {
+			stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element();
+			if(node_attribute.value_type < stack_top_node_ptr->value_type) {
+				analysis_data_struct_ptr->expression_tmp_stack.push(&node_attribute);
+				break;
+			} else {
+				analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
+			}
+		}
+	} else if(node_attribute.node_type == TOKEN_NAME || node_attribute.node_type == TOKEN_CONST_VALUE) {
+		this->sentence_analys_data_struct.expression_final_stack.push(&node_attribute);
+	}
+	return ERROR_NO;
+}
 
 int c_interpreter::sentence_analysis(char* str, uint len)
 {

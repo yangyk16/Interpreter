@@ -53,6 +53,7 @@ public:
 	//inline void set_length(uint len) {this->length = len;}
 	stack();
 	stack(int esize, void* base_addr, int capacity);
+	void init(int esize, int capacity);
 	void init(int, void*, int);
 	void* get_current_ptr(void) {return (char*)this->bottom_addr + top;}
 	void* get_lastest_element(void) {return (char*)get_current_ptr() - this->element_size;}
@@ -71,6 +72,21 @@ public:
 	void* get_layer_begin_pos(void) {return (char*)this->bottom_addr + index_table[current_depth] * element_size;}
 	inline void endeep(void) {index_table[++current_depth] = this->count;}
 	inline void dedeep(void) {index_table[current_depth--] = 0;}
+};
+
+class node {
+	node *left;
+	node *right;
+	void *value;
+};
+
+class list_stack {
+	node head;
+	node tail;
+public:
+	void push(void*);
+	void *pop(void);
+	void reset(void);
 };
 
 #endif

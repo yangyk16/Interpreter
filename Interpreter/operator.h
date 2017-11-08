@@ -61,5 +61,8 @@
 #define OPT_POSITIVE			44
 #define OPT_PTR_CONTENT			45
 #define OPT_ADDRESS_OF			46
+#define OPT_INDEX				47
+#define OPT_CALL_FUNC			48
+#define OPT_FUNC_COMMA 			49
 
 #endif

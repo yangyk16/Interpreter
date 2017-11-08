@@ -9,6 +9,15 @@ stack::stack()
 	this->top = 0;
 }
 
+void stack::init(int esize, int capacity)
+{
+	this->count = 0;
+	this->top = 0;	
+	this->element_size = esize;
+	this->bottom_addr = vmalloc(esize * capacity);
+	this->length = capacity;
+}
+
 void stack::init(int esize, void* base_addr, int capacity)
 {
 	this->count = 0;

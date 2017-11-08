@@ -332,7 +332,7 @@ int str_find(char* str, int len, char ch, int direction)
 	return -1;
 }
 
-int strmcmp(char* str1, char* str2, int len)
+int strmcmp(const char* str1, const char* str2, int len)
 {
 	for(int i=0; i<len; i++) {
 		if(str1[i] != str2[i]) {
