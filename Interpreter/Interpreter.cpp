@@ -569,6 +569,8 @@ int c_interpreter::non_seq_section_exec(int line_begin, int line_end)
 		} else {
 			if(else_line < line_end)
 				block_ret = nesting_nonseq_section_exec(else_line, line_end);
+			else
+				block_ret = 0;
 			if(block_ret < 0) {
 				if(block_ret != OK_FUNC_RETURN)
 					error("if block exec error!\n");
