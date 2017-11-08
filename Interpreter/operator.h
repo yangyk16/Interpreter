@@ -7,6 +7,7 @@
 #define INT_VALUE(x) (*(int*)(x))
 #define FLOAT_VALUE(x) (*(float*)(x))
 #define DOUBLE_VALUE(x) (*(double*)(x))
+#define PTR_VALUE(x) (*(void**)(x))
 
 #define OPERAND_VARITY		0
 #define OPERAND_MEMBER		0

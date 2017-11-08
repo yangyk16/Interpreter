@@ -19,6 +19,7 @@ protected:
 	uint length;
 	void* bottom_addr;
 public:
+	inline void* get_base_addr(void) {return this->bottom_addr;}
 	inline int is_full(void) {return length==count?1:0;}
 	inline uint get_count(void) {return this->count;}
 };
@@ -30,6 +31,7 @@ public:
 	friend class c_interpreter;
 	round_queue();
 	round_queue(uint, void*);
+	void init(uint len);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	inline void set_length(uint len) {this->length = len;}
 	inline void set_element_size(uint len) {this->element_size = len;}

@@ -1,4 +1,5 @@
 #include "data_struct.h"
+#include "varity.h"
 #include <string>
 using namespace std;
 
@@ -83,6 +84,13 @@ round_queue::round_queue()
 {
 	this->wptr = this->rptr = 0;
 }
+
+void round_queue::init(uint length)
+{
+	this->length = length;
+	this->bottom_addr = vmalloc(length);
+}
+
 round_queue::round_queue(uint length, void* base_addr)
 {
 	this->length = length;
@@ -131,7 +139,7 @@ int round_queue::readline(char* buf)
 		else 
 			return i;
 		rptr = (rptr + 1) % length;
-		if(buf[i - 1] == '\n')
+		if(buf[i - 1] == '\n' || buf[i - 1] == 0)
 			return i;
 	}
 	return -1;

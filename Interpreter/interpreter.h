@@ -58,6 +58,24 @@ typedef struct struct_info_s {
 	int current_offset;
 } struct_info_struct;
 
+typedef union operand_value {
+	double double_value;
+	int int_value;
+	long long long_long_value;
+} operand_value_t;
+
+typedef struct node_attribute_s {
+	int node_type;
+	int value_type;
+	operand_value_t value; 
+} node_attribute_t;
+
+typedef struct sentence_analysis_data_struct {
+	stack expression_tmp_stack;
+	stack expression_final_stack;
+	node_attribute_t node[MAX_ANALYSIS_NODE];
+} sentence_analys_data_struct_t;
+
 class interpreter {
 protected:
 	varity* varity_declare;
@@ -99,6 +117,11 @@ class c_interpreter: public interpreter {
 	int sentence_exec(char*, uint, bool, varity_info*);
 	int non_seq_section_exec(int, int);
 	int nesting_nonseq_section_exec(int, int);
+	//////////////////////////////////////////////////////////////////////
+	round_queue token_fifo;
+	int get_token(char *str, void *info);
+
+	//////////////////////////////////////////////////////////////////////
 	virtual int call_func(char*, char*, uint);
 	virtual int sentence_analysis(char*, uint);
 	virtual int pre_treat(void);

@@ -6,8 +6,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
-const char opt_str[][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
+extern char non_seq_key[7][7];
+extern const char non_seq_key_len[7];
+extern char opt_str[43][4];
 
 int optcmp(char* str)
 {
@@ -121,7 +122,7 @@ int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 		//direction=0: left->right; direction=1: right->left;
 		//merge 2 cycles to 1 can save space, but not merge is easily to read.
 		for(i=0; i<size; i++) {
-			for(j=0; j<sizeof(opt_str)/sizeof(*opt_str);j++) {
+			for(j=0; j<sizeof(opt_str)/sizeof(opt_str[0]);j++) {
 				if(str[i] == opt_str[j][0]) {
 					if(i < size - 1 && str[i+1] == opt_str[j][1]) {
 						if(i < size - 2 && str[i+2] == opt_str[j][2]) {
@@ -187,7 +188,7 @@ int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
 		return size;
 	} else {
 		for(i=size-1; i>=0; i--)
-			for(j=0; j<sizeof(opt_str)/sizeof(*opt_str);j++) {
+			for(j=0; j<sizeof(opt_str)/sizeof(opt_str[0]);j++) {
 				if(str[i] == opt_str[j][0]) {
 					if(i < size - 1 && str[i+1] == opt_str[j][1]) {
 						if(i < size - 2 && str[i+2] == opt_str[j][2]) {
@@ -331,7 +332,7 @@ int str_find(char* str, int len, char ch, int direction)
 	return -1;
 }
 
-int strequ(char* str1, char* str2, int len)
+int strmcmp(char* str1, char* str2, int len)
 {
 	for(int i=0; i<len; i++) {
 		if(str1[i] != str2[i]) {
@@ -365,40 +366,16 @@ bool is_valid_c_char(unsigned char ch)
 	return false;
 }
 
-/*int varity_check(char* str, char tailed, char**& buf, int*& count)
+bool is_letter(unsigned char ch)
 {
-	static char* varity_ptr[MAX_COUNT_VARITY_DEF];
-	static char varity_buf[VARITY_DEF_BUF_LEN];
-	static int varity_element_count[MAX_COUNT_VARITY_DEF];
-	int varity_count = 0;
-	int namelen = 0;
-	int index_begin_pos, name_flag = 1;
-	buf = varity_ptr;
-	count = varity_element_count;
-	buf[0] = varity_buf;
-	count[0] = 1;
-	for(int i=0, ptrlevel=0; str[i]!=tailed; i++) {
-		if(str[i] == '*')
-			ptrlevel++;
-		else if(str[i] == ',') {
-			ptrlevel = 0;
-			buf[varity_count + 1] = &buf[varity_count][namelen + 1];
-			buf[varity_count++][namelen] = 0;
-			count[varity_count] = 1;
-			namelen = 0;
-			name_flag = 1;
-		} else if(str[i] == '[') {
-			index_begin_pos = i + 1;
-			name_flag = 0;
-		} else if(str[i] == ']') {
-			if(str[i+1] != ',' && str[i+1] != ';') {
-				error("It's not allowed that any letter exist after bracket\n");
-				return -1;
-			}
-		} else {
-			buf[varity_count][namelen++] = str[i];
-		}
-	}
-	buf[varity_count++][namelen] = 0;
-	return varity_count;
-}*/
+	if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch == '_')
+		return true;
+	return false;
+}
+
+bool is_number(unsigned char ch)
+{
+	if(ch >= '0' || ch <= '9')
+		return true;
+	return false;
+}

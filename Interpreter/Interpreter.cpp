@@ -23,9 +23,49 @@ stack struct_list(sizeof(struct_info), struct_node, MAX_STRUCT_NODE);
 struct_define c_struct(&struct_list);
 c_interpreter myinterpreter(&stdio, &c_varity, &nonseq_info_s, &c_function, &c_struct);
 
-void nonseq_info_struct::reset(void)
+char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
+const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
+char opt_str[43][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
+
+int c_interpreter::get_token(char *str, void *info)
 {
-	memset(this, 0, sizeof(nonseq_info_struct));
+	int i = 0;
+	char* symbol_ptr = this->token_fifo.wptr + (char*)this->token_fifo.get_base_addr();
+	while(str[i] == ' ' || str[i] == '\t')i++;
+	if(is_letter(str[i])) {
+		i++;
+		while(is_valid_c_char(str[i++]));
+		this->token_fifo.write(str, i);
+		this->token_fifo.write("\0",1);
+		for(int j=0; j<sizeof(type_key)/sizeof(type_key[0]); j++) {
+			if(!strcmp(symbol_ptr, type_key[j])) {
+				INT_VALUE(info) = j;
+				return TOKEN_KEYWORD_TYPE;
+			}
+		}
+		for(int j=0; j<sizeof(non_seq_key)/sizeof(non_seq_key[0]); j++) {
+			if(!strcmp(symbol_ptr, type_key[j])) {
+				INT_VALUE(info) = j;
+				return TOKEN_KEYWORD_NONSEQ;
+			}
+		}
+		PTR_VALUE(info) = PTR_VALUE(symbol_ptr);
+		return TOKEN_NAME;
+	} else if(is_number(str[i])) {
+		i++;
+		while(is_number(str[i++]));
+		INT_VALUE(info) = INT;
+		INT_VALUE((int)info + 4) = y_atoi(str, i);
+		return TOKEN_CONST_VALUE;
+	} else {
+		for(int j=0; j<sizeof(opt_str)/sizeof(opt_str[0]); j++) {
+			if(!strcmp(symbol_ptr, type_key[j])) {
+				INT_VALUE(info) = j;
+				return TOKEN_OPERATOR;
+			}
+		}
+	}
+	return 0;
 }
 
 int c_interpreter::pre_treat(void)
@@ -82,6 +122,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->non_seq_code_fifo.set_base(this->non_seq_tmp_buf);
 	this->non_seq_code_fifo.set_length(sizeof(this->non_seq_tmp_buf));
 	this->non_seq_code_fifo.set_element_size(1);
+	this->token_fifo.init(MAX_ANALYSIS_BUFLEN);
 	this->analysis_buf_ptr = this->analysis_buf;
 	this->nonseq_info->nonseq_begin_stack_ptr = 0;
 	this->function_depth = 0;
@@ -93,6 +134,11 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->c_opt_caculate_func_list[5]=&c_interpreter::relational_opt;
 	this->c_opt_caculate_func_list[6]=&c_interpreter::equal_opt;
 	this->c_opt_caculate_func_list[13]=&c_interpreter::assign_opt;
+}
+
+void nonseq_info_struct::reset(void)
+{
+	memset(this, 0, sizeof(nonseq_info_struct));
 }
 
 int c_interpreter::save_sentence(char* str, uint len)
@@ -821,52 +867,9 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 			symbol_pos_last += symbol_pos_once + opt_len;
 			size -= symbol_pos_once + opt_len;
 		}
-		/////////////////
-		/*for(uint i=keylen+1, symbol_begin_pos=(str[i-1]==' '?i:i-1); i<len; i++) {
-			if(str[i] == ',' || str[i] == ';') {
-				int ptr_level = 0;
-				char varity_name[32];
-				int count = 1;
-				varity_info* new_varity_ptr;
-				for(int j=symbol_begin_pos; str[j]=='*'; j++)
-					ptr_level++;
-				symbol_begin_pos += ptr_level;
-				int symbol_end_pos = str_find(str + symbol_begin_pos, '[');
-				if(symbol_end_pos >= 0) {
-					int rbrace_pos = str_find(str + symbol_begin_pos, ']');
-					memcpy(varity_name, str + symbol_begin_pos, symbol_end_pos);
-					varity_name[symbol_end_pos] = 0;	
-					count = y_atoi(str + symbol_begin_pos + symbol_end_pos + 1, rbrace_pos - symbol_end_pos - 1);
-				} else {
-					memcpy(varity_name, str + symbol_begin_pos, i - symbol_begin_pos);
-					varity_name[i - symbol_begin_pos] = 0;	
-				}
-				int ret;
-				if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
-					if(ptr_level)
-						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT, PLATFORM_WORD_LEN * count);
-					else
-						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * count);
-					new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
-				} else {
-					if(ptr_level)
-						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT, PLATFORM_WORD_LEN * count);
-					else
-						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, is_varity_declare, sizeof_type[is_varity_declare] * count);
-					new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
-				}
-				if(ret)
-					return ret;
-				if(is_varity_declare == STRUCT) {
-					new_varity_ptr->config_varity(0, struct_node_ptr);
-					new_varity_ptr->struct_apply();
-				}
-				symbol_begin_pos = i + 1;
-			}
-		}*/
 		return OK_VARITY_DECLARE;
 	}
-	if(!strequ(str, "return ", 7)) {
+	if(!strmcmp(str, "return ", 7)) {
 		this->function_return_value->reset();
 		this->sentence_exec(str + 7, len - 7, true, function_return_value);
 		return OK_FUNC_RETURN;
