@@ -77,7 +77,7 @@ typedef struct sentence_analysis_data_struct_s {
 	list_stack expression_final_stack;
 	node_attribute_t node_attribute[MAX_ANALYSIS_NODE];
 	node node_struct[MAX_ANALYSIS_NODE];
-	int last_token_type;
+	node_attribute_t last_token;
 } sentence_analysis_data_struct_t;
 
 class interpreter {

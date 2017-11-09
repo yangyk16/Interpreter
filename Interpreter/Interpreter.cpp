@@ -59,7 +59,7 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 		return i;
 	} else if(is_number(str[i])) {
 		i++;
-		while(is_number(str[i++]));
+		while(is_number(str[i]))i++;
 		info->value_type = INT;
 		info->value.int_value = y_atoi(str, i);
 		info->node_type = TOKEN_CONST_VALUE;
@@ -518,12 +518,12 @@ int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 }
 #undef RETURN(x)
 
-bool is_operator_convert(char *str, int &type, int &opt_len, int &prio)
+bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int &prio)
 {
 	switch(type) {
 	case OPT_PLUS:
 	case OPT_MINUS:
-		if(!is_valid_c_char(str[-1])) {
+		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_SMALL_BRACKET) {
 			if(type == OPT_PLUS) {
 				type = OPT_POSITIVE;
 			} else {
@@ -546,7 +546,7 @@ bool is_operator_convert(char *str, int &type, int &opt_len, int &prio)
 		break;
 	case OPT_MUL:
 	case OPT_BIT_AND:
-		if(!is_valid_c_char(str[-1])) {
+		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_SMALL_BRACKET) {
 			if(type == OPT_MUL)
 				type = OPT_PTR_CONTENT;
 			else
@@ -556,9 +556,12 @@ bool is_operator_convert(char *str, int &type, int &opt_len, int &prio)
 		break;
 	case OPT_L_MID_BRACKET:
 		type = OPT_INDEX;
-		break;
+		return true;
 	case OPT_L_SMALL_BRACKET:
-
+		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_NAME) {
+			type = OPT_CALL_FUNC;
+			return true;
+		}
 	default:
 		break;
 	}
@@ -571,23 +574,33 @@ int c_interpreter::construct_expression_tree(char *str, uint len)
 	int token_len;
 	int node_index = 0;
 	node_attribute_t *node_attribute, *stack_top_node_ptr;
-	this->sentence_analysis_data_struct.last_token_type = TOKEN_OPERATOR;
+	this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
+	this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
 	while(len > 0) {
 		node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
 		analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
 		token_len = this->get_token(str, node_attribute);
 		if(node_attribute->node_type == TOKEN_OPERATOR) {
 			while(1) {
+				is_operator_convert(str, node_attribute->value.int_value, token_len, node_attribute->value_type);
 				stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
 				if(!analysis_data_struct_ptr->expression_tmp_stack.get_count() 
 					|| node_attribute->value_type < stack_top_node_ptr->value_type 
 					|| node_attribute->value.int_value == OPT_L_SMALL_BRACKET 
 					|| stack_top_node_ptr->value.int_value == OPT_L_SMALL_BRACKET
-					|| node_attribute->value_type == stack_top_node_ptr->value_type && (node_attribute->value_type == 2 || node_attribute->value_type == 14)) {
+					|| (node_attribute->value_type == stack_top_node_ptr->value_type && (node_attribute->value_type == 2 || node_attribute->value_type == 14))) {
 					if(node_attribute->value.int_value == OPT_R_SMALL_BRACKET) {
 						analysis_data_struct_ptr->expression_tmp_stack.pop();
 						break;
 					} else {
+						if(node_attribute->value.int_value == OPT_CALL_FUNC) {
+							analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
+							node_attribute = &analysis_data_struct_ptr->node_attribute[++node_index];
+							analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
+							node_attribute->node_type = TOKEN_OPERATOR;
+							node_attribute->value_type = 1;
+							node_attribute->value.int_value = OPT_L_SMALL_BRACKET;
+						}
 						analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
 						break;
 					}
@@ -598,6 +611,7 @@ int c_interpreter::construct_expression_tree(char *str, uint len)
 		} else if(node_attribute->node_type == TOKEN_NAME || node_attribute->node_type == TOKEN_CONST_VALUE) {
 			this->sentence_analysis_data_struct.expression_final_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
 		}
+		this->sentence_analysis_data_struct.last_token = *node_attribute;
 		len -= token_len;
 		str += token_len;
 		node_index++;
@@ -611,7 +625,7 @@ int c_interpreter::construct_expression_tree(char *str, uint len)
 		if(tmp->node_type == TOKEN_NAME)
 			printf("%s\n",tmp->value.ptr_value);
 		else
-			printf("%s\n",opt_str[tmp->value.int_value]);
+			printf("%d\n",tmp->value.int_value);
 	}
 	return ERROR_NO;
 }
