@@ -375,7 +375,7 @@ bool is_letter(unsigned char ch)
 
 bool is_number(unsigned char ch)
 {
-	if(ch >= '0' || ch <= '9')
+	if(ch >= '0' && ch <= '9')
 		return true;
 	return false;
 }

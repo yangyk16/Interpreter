@@ -94,10 +94,11 @@ round_queue::round_queue()
 	this->wptr = this->rptr = 0;
 }
 
-void round_queue::init(uint length)
+void round_queue::init(uint count, uint element_size)
 {
-	this->length = length;
-	this->bottom_addr = vmalloc(length);
+	this->length = count;
+	this->element_size = element_size;
+	this->bottom_addr = vmalloc(length * element_size);
 }
 
 round_queue::round_queue(uint length, void* base_addr)

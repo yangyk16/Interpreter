@@ -73,10 +73,11 @@ typedef struct node_attribute_s {
 } node_attribute_t;
 
 typedef struct sentence_analysis_data_struct_s {
-	stack expression_tmp_stack;
-	stack expression_final_stack;
+	list_stack expression_tmp_stack;
+	list_stack expression_final_stack;
 	node_attribute_t node_attribute[MAX_ANALYSIS_NODE];
 	node node_struct[MAX_ANALYSIS_NODE];
+	int last_token_type;
 } sentence_analysis_data_struct_t;
 
 class interpreter {
@@ -124,7 +125,9 @@ class c_interpreter: public interpreter {
 	round_queue token_fifo;
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;
 	int get_token(char *str, node_attribute_t *info);
+	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int construct_expression_tree(char *str, uint len);
+	int test(char *str, uint len);
 	//////////////////////////////////////////////////////////////////////
 	virtual int call_func(char*, char*, uint);
 	virtual int sentence_analysis(char*, uint);

@@ -27,17 +27,18 @@ char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
 const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
 char opt_str[43][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
 const char opt_str_len[] = {3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-const char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,1,1,1,1,4,2,3,8,2,3,3,4,6,6,9,10,13,13,14,15,16};
+const char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,1,1,17,1,4,2,3,8,2,3,3,4,6,6,9,10,13,13,14,15,16};
 
 int c_interpreter::get_token(char *str, node_attribute_t *info)
 {
-	int i = 0;
-	char* symbol_ptr = this->token_fifo.wptr + (char*)this->token_fifo.get_base_addr();
+	int i = 0, real_token_pos;
+	char* symbol_ptr = this->token_fifo.wptr + (char*)this->token_fifo.get_base_addr();//only element_size=1
 	while(str[i] == ' ' || str[i] == '\t')i++;
+	real_token_pos = i;
 	if(is_letter(str[i])) {
 		i++;
-		while(is_valid_c_char(str[i++]));
-		this->token_fifo.write(str, i);
+		while(is_valid_c_char(str[i]))i++;
+		this->token_fifo.write(str + real_token_pos, i - real_token_pos);
 		this->token_fifo.write("\0",1);
 		for(int j=0; j<sizeof(type_key)/sizeof(type_key[0]); j++) {
 			if(!strcmp(symbol_ptr, type_key[j])) {
@@ -55,7 +56,7 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 		}
 		info->value.ptr_value = symbol_ptr;
 		info->node_type = TOKEN_NAME;
-		return TOKEN_NAME;
+		return i;
 	} else if(is_number(str[i])) {
 		i++;
 		while(is_number(str[i++]));
@@ -65,15 +66,27 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 		return i;
 	} else {
 		for(int j=0; j<sizeof(opt_str)/sizeof(opt_str[0]); j++) {
-			if(!strmcmp(str + i, type_key[j], opt_str_len[j])) {
+			if(!strmcmp(str + i, opt_str[j], opt_str_len[j])) {
 				info->value.int_value = j;
 				info->node_type = TOKEN_OPERATOR;
 				info->value_type = opt_prio[j];
-				return i + j;
+				return i + opt_str_len[j];
 			}
 		}
 		info->node_type = TOKEN_ERROR;
 		return ERROR_TOKEN;
+	}
+	return 0;
+}
+
+int c_interpreter::test(char *str, uint len)
+{
+	int token_len;
+	node_attribute_t node_attribute;
+	while(len > 0) {
+		token_len = this->get_token(str, &node_attribute);
+		len -= token_len;
+		str += token_len;
 	}
 	return 0;
 }
@@ -115,6 +128,8 @@ int c_interpreter::run_interpreter(void)
 			tty_used->readline(sentence_buf);
 			len = pre_treat();
 		}
+		//this->test(sentence_buf, len);
+		this->construct_expression_tree(sentence_buf, len);
 		this->sentence_analysis(sentence_buf, len);
 	}
 }
@@ -503,25 +518,100 @@ int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 }
 #undef RETURN(x)
 
+bool is_operator_convert(char *str, int &type, int &opt_len, int &prio)
+{
+	switch(type) {
+	case OPT_PLUS:
+	case OPT_MINUS:
+		if(!is_valid_c_char(str[-1])) {
+			if(type == OPT_PLUS) {
+				type = OPT_POSITIVE;
+			} else {
+				type = OPT_NEGATIVE;
+			}
+			return true;
+		} 
+		break;
+	case OPT_PLUS_PLUS:
+	case OPT_MINUS_MINUS:
+		if(is_valid_c_char(str[-1]) && is_valid_c_char(str[opt_len])) {
+			if(type == OPT_PLUS_PLUS) {
+				type = OPT_PLUS;
+			} else {
+				type = OPT_MINUS;
+			}
+			opt_len = 1;
+			return true;
+		}
+		break;
+	case OPT_MUL:
+	case OPT_BIT_AND:
+		if(!is_valid_c_char(str[-1])) {
+			if(type == OPT_MUL)
+				type = OPT_PTR_CONTENT;
+			else
+				type = OPT_ADDRESS_OF;
+			return true;
+		}
+		break;
+	case OPT_L_MID_BRACKET:
+		type = OPT_INDEX;
+		break;
+	case OPT_L_SMALL_BRACKET:
+
+	default:
+		break;
+	}
+	return false;
+}
+
 int c_interpreter::construct_expression_tree(char *str, uint len)
 {
 	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
 	int token_len;
-	node_attribute_t node_attribute, *stack_top_node_ptr;
-	int last_token_type = TOKEN_OPERATOR;
-	token_len = this->get_token(str, &node_attribute);
-	if(node_attribute.node_type == TOKEN_OPERATOR) {
-		while(1) {
-			stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element();
-			if(node_attribute.value_type < stack_top_node_ptr->value_type) {
-				analysis_data_struct_ptr->expression_tmp_stack.push(&node_attribute);
-				break;
-			} else {
-				analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
+	int node_index = 0;
+	node_attribute_t *node_attribute, *stack_top_node_ptr;
+	this->sentence_analysis_data_struct.last_token_type = TOKEN_OPERATOR;
+	while(len > 0) {
+		node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
+		analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
+		token_len = this->get_token(str, node_attribute);
+		if(node_attribute->node_type == TOKEN_OPERATOR) {
+			while(1) {
+				stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
+				if(!analysis_data_struct_ptr->expression_tmp_stack.get_count() 
+					|| node_attribute->value_type < stack_top_node_ptr->value_type 
+					|| node_attribute->value.int_value == OPT_L_SMALL_BRACKET 
+					|| stack_top_node_ptr->value.int_value == OPT_L_SMALL_BRACKET
+					|| node_attribute->value_type == stack_top_node_ptr->value_type && (node_attribute->value_type == 2 || node_attribute->value_type == 14)) {
+					if(node_attribute->value.int_value == OPT_R_SMALL_BRACKET) {
+						analysis_data_struct_ptr->expression_tmp_stack.pop();
+						break;
+					} else {
+						analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
+						break;
+					}
+				} else {//Notion: priority of right parenthese should be lowwest.
+					analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
+				}
 			}
+		} else if(node_attribute->node_type == TOKEN_NAME || node_attribute->node_type == TOKEN_CONST_VALUE) {
+			this->sentence_analysis_data_struct.expression_final_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
 		}
-	} else if(node_attribute.node_type == TOKEN_NAME || node_attribute.node_type == TOKEN_CONST_VALUE) {
-		this->sentence_analys_data_struct.expression_final_stack.push(&node_attribute);
+		len -= token_len;
+		str += token_len;
+		node_index++;
+	}
+	while(analysis_data_struct_ptr->expression_tmp_stack.get_count()) {
+		analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
+	}
+	while(analysis_data_struct_ptr->expression_final_stack.get_count()) {
+		node_attribute_t *tmp = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.pop()->value;
+		printf("%d ",tmp->node_type);
+		if(tmp->node_type == TOKEN_NAME)
+			printf("%s\n",tmp->value.ptr_value);
+		else
+			printf("%s\n",opt_str[tmp->value.int_value]);
 	}
 	return ERROR_NO;
 }

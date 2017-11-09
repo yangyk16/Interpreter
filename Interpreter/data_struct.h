@@ -31,7 +31,7 @@ public:
 	friend class c_interpreter;
 	round_queue();
 	round_queue(uint, void*);
-	void init(uint len);
+	void init(uint count, uint element_size = 1);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	inline void set_length(uint len) {this->length = len;}
 	inline void set_element_size(uint len) {this->element_size = len;}
@@ -56,7 +56,7 @@ public:
 	void init(int esize, int capacity);
 	void init(int, void*, int);
 	void* get_current_ptr(void) {return (char*)this->bottom_addr + top;}
-	void* get_lastest_element(void) {return (char*)get_current_ptr() - this->element_size;}
+	void* get_lastest_element(void) {return this->count? (char*)get_current_ptr() - this->element_size: 0;}
 	void* visit_element_by_index(int);
 };
 
@@ -74,19 +74,23 @@ public:
 	inline void dedeep(void) {index_table[current_depth--] = 0;}
 };
 
-class node {
-	node *left;
-	node *right;
+typedef struct node_s {
+	struct node_s *left;
+	struct node_s *right;
 	void *value;
-};
+} node;
 
 class list_stack {
 	node head;
 	node tail;
+	int count;
 public:
-	void push(void*);
-	void *pop(void);
-	void reset(void);
+	list_stack(void) {this->reset();}
+	void push(node* obj) {obj->right = &tail; obj->left = tail.left; obj->left->right = obj; obj->right->left = obj; count++;}//TODO:中断调用时要加锁
+	node *pop(void) {node* ret = tail.left; tail.left = ret->left; ret->left->right = &tail; count--; return ret;}
+	void reset(void) {this->head.right = &tail; this->tail.left = &head;}
+	int get_count(void) {return count;}
+	node* get_lastest_element(void) {return tail.left;}
 };
 
 #endif
