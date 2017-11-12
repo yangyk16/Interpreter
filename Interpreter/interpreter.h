@@ -80,6 +80,22 @@ typedef struct sentence_analysis_data_struct_s {
 	node_attribute_t last_token;
 } sentence_analysis_data_struct_t;
 
+class middle_code {
+	char ret_type;
+	char opda_type;
+	char opdb_type;
+	char break_flag;
+	int ret_addr;
+	int opda_addr;
+	int opdb_addr;
+	char ret_offset_flag;
+	char opda_offset_flag;
+	char opdb_offset_flag;
+	char reserve;
+public:
+	int exec_code(void);
+};
+
 class interpreter {
 protected:
 	varity* varity_declare;
@@ -127,6 +143,7 @@ class c_interpreter: public interpreter {
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int construct_expression_tree(char *str, uint len);
+	int tree_to_code(node *tree, stack *code_stack);
 	int test(char *str, uint len);
 	//////////////////////////////////////////////////////////////////////
 	virtual int call_func(char*, char*, uint);

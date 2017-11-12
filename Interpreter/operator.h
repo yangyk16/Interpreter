@@ -64,5 +64,9 @@
 #define OPT_INDEX				47
 #define OPT_CALL_FUNC			48
 #define OPT_FUNC_COMMA 			49
+#define OPT_L_PLUS_PLUS			50
+#define OPT_R_PLUS_PLUS			51
+#define OPT_L_MINUS_MINUS		52
+#define OPT_R_MINUS_MINUS		53
 
 #endif

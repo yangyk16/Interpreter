@@ -78,6 +78,8 @@ typedef struct node_s {
 	struct node_s *left;
 	struct node_s *right;
 	void *value;
+	void link_reset(void) {this->left = this->right = 0;}
+	void middle_visit(void);
 } node;
 
 class list_stack {
@@ -87,7 +89,7 @@ class list_stack {
 public:
 	list_stack(void) {this->reset();}
 	void push(node* obj) {obj->right = &tail; obj->left = tail.left; obj->left->right = obj; obj->right->left = obj; count++;}//TODO:中断调用时要加锁
-	node *pop(void) {node* ret = tail.left; tail.left = ret->left; ret->left->right = &tail; count--; return ret;}
+	node *pop(void) {if(!this->get_count())return 0; node* ret = tail.left; tail.left = ret->left; ret->left->right = &tail; count--; return ret;}
 	void reset(void) {this->head.right = &tail; this->tail.left = &head;}
 	int get_count(void) {return count;}
 	node* get_lastest_element(void) {return tail.left;}

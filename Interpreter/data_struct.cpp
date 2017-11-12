@@ -175,3 +175,18 @@ char* round_queue::readline(int& len)
 	}
 	return &((char*)bottom_addr)[ret];
 }
+#include "interpreter.h"
+#include "string_lib.h"
+void node::middle_visit(void)
+{
+	if(this->left)
+		this->left->middle_visit();
+	node_attribute_t *tmp = (node_attribute_t*)this->value;
+	printf("%d ",tmp->node_type);
+	if(tmp->node_type == TOKEN_NAME)
+		printf("%s\n",tmp->value.ptr_value);
+	else
+		printf("%d\n",tmp->value.int_value);
+	if(this->right)
+		this->right->middle_visit();
+}

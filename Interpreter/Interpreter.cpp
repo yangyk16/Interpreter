@@ -28,6 +28,70 @@ const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
 char opt_str[43][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
 const char opt_str_len[] = {3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 const char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,1,1,17,1,4,2,3,8,2,3,3,4,6,6,9,10,13,13,14,15,16};
+const char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1};
+
+static int list_stack_to_tree(node* tree_node, list_stack* post_order_stack)
+{
+	node *last_node;
+	node_attribute_t *last_node_attribute;
+	int ret;
+	if(!tree_node->right) {
+		last_node = (node*)post_order_stack->pop();
+		if(!last_node) {
+			error("Operand insufficient.\n");
+			return ERROR_OPERAND_LACKED;
+		}
+		last_node->link_reset();
+		last_node_attribute = (node_attribute_t*)last_node->value;
+		tree_node->right = last_node;
+		if(last_node_attribute->node_type == TOKEN_OPERATOR) {
+			ret = list_stack_to_tree(last_node, post_order_stack);
+			if(ret)
+				return ret;
+		} else if(last_node_attribute->node_type == TOKEN_NAME || last_node_attribute->node_type == TOKEN_CONST_VALUE) {
+		} else {
+			error("Invalid key word.\n");
+			return ERROR_INVALID_KEYWORD;
+		}
+		if(opt_number[((node_attribute_t*)tree_node->value)->value.int_value] == 1) {
+			return ERROR_NO;
+		}
+	}
+	if(!tree_node->left) {
+		last_node = (node*)post_order_stack->pop();
+		if(!last_node) {
+			error("Operand insufficient.\n");
+			return ERROR_OPERAND_LACKED;
+		}
+		last_node->link_reset();
+		last_node_attribute = (node_attribute_t*)last_node->value;
+		tree_node->left = last_node;
+		if(last_node_attribute->node_type == TOKEN_OPERATOR) {
+			ret = list_stack_to_tree(last_node, post_order_stack);
+			if(ret)
+				return ret;
+		} else if(last_node_attribute->node_type == TOKEN_NAME || last_node_attribute->node_type == TOKEN_CONST_VALUE) {
+		} else {
+			error("Invalid key word.\n");
+			return ERROR_INVALID_KEYWORD;
+		}
+	}
+	return ERROR_NO;
+	if(tree_node->right && ((node_attribute_t*)tree_node->right->value)->node_type == TOKEN_NAME
+		&& tree_node->left && ((node_attribute_t*)tree_node->left->value)->node_type == TOKEN_NAME) {
+			return ERROR_NO;
+	}
+}
+
+int c_interpreter::tree_to_code(node *tree, stack *code_stack)
+{
+	if(tree->left)
+		this->tree_to_code(tree->left, code_stack);
+	if(tree->right)
+		this->tree_to_code(tree->right, code_stack);
+
+	return 0;
+}
 
 int c_interpreter::get_token(char *str, node_attribute_t *info)
 {
@@ -523,7 +587,12 @@ bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int 
 	switch(type) {
 	case OPT_PLUS:
 	case OPT_MINUS:
-		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_SMALL_BRACKET) {
+		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR 
+			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_SMALL_BRACKET 
+			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_L_MINUS_MINUS 
+			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_L_PLUS_PLUS
+			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_PLUS_PLUS
+			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_MINUS_MINUS) {
 			if(type == OPT_PLUS) {
 				type = OPT_POSITIVE;
 			} else {
@@ -534,7 +603,10 @@ bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int 
 		break;
 	case OPT_PLUS_PLUS:
 	case OPT_MINUS_MINUS:
-		if(is_valid_c_char(str[-1]) && is_valid_c_char(str[opt_len])) {
+		node_attribute_t next_node_attribute;
+		int next_token_len;
+		next_token_len = this->get_token(str + opt_len, &next_node_attribute);
+		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_NAME && next_node_attribute.node_type == TOKEN_NAME) {
 			if(type == OPT_PLUS_PLUS) {
 				type = OPT_PLUS;
 			} else {
@@ -546,7 +618,12 @@ bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int 
 		break;
 	case OPT_MUL:
 	case OPT_BIT_AND:
-		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_SMALL_BRACKET) {
+		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR 
+			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_SMALL_BRACKET 
+			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_L_MINUS_MINUS 
+			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_L_PLUS_PLUS
+			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_PLUS_PLUS
+			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_MINUS_MINUS) {
 			if(type == OPT_MUL)
 				type = OPT_PTR_CONTENT;
 			else
@@ -600,6 +677,19 @@ int c_interpreter::construct_expression_tree(char *str, uint len)
 							node_attribute->node_type = TOKEN_OPERATOR;
 							node_attribute->value_type = 1;
 							node_attribute->value.int_value = OPT_L_SMALL_BRACKET;
+						} else if(node_attribute->value.int_value == OPT_PLUS_PLUS || node_attribute->value.int_value == OPT_MINUS_MINUS) {
+							node_attribute_t *final_stack_top_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.get_lastest_element()->value;
+							if(!analysis_data_struct_ptr->expression_final_stack.get_count() || final_stack_top_ptr->node_type == TOKEN_OPERATOR) {
+								if(node_attribute->value.int_value == OPT_PLUS_PLUS)
+									node_attribute->value.int_value = OPT_L_PLUS_PLUS;
+								else
+									node_attribute->value.int_value = OPT_L_MINUS_MINUS;
+							} else {
+								if(node_attribute->value.int_value == OPT_PLUS_PLUS)
+									node_attribute->value.int_value = OPT_R_PLUS_PLUS;
+								else
+									node_attribute->value.int_value = OPT_R_MINUS_MINUS;
+							}
 						}
 						analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
 						break;
@@ -619,14 +709,22 @@ int c_interpreter::construct_expression_tree(char *str, uint len)
 	while(analysis_data_struct_ptr->expression_tmp_stack.get_count()) {
 		analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
 	}
+	//后序表达式构造完成，下面构造二叉树
+	node *root = analysis_data_struct_ptr->expression_final_stack.pop();
+	root->link_reset();
+	list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);
+	root->middle_visit();
+	//二叉树完成
 	while(analysis_data_struct_ptr->expression_final_stack.get_count()) {
 		node_attribute_t *tmp = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.pop()->value;
 		printf("%d ",tmp->node_type);
 		if(tmp->node_type == TOKEN_NAME)
 			printf("%s\n",tmp->value.ptr_value);
 		else
-			printf("%d\n",tmp->value.int_value);
+			printf("%d %d\n",tmp->value.int_value,opt_number[tmp->value.int_value]);
 	}
+	//构造中间代码
+
 	return ERROR_NO;
 }
 
@@ -1139,4 +1237,9 @@ int c_interpreter::sub_sentence_analysis(char* str, uint *len)//无括号或仅含类型
 int c_interpreter::non_seq_struct_check(char* str)
 {
 	return nonseq_key_cmp(str);
+}
+
+int middle_code::exec_code(void)
+{
+	return 0;	
 }
