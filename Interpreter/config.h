@@ -24,6 +24,7 @@
 #define VARITY_ASSIGN_BUFLEN	256
 #define MAX_COUNT_VARITY_DEF	8
 #define PLATFORM_WORD_LEN		4
+#define MAX_MID_CODE_COUNT		1024
 
 #define debug	printf
 #define error	printf

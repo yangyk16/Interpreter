@@ -80,11 +80,11 @@ typedef struct sentence_analysis_data_struct_s {
 	node_attribute_t last_token;
 } sentence_analysis_data_struct_t;
 
-class middle_code {
-	char ret_type;
+class mid_code {
+	char break_flag;
 	char opda_type;
 	char opdb_type;
-	char break_flag;
+	char reserve;
 	int ret_addr;
 	int opda_addr;
 	int opdb_addr;
@@ -140,6 +140,8 @@ class c_interpreter: public interpreter {
 	//////////////////////////////////////////////////////////////////////
 	round_queue token_fifo;
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;
+	stack mid_code_stack;
+	stack mid_varity_stack;
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int construct_expression_tree(char *str, uint len);

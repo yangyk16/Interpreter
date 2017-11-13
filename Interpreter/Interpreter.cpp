@@ -77,19 +77,21 @@ static int list_stack_to_tree(node* tree_node, list_stack* post_order_stack)
 		}
 	}
 	return ERROR_NO;
-	if(tree_node->right && ((node_attribute_t*)tree_node->right->value)->node_type == TOKEN_NAME
-		&& tree_node->left && ((node_attribute_t*)tree_node->left->value)->node_type == TOKEN_NAME) {
-			return ERROR_NO;
-	}
+	//if(tree_node->right && ((node_attribute_t*)tree_node->right->value)->node_type == TOKEN_NAME
+	//	&& tree_node->left && ((node_attribute_t*)tree_node->left->value)->node_type == TOKEN_NAME) {
+	//		return ERROR_NO;
+	//}
 }
 
 int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 {
-	if(tree->left)
+	if(tree->left && ((node_attribute_t*)tree->left->value)->node_type == TOKEN_OPERATOR)
 		this->tree_to_code(tree->left, code_stack);
-	if(tree->right)
+	if(tree->right && ((node_attribute_t*)tree->right->value)->node_type == TOKEN_OPERATOR)
 		this->tree_to_code(tree->right, code_stack);
+	if(((node_attribute_t*)tree->left->value)->node_type == TOKEN_CONST_VALUE) {
 
+	}
 	return 0;
 }
 
@@ -216,6 +218,12 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->nonseq_info->nonseq_begin_stack_ptr = 0;
 	this->function_depth = 0;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
+	///////////
+	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
+	this->mid_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);
+	for(int i=0; i<MAX_MID_CODE_COUNT; i++)
+		this->mid_varity_stack.push();
+	///////////
 	this->c_opt_caculate_func_list[0]=&c_interpreter::member_opt;
 	this->c_opt_caculate_func_list[1]=&c_interpreter::auto_inc_opt;
 	this->c_opt_caculate_func_list[2]=&c_interpreter::multiply_opt;
