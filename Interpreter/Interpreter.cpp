@@ -89,8 +89,33 @@ int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 		this->tree_to_code(tree->left, code_stack);
 	if(tree->right && ((node_attribute_t*)tree->right->value)->node_type == TOKEN_OPERATOR)
 		this->tree_to_code(tree->right, code_stack);
-	if(((node_attribute_t*)tree->left->value)->node_type == TOKEN_CONST_VALUE) {
-
+	register mid_code *instruction_ptr;
+	register node_attribute_t *node_attribute;
+	instruction_ptr = (mid_code*)code_stack->get_current_ptr();
+	if(tree && ((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR) {
+		node_attribute = (node_attribute_t*)tree->left->value;
+		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
+			instruction_ptr->opda_operand_type = OPERAND_CONST;
+		} else if(node_attribute->node_type == TOKEN_NAME) {
+			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
+				instruction_ptr->opda_operand_type = OPERAND_A_VARITY;
+				instruction_ptr->opda_addr = 8 * node_attribute->value.ptr_value[1];
+				instruction_ptr->opda_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+			} else
+				instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
+		}
+		node_attribute = (node_attribute_t*)tree->right->value;
+		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
+			instruction_ptr->opdb_operand_type = OPERAND_CONST;
+		} else if(node_attribute->node_type == TOKEN_NAME) {
+			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
+				instruction_ptr->opdb_operand_type = OPERAND_A_VARITY;
+				instruction_ptr->opdb_addr = 8 * node_attribute->value.ptr_value[1];
+				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+			} else
+				instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
+		}
+		code_stack->push();
 	}
 	return 0;
 }

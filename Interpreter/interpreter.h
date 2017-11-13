@@ -20,6 +20,11 @@
 #define NONSEQ_KEY_WAIT_ELSE	7
 #define NONSEQ_KEY_WAIT_WHILE	8
 
+#define OPERAND_G_VARITY	0
+#define OPERAND_L_VARITY	1
+#define OPERAND_A_VARITY	2
+#define OPERAND_CONST   	3
+
 #define C_OPT_PRIO_COUNT		15
 class c_interpreter;
 //typedef varity_info (*opt_calc)(c_interpreter*,char*,uint);
@@ -81,18 +86,18 @@ typedef struct sentence_analysis_data_struct_s {
 } sentence_analysis_data_struct_t;
 
 class mid_code {
+public:
 	char break_flag;
-	char opda_type;
-	char opdb_type;
+	char opda_varity_type;
+	char opdb_varity_type;
 	char reserve;
 	int ret_addr;
 	int opda_addr;
 	int opdb_addr;
-	char ret_offset_flag;
-	char opda_offset_flag;
-	char opdb_offset_flag;
+	char ret_operand_type;
+	char opda_operand_type;
+	char opdb_operand_type;
 	char reserve;
-public:
 	int exec_code(void);
 };
 
