@@ -6,7 +6,7 @@
 #define MAX_FUNCTION_DEPTH		16
 #define MAX_G_VARITY_NODE		128
 #define MAX_L_VARITY_NODE		128
-#define MAX_A_VARITY_NODE		32
+#define MAX_A_VARITY_NODE		128
 #define MAX_SENTENCE_LENGTH		512
 #define MAX_PRETREAT_BUFLEN		512
 #define MAX_ANALYSIS_BUFLEN		2048
@@ -25,6 +25,8 @@
 #define MAX_COUNT_VARITY_DEF	8
 #define PLATFORM_WORD_LEN		4
 #define MAX_MID_CODE_COUNT		1024
+#define STACK_SIZE				131072//128k
+#define TMP_VARITY_STACK_SIZE	(8 * MAX_A_VARITY_NODE)
 
 #define debug	printf
 #define error	printf

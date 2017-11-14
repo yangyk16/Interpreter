@@ -148,6 +148,10 @@ class c_interpreter: public interpreter {
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;
 	stack mid_code_stack;
 	stack mid_varity_stack;
+	char* stack_pointer;
+	char* tmp_varity_stack_pointer;
+	char simulation_stack[STACK_SIZE];
+	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int construct_expression_tree(char *str, uint len);

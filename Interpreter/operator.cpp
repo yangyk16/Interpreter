@@ -730,3 +730,107 @@ int c_interpreter::equal_opt(char* str, uint* size_ptr)
 		return symbol_pos_once;
 	return ERROR_NO;
 }
+
+typedef int (*opt_handle_func)(mid_code*);
+opt_handle_func opt_handle[54];
+
+int min(int a, int b){return a>b?b:a;}
+
+int opt_mul_handle(mid_code* instruction_ptr)
+{
+	int *opda_addr, *opdb_addr;
+	int ret_type;
+	long long opda_value, opdb_value;
+	switch(instruction_ptr->opda_operand_type) {
+	case OPERAND_CONST:
+		opda_addr = (int*)&opda_value;
+		memcpy(opda_addr, &instruction_ptr->opda_addr, 8);
+		break;
+	case OPERAND_L_VARITY:
+		opda_addr += 0;
+	case OPERAND_T_VARITY:
+	default:
+		break;
+	}
+	switch(instruction_ptr->opdb_operand_type) {
+	case OPERAND_CONST:
+		opdb_addr = (int*)&opdb_value;
+		memcpy(opdb_addr, &instruction_ptr->opdb_addr, 8);
+		break;
+	case OPERAND_L_VARITY:
+	case OPERAND_T_VARITY:
+	default:
+		break;
+	}
+	ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+	if(instruction_ptr->opda_varity_type == instruction_ptr->opdb_varity_type) {
+		if(ret_type == U_LONG || ret_type == LONG || ret_type == U_INT || ret_type == INT) {
+			*(int*)(instruction_ptr->ret_addr) = *(int*)(instruction_ptr->opda_addr) * *(int*)(instruction_ptr->opdb_addr);
+		} else if(ret_type == U_SHORT || ret_type == SHORT) {
+			*(short*)(instruction_ptr->ret_addr) = *(short*)(instruction_ptr->opda_addr) * *(short*)(instruction_ptr->opdb_addr);
+		} else if(ret_type == U_CHAR || ret_type == CHAR) {
+			*(char*)(instruction_ptr->ret_addr) = *(char*)(instruction_ptr->opda_addr) * *(char*)(instruction_ptr->opdb_addr);
+		} else if(ret_type = DOUBLE) {
+			*(double*)(instruction_ptr->ret_addr) = *(double*)(instruction_ptr->opda_addr) * *(double*)(instruction_ptr->opdb_addr);
+		} else if(ret_type == FLOAT) {
+			*(float*)(instruction_ptr->ret_addr) = *(float*)(instruction_ptr->opda_addr) * *(float*)(instruction_ptr->opdb_addr);
+		}
+	} else {
+		int mintype = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) {
+			*(int*)(instruction_ptr->ret_addr) = *(int*)(opda_addr) > *(int*)(opdb_addr);
+		} else if(mintype == U_SHORT || mintype == SHORT) {
+			*(int*)(instruction_ptr->ret_addr) = *(short*)(opda_addr) > *(short*)(opdb_addr);
+		} else if(mintype == U_CHAR) {
+			*(int*)(instruction_ptr->ret_addr) = *(char*)(opda_addr) > *(char*)(opdb_addr);
+		} else if(mintype == DOUBLE) {
+			if(instruction_ptr->opda_varity_type == DOUBLE) {
+				if(instruction_ptr->opdb_varity_type == LONG || instruction_ptr->opdb_varity_type == INT || instruction_ptr->opdb_varity_type == SHORT || instruction_ptr->opdb_varity_type == CHAR) {
+					*(int*)(instruction_ptr->ret_addr) = *(double*)(opda_addr) > (double)(*(int*)(opdb_addr));
+				} else if(instruction_ptr->opdb_varity_type == U_LONG || instruction_ptr->opdb_varity_type == U_INT || instruction_ptr->opdb_varity_type == U_SHORT || instruction_ptr->opdb_varity_type == U_CHAR) {
+					*(int*)(instruction_ptr->ret_addr) = *(double*)(opda_addr) > (double)(*(uint*)(opdb_addr));
+				} else if(instruction_ptr->opdb_varity_type == FLOAT) {
+					*(int*)(instruction_ptr->ret_addr) = *(double*)(opda_addr) > (double)(*(float*)(opdb_addr));
+				}
+			} else {
+				if(instruction_ptr->opda_varity_type == LONG || instruction_ptr->opda_varity_type == INT || instruction_ptr->opda_varity_type == SHORT || instruction_ptr->opda_varity_type == CHAR) {
+					*(int*)(instruction_ptr->ret_addr) = (double)(*(int*)(opda_addr)) > *(double*)(opdb_addr);
+				} else if(instruction_ptr->opda_varity_type == U_LONG || instruction_ptr->opda_varity_type == U_INT || instruction_ptr->opda_varity_type == U_SHORT || instruction_ptr->opda_varity_type == U_CHAR) {
+					*(int*)(instruction_ptr->ret_addr) = (double)(*(uint*)(opda_addr)) > *(double*)(opdb_addr);
+				} else if(instruction_ptr->opda_varity_type == FLOAT) {
+					*(int*)(instruction_ptr->ret_addr) = (double)(*(float*)(opda_addr)) > *(double*)(opdb_addr);
+				}
+			}
+		} else if(mintype == FLOAT) {
+			if(instruction_ptr->opda_varity_type == FLOAT) {
+				if(instruction_ptr->opdb_varity_type == LONG || instruction_ptr->opdb_varity_type == INT || instruction_ptr->opdb_varity_type == SHORT || instruction_ptr->opdb_varity_type == CHAR) {
+					*(int*)(instruction_ptr->ret_addr) = *(float*)(opda_addr) > (float)(*(int*)(opdb_addr));
+				} else if(instruction_ptr->opdb_varity_type == U_LONG || instruction_ptr->opdb_varity_type == U_INT || instruction_ptr->opdb_varity_type == U_SHORT || instruction_ptr->opdb_varity_type == U_CHAR) {
+					*(int*)(instruction_ptr->ret_addr) = *(float*)(opda_addr) > (float)(*(uint*)(opdb_addr));
+				}
+			} else {
+				if(instruction_ptr->opda_varity_type == LONG || instruction_ptr->opda_varity_type == INT || instruction_ptr->opda_varity_type == SHORT || instruction_ptr->opda_varity_type == CHAR) {
+					*(int*)(instruction_ptr->ret_addr) = (float)(*(int*)(opda_addr)) > *(float*)(opdb_addr);
+				} else if(instruction_ptr->opda_varity_type == U_LONG || instruction_ptr->opda_varity_type == U_INT || instruction_ptr->opda_varity_type == U_SHORT || instruction_ptr->opda_varity_type == U_CHAR) {
+					*(int*)(instruction_ptr->ret_addr) = (float)(*(uint*)(opda_addr)) > *(float*)(opdb_addr);
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+void handle_init(void)
+{
+	for(int i=0; i<54;i++)
+		opt_handle[i] = 0;
+	opt_handle[OPT_MUL] = opt_mul_handle;
+}
+
+int call_opt_handle(int opt, mid_code* instruction_ptr)
+{
+	if(opt_handle[opt])
+		return opt_handle[opt](instruction_ptr);
+	else
+		return 0;
+}

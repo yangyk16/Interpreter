@@ -31,8 +31,6 @@ const char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,
 const char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1};
 char tmp_varity_name[MAX_A_VARITY_NODE][3];
 
-static int min(int a, int b){return a>b?b:a;}
-
 static int list_stack_to_tree(node* tree_node, list_stack* post_order_stack)
 {
 	node *last_node;
@@ -165,6 +163,60 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 		instruction_ptr->ret_operator = opt;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
+		break;
+	case OPT_EQU:
+	case OPT_NOT_EQU:
+	case OPT_BIG_EQU:
+	case OPT_SMALL_EQU:
+	case OPT_BIG:
+	case OPT_SMALL:
+		ret_type = INT;
+		if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY && instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			varity_number = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value[1];
+			this->mid_varity_stack.pop();
+		} else if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY && instruction_ptr->opdb_operand_type != OPERAND_T_VARITY) {
+			varity_number = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value[1];
+		} else if(instruction_ptr->opda_operand_type != OPERAND_T_VARITY && instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			varity_number = ((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value[1];
+		} else {
+			varity_number = this->mid_varity_stack.get_count();
+			this->mid_varity_stack.push();
+		}
+		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		varity_ptr->set_type(ret_type);
+		instruction_ptr->ret_addr = varity_number * 8;
+		instruction_ptr->ret_operator = opt;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
+		break;
+	case OPT_ASL_ASSIGN:
+	case OPT_ASR_ASSIGN:
+	case OPT_MOD_ASSIGN:
+	case OPT_BIT_AND_ASSIGN:
+	case OPT_BIT_XOR_ASSIGN:
+	case OPT_BIT_OR_ASSIGN:
+		if(instruction_ptr->opda_varity_type < U_LONG_LONG || instruction_ptr->opda_varity_type > CHAR
+			|| instruction_ptr->opdb_varity_type < U_LONG_LONG || instruction_ptr->opdb_varity_type > CHAR) {
+			error("Need int type operand.\n");
+			return ERROR_ILLEGAL_OPERAND;
+		}
+	case OPT_ASSIGN:
+	case OPT_MUL_ASSIGN:
+	case OPT_ADD_ASSIGN:
+	case OPT_MINUS_ASSIGN:
+	case OPT_DEVIDE_ASSIGN:
+		ret_type = instruction_ptr->opda_varity_type;
+		if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY) {
+			error("Assign operator need left value.\n");
+			return ERROR_NEED_LEFT_VALUE;
+		} else if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			this->mid_varity_stack.push();
+		} else {
+		}
+		instruction_ptr->ret_addr = instruction_ptr->opda_addr;
+		instruction_ptr->ret_operator = opt;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value;
 		break;
 	case OPT_EDGE:
 		break;
@@ -311,6 +363,9 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->function_depth = 0;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 	///////////
+	handle_init();
+	this->stack_pointer = this->simulation_stack;
+	this->tmp_varity_stack_pointer = this->tmp_varity_stack;
 	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
 	this->mid_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);
 	for(int i=0; i<MAX_A_VARITY_NODE; i++) {
@@ -815,19 +870,19 @@ int c_interpreter::construct_expression_tree(char *str, uint len)
 	//后序表达式构造完成，下面构造二叉树
 	node *root = analysis_data_struct_ptr->expression_final_stack.pop();
 	root->link_reset();
-	list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);
-	this->tree_to_code(root, &this->mid_code_stack);
+	list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
+	this->tree_to_code(root, &this->mid_code_stack);//构造中间代码
 	root->middle_visit();
-	//二叉树完成
-	while(analysis_data_struct_ptr->expression_final_stack.get_count()) {
-		node_attribute_t *tmp = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.pop()->value;
-		printf("%d ",tmp->node_type);
-		if(tmp->node_type == TOKEN_NAME)
-			printf("%s\n",tmp->value.ptr_value);
-		else
-			printf("%d %d\n",tmp->value.int_value,opt_number[tmp->value.int_value]);
-	}
-	//构造中间代码
+	
+	//while(analysis_data_struct_ptr->expression_final_stack.get_count()) {
+	//	node_attribute_t *tmp = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.pop()->value;
+	//	printf("%d ",tmp->node_type);
+	//	if(tmp->node_type == TOKEN_NAME)
+	//		printf("%s\n",tmp->value.ptr_value);
+	//	else
+	//		printf("%d %d\n",tmp->value.int_value,opt_number[tmp->value.int_value]);
+	//}
+	
 
 	return ERROR_NO;
 }
@@ -1243,6 +1298,10 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 		return ERROR_BRACKET_UNMATCH;
 	//从最深级循环解析深度递减的各级，以立即数/临时变量？表示各级返回结果
 	this->construct_expression_tree(str, len);
+	int mid_code_count = this->mid_code_stack.get_count();
+	for(int n=0; n<mid_code_count; n++) {
+		((mid_code*)this->mid_code_stack.visit_element_by_index(n))->exec_code();
+	}
 	char sub_analysis_buf[MAX_SUB_ANA_BUFLEN];
 	sub_analysis_buf[0] = 0;
 	char* sub_analysis_buf_ptr = sub_analysis_buf + 1;
@@ -1346,5 +1405,6 @@ int c_interpreter::non_seq_struct_check(char* str)
 
 int mid_code::exec_code(void)
 {
-	return 0;	
+	call_opt_handle(this->ret_operator, (mid_code*)this);
+	return 0;
 }

@@ -158,7 +158,6 @@
 	} \
 	return ret
 
-int min(int a, int b){return a>b?b:a;}
 varity_info& operator+(varity_info& obj1, varity_info& obj2)
 {
 	static varity_info ret;
