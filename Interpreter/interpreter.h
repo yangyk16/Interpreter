@@ -22,7 +22,7 @@
 
 #define OPERAND_G_VARITY	0
 #define OPERAND_L_VARITY	1
-#define OPERAND_A_VARITY	2
+#define OPERAND_T_VARITY	2
 #define OPERAND_CONST   	3
 
 #define C_OPT_PRIO_COUNT		15
@@ -88,16 +88,17 @@ typedef struct sentence_analysis_data_struct_s {
 class mid_code {
 public:
 	char break_flag;
-	char opda_varity_type;
-	char opdb_varity_type;
-	char reserve;
-	int ret_addr;
-	int opda_addr;
+	char opda_varity_type;//操作数1变量类型
+	char opdb_varity_type;//操作数2变量类型
+	char ret_operator;    //执行的操作
+	int ret_addr;         //结果地址
+	int opda_addr;        //操作数1地址
+	int double_space1;    //操作数1为double立即数时使用的空间
 	int opdb_addr;
-	char ret_operand_type;
-	char opda_operand_type;
-	char opdb_operand_type;
-	char reserve;
+	int double_space2;
+	char opda_operand_type;//操作数1类型：变量/立即数
+	char opdb_operand_type;//操作数2类型：变量/立即数
+	char reserve[2];
 	int exec_code(void);
 };
 
@@ -151,6 +152,7 @@ class c_interpreter: public interpreter {
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int construct_expression_tree(char *str, uint len);
 	int tree_to_code(node *tree, stack *code_stack);
+	int pre_operate(stack* code_stack_ptr, node *opt_node_ptr);
 	int test(char *str, uint len);
 	//////////////////////////////////////////////////////////////////////
 	virtual int call_func(char*, char*, uint);

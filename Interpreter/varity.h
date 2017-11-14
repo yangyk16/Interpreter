@@ -130,6 +130,7 @@ public:
 	stack* analysis_varity_stack;
 	indexed_stack* local_varity_stack;
 	varity_info* find(char*, int);
+	varity_info* vfind(char *name, int &scope);
 	int declare(int scope_flag, char* name, char type, uint size, char = 0);
 	int declare_analysis_varity(char type, uint size, char*, varity_info**, char = 0);
 	int destroy_analysis_varity(void);

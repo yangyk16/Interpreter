@@ -6,6 +6,7 @@
 #include "error.h"
 #include "struct.h"
 #include "operator.h"
+#include "string_lib.h"
 
 #if PLATFORM_WORD_LEN == 4
 const char type_key[15][19] = {"empty", "struct", "void", "double", "float", "unsigned long long", "long long", "unsigned long", "unsigned int", "long", "int", "unsigned short", "short", "unsigned char", "char"};
@@ -359,12 +360,15 @@ int varity::declare(int scope_flag, char* name, char type, uint size, char attri
 	varity_ptr = (varity_info*)varity_stack->get_current_ptr();
 	varity_info::init_varity(varity_ptr, name, type, size);
 	varity_ptr->config_varity(attribute);
-	if(attribute != ATTRIBUTE_LINK) {
+	if(attribute != ATTRIBUTE_LINK && scope_flag == VARITY_SCOPE_GLOBAL) {
 		ret = varity_ptr->apply_space();
 		if(ret) {
 			error("declare varity \"%s\" error: space is insufficient\n", name);
 			return ERROR_VARITY_NOSPACE;
 		}
+	} else if(scope_flag == VARITY_SCOPE_LOCAL) {
+		varity_ptr->set_content_ptr((void*)make_align(this->local_varity_stack->offset, varity_ptr->get_element_size()));
+		this->local_varity_stack->offset += varity_ptr->get_size();
 	}
 	varity_stack->push();
 	return 0;
@@ -379,6 +383,19 @@ void varity_attribute::init(void* addr, char* name, char type, char attribute, u
 	ptr->size = size;
 	ptr->name = (char*)vmalloc(name_len + 1);
 	strcpy(ptr->name, name);
+}
+
+varity_info* varity::vfind(char *name, int &scope)
+{
+	varity_info* ret = NULL;
+	ret = (varity_info*)this->local_varity_stack->find(name);
+	if(ret) {
+		scope = VARITY_SCOPE_LOCAL;
+	} else {
+		ret = (varity_info*)this->global_varity_stack->find(name);
+		scope = VARITY_SCOPE_GLOBAL;
+	}
+	return ret;
 }
 
 varity_info* varity::find(char* name, int scope)

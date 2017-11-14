@@ -64,14 +64,16 @@ class indexed_stack: public stack {
 	int current_depth;
 	int visible_depth;
 	uint index_table[MAX_STACK_INDEX];
+	uint offset_table[MAX_STACK_INDEX];
+	uint offset;
 public:
 	friend class c_interpreter;
 	friend class varity;
 	virtual void* find(char*);
 	indexed_stack(int esize, void* base_addr, int capacity);
 	void* get_layer_begin_pos(void) {return (char*)this->bottom_addr + index_table[current_depth] * element_size;}
-	inline void endeep(void) {index_table[++current_depth] = this->count;}
-	inline void dedeep(void) {index_table[current_depth--] = 0;}
+	inline void endeep(void) {index_table[++current_depth] = this->count; offset_table[current_depth] = offset;}
+	inline void dedeep(void) {offset = offset_table[current_depth]; index_table[current_depth--] = 0;}
 };
 
 typedef struct node_s {
