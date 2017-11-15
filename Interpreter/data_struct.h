@@ -51,6 +51,7 @@ public:
 	virtual void* find(char*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	//inline void set_length(uint len) {this->length = len;}
+	void empty(void) {this->top = 0; this->count = 0;}
 	stack();
 	stack(int esize, void* base_addr, int capacity);
 	void init(int esize, int capacity);

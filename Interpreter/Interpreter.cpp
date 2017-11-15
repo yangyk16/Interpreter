@@ -96,6 +96,8 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 		node_attribute = (node_attribute_t*)opt_node_ptr->left->value;//判断是否是双目，单目不能看左树
 		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 			instruction_ptr->opda_operand_type = OPERAND_CONST;
+			instruction_ptr->opda_varity_type = node_attribute->value_type;
+			memcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
 			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
 				instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
@@ -119,6 +121,8 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 	node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
 	if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 		instruction_ptr->opdb_operand_type = OPERAND_CONST;
+		instruction_ptr->opdb_varity_type = node_attribute->value_type;
+		memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 	} else if(node_attribute->node_type == TOKEN_NAME) {
 		if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
 			instruction_ptr->opdb_operand_type = OPERAND_T_VARITY;
@@ -161,6 +165,7 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 		varity_ptr->set_type(ret_type);
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
+		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
@@ -186,6 +191,7 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 		varity_ptr->set_type(ret_type);
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
+		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
@@ -210,11 +216,12 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 			error("Assign operator need left value.\n");
 			return ERROR_NEED_LEFT_VALUE;
 		} else if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
-			this->mid_varity_stack.push();
+			this->mid_varity_stack.pop();
 		} else {
 		}
 		instruction_ptr->ret_addr = instruction_ptr->opda_addr;
 		instruction_ptr->ret_operator = opt;
+		instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value;
 		break;
@@ -575,6 +582,8 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 			}
 		}
 	}
+	if(nonseq_info->non_seq_struct_depth)
+		return OK_NONSEQ_INPUTING;
 	return ERROR_NO;
 }
 
@@ -872,6 +881,8 @@ int c_interpreter::construct_expression_tree(char *str, uint len)
 	root->link_reset();
 	list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
 	this->tree_to_code(root, &this->mid_code_stack);//构造中间代码
+	if(this->mid_varity_stack.get_count())
+		this->mid_varity_stack.pop();
 	root->middle_visit();
 	
 	//while(analysis_data_struct_ptr->expression_final_stack.get_count()) {
@@ -897,6 +908,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	if(ret != OK_FUNC_NOFUNC)
 		return ERROR_NO;
 	ret = non_seq_struct_analysis(str, len);
+	debug("nonseqret=%d\n", ret);
 	if(ret == OK_NONSEQ_FINISH)
 		;//return ERROR_NO;
 	else if(ret == ERROR_NONSEQ_GRAMMER)
@@ -1300,8 +1312,10 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	this->construct_expression_tree(str, len);
 	int mid_code_count = this->mid_code_stack.get_count();
 	for(int n=0; n<mid_code_count; n++) {
-		((mid_code*)this->mid_code_stack.visit_element_by_index(n))->exec_code();
+		((mid_code*)this->mid_code_stack.visit_element_by_index(n))->exec_code(this->stack_pointer, this->tmp_varity_stack_pointer);
 	}
+	this->mid_code_stack.empty();
+	return 0;
 	char sub_analysis_buf[MAX_SUB_ANA_BUFLEN];
 	sub_analysis_buf[0] = 0;
 	char* sub_analysis_buf_ptr = sub_analysis_buf + 1;
@@ -1403,8 +1417,8 @@ int c_interpreter::non_seq_struct_check(char* str)
 	return nonseq_key_cmp(str);
 }
 
-int mid_code::exec_code(void)
+int mid_code::exec_code(char* sp, char* t_varity_sp)
 {
-	call_opt_handle(this->ret_operator, (mid_code*)this);
+	call_opt_handle((mid_code*)this, sp, t_varity_sp);
 	return 0;
 }

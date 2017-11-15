@@ -98,8 +98,9 @@ public:
 	int double_space2;
 	char opda_operand_type;//操作数1类型：变量/立即数
 	char opdb_operand_type;//操作数2类型：变量/立即数
-	char reserve[2];
-	int exec_code(void);
+	char ret_operand_type;
+	char reserve;
+	int exec_code(char*, char*);
 };
 
 class interpreter {

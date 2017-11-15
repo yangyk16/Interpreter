@@ -69,10 +69,13 @@
 #define OPT_L_MINUS_MINUS		52
 #define OPT_R_MINUS_MINUS		53
 
+#define CTL_BRANCH				100
+#define CTL_BRANCH_TRUE			101
+
 class mid_code;
 
 int min(int a, int b);
 void handle_init(void);
-int call_opt_handle(int opt, mid_code* instruction_ptr);
+int call_opt_handle(mid_code* instruction_ptr, char* sp, char *t_varity_sp);
 
 #endif
