@@ -32,9 +32,11 @@ typedef int (c_interpreter::*opt_calc )(char*, uint*);
 
 typedef struct row_info_relative_nonseq_s {
 	char* row_ptr;
-	uint row_len;
-	int non_seq_depth;
-	int non_seq_info;
+	short row_len;
+	char non_seq_depth;
+	char non_seq_info;
+	short post_info;
+	char nonseq_type;
 } row_info_struct;
 
 typedef struct nonseq_info_struct_s {
@@ -155,7 +157,8 @@ class c_interpreter: public interpreter {
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
-	int construct_expression_tree(char *str, uint len);
+	int generate_mid_code(char *str, uint len);
+	int nonseq_start_gen_mid_code(char *str, int non_seq_type);
 	int tree_to_code(node *tree, stack *code_stack);
 	int pre_operate(stack* code_stack_ptr, node *opt_node_ptr);
 	int test(char *str, uint len);

@@ -512,6 +512,8 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 		nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = nonseq_info->non_seq_check_ret;
 		nonseq_info->non_seq_struct_depth++;
 		nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth = nonseq_info->non_seq_struct_depth;
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].nonseq_type = nonseq_info->non_seq_check_ret;
+		return OK_NONSEQ_DEFINE;
 	}
 	if(len == 0)
 		return OK_NONSEQ_INPUTING;
@@ -525,7 +527,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 		}
 	} else if(str[0] == '}') {
 		if(nonseq_info->brace_depth > 0) {
-			if(nonseq_info->non_seq_struct_depth > 0 && this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == nonseq_info->brace_depth) {
+			if(nonseq_info->non_seq_struct_depth > 0 && this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == nonseq_info->brace_depth--) {
 				do {
 					nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth--]=0;
 					if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_IF) {
@@ -544,12 +546,15 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 				this->nonseq_info->nonseq_begin_stack_ptr--;
 				if(nonseq_info->non_seq_struct_depth == 0)
 					if(nonseq_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
+						return OK_NONSEQ_INPUTING;
 					} else if(nonseq_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_WHILE) {
+						return OK_NONSEQ_INPUTING;
 					} else {
 						nonseq_info->non_seq_exec = 1;
+						return OK_NONSEQ_FINISH;
 					}
 			}
-			nonseq_info->brace_depth--;
+			//nonseq_info->brace_depth--;
 		} else {
 			error("there is no { to match\n");
 			return ERROR_NONSEQ_GRAMMER;
@@ -812,7 +817,7 @@ bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int 
 	return false;
 }
 
-int c_interpreter::construct_expression_tree(char *str, uint len)
+int c_interpreter::generate_mid_code(char *str, uint len)
 {
 	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
 	int token_len;
@@ -824,6 +829,8 @@ int c_interpreter::construct_expression_tree(char *str, uint len)
 		node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
 		analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
 		token_len = this->get_token(str, node_attribute);
+		if(node_attribute->node_type == TOKEN_ERROR)
+			return node_attribute->node_type;
 		if(node_attribute->node_type == TOKEN_OPERATOR) {
 			while(1) {
 				is_operator_convert(str, node_attribute->value.int_value, token_len, node_attribute->value_type);
@@ -909,10 +916,23 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		return ERROR_NO;
 	ret = non_seq_struct_analysis(str, len);
 	debug("nonseqret=%d\n", ret);
-	if(ret == OK_NONSEQ_FINISH)
-		;//return ERROR_NO;
-	else if(ret == ERROR_NONSEQ_GRAMMER)
+	if(ret == OK_NONSEQ_FINISH || ret == OK_NONSEQ_INPUTING || ret == OK_NONSEQ_DEFINE) {
+		if(nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth) {
+			switch(nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info) {
+			case 0:
+				this->nonseq_start_gen_mid_code(str, nonseq_info->row_info_node[nonseq_info->row_num - 1].nonseq_type);
+				break;
+			case 1:
+				break;
+			default:
+				break;
+			}
+		} else {
+			this->generate_mid_code(str, len);
+		}
+	} else if(ret == ERROR_NONSEQ_GRAMMER)
 		return ret;
+	
 	if(nonseq_info->non_seq_exec) {
 		debug("exec non seq struct\n");
 		nonseq_info->non_seq_exec = 0;
@@ -924,6 +944,23 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	//if(!nonseq_info->non_seq_struct_depth && str[0] != '}') {
 		ret = sentence_exec(str, len, true, NULL);
 		return ret;
+	}
+	return ERROR_NO;
+}
+
+int c_interpreter::nonseq_start_gen_mid_code(char *str, int non_seq_type)
+{
+	mid_code* mid_code_ptr = (mid_code*)this->mid_code_stack.get_current_ptr();
+	switch(non_seq_type) {
+	case NONSEQ_KEY_IF:
+
+		break;
+	case NONSEQ_KEY_FOR:
+		break;
+	case NONSEQ_KEY_WHILE:
+		break;
+	case NONSEQ_KEY_DO:
+		break;
 	}
 	return ERROR_NO;
 }
@@ -1309,7 +1346,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	if(total_bracket_depth < 0)
 		return ERROR_BRACKET_UNMATCH;
 	//从最深级循环解析深度递减的各级，以立即数/临时变量？表示各级返回结果
-	this->construct_expression_tree(str, len);
+	this->generate_mid_code(str, len);
 	int mid_code_count = this->mid_code_stack.get_count();
 	for(int n=0; n<mid_code_count; n++) {
 		((mid_code*)this->mid_code_stack.visit_element_by_index(n))->exec_code(this->stack_pointer, this->tmp_varity_stack_pointer);
