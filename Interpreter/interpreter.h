@@ -35,8 +35,10 @@ typedef struct row_info_relative_nonseq_s {
 	short row_len;
 	char non_seq_depth;
 	char non_seq_info;
-	short post_info;
 	char nonseq_type;
+	char post_info_a;
+	short post_info_b;
+	char finish_flag;
 } row_info_struct;
 
 typedef struct nonseq_info_struct_s {
@@ -157,8 +159,9 @@ class c_interpreter: public interpreter {
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
-	int generate_mid_code(char *str, uint len);
-	int nonseq_start_gen_mid_code(char *str, int non_seq_type);
+	int generate_mid_code(char *str, uint len, bool need_semicolon);
+	int nonseq_start_gen_mid_code(char *str, uint len, int non_seq_type);
+	int nonseq_end_gen_mid_code(char *str, uint len);
 	int tree_to_code(node *tree, stack *code_stack);
 	int pre_operate(stack* code_stack_ptr, node *opt_node_ptr);
 	int test(char *str, uint len);

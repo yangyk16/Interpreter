@@ -226,7 +226,8 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value;
 		break;
 	case OPT_EDGE:
-		break;
+		error("Extra ;\n");
+		return ERROR_SEMICOLON;
 	default:
 		error("what??\n");
 		break;
@@ -238,12 +239,15 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 
 int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 {
+	register int ret;
 	if(tree->left && ((node_attribute_t*)tree->left->value)->node_type == TOKEN_OPERATOR)
 		this->tree_to_code(tree->left, code_stack);
 	if(tree->right && ((node_attribute_t*)tree->right->value)->node_type == TOKEN_OPERATOR)
 		this->tree_to_code(tree->right, code_stack);
 	if(tree && ((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR) {
-		this->pre_operate(code_stack, tree);
+		ret = this->pre_operate(code_stack, tree);
+		if(ret)
+			return ret;
 	}
 	return 0;
 }
@@ -817,8 +821,9 @@ bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int 
 	return false;
 }
 
-int c_interpreter::generate_mid_code(char *str, uint len)
+int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 {
+	if(len == 0)return ERROR_NO;
 	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
 	int token_len;
 	int node_index = 0;
@@ -883,11 +888,19 @@ int c_interpreter::generate_mid_code(char *str, uint len)
 	while(analysis_data_struct_ptr->expression_tmp_stack.get_count()) {
 		analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
 	}
+	if(need_semicolon) {
+		node *last_token = analysis_data_struct_ptr->expression_final_stack.pop();
+		if(((node_attribute_t*)last_token->value)->node_type != TOKEN_OPERATOR || ((node_attribute_t*)last_token->value)->value.int_value != OPT_EDGE) {
+			error("Missing ;\n");
+			return ERROR_SEMICOLON;
+		}
+	}
 	//后序表达式构造完成，下面构造二叉树
 	node *root = analysis_data_struct_ptr->expression_final_stack.pop();
 	root->link_reset();
 	list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
-	this->tree_to_code(root, &this->mid_code_stack);//构造中间代码
+	int ret = this->tree_to_code(root, &this->mid_code_stack);//构造中间代码
+	if(ret)return ret;
 	if(this->mid_varity_stack.get_count())
 		this->mid_varity_stack.pop();
 	root->middle_visit();
@@ -920,15 +933,16 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		if(nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth) {
 			switch(nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info) {
 			case 0:
-				this->nonseq_start_gen_mid_code(str, nonseq_info->row_info_node[nonseq_info->row_num - 1].nonseq_type);
+				this->nonseq_start_gen_mid_code(str, len, nonseq_info->row_info_node[nonseq_info->row_num - 1].nonseq_type);
 				break;
 			case 1:
+				this->nonseq_end_gen_mid_code(str, len);
 				break;
 			default:
 				break;
 			}
 		} else {
-			this->generate_mid_code(str, len);
+			this->generate_mid_code(str, len, true);
 		}
 	} else if(ret == ERROR_NONSEQ_GRAMMER)
 		return ret;
@@ -936,7 +950,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	if(nonseq_info->non_seq_exec) {
 		debug("exec non seq struct\n");
 		nonseq_info->non_seq_exec = 0;
-		ret = this->non_seq_section_exec(0, nonseq_info->row_num - 1);
+		//ret = this->non_seq_section_exec(0, nonseq_info->row_num - 1);
 		nonseq_info->reset();
 		return ret;//avoid continue to exec single sentence.
 	}
@@ -948,12 +962,52 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	return ERROR_NO;
 }
 
-int c_interpreter::nonseq_start_gen_mid_code(char *str, int non_seq_type)
+int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
 {
-	mid_code* mid_code_ptr = (mid_code*)this->mid_code_stack.get_current_ptr();
+	int i;
+	int cur_depth = nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth;
+	if(len == 0)return ERROR_NO;
+	mid_code *mid_code_ptr;
+	node_attribute_t cur_node;
+	get_token(str, &cur_node);
+	if(cur_node.node_type != TOKEN_KEYWORD_NONSEQ && str[0] != '}') {
+		int ret = this->generate_mid_code(str, len, true);
+		if(ret) return ret;
+	}
+	for(i=nonseq_info->row_num-1; i>=0; i--) {
+		if(nonseq_info->row_info_node[i].non_seq_depth >= cur_depth 
+			&& (nonseq_info->row_info_node[i].non_seq_info == 0 || nonseq_info->row_info_node[i].non_seq_info == 2) 
+			&& !nonseq_info->row_info_node[i].finish_flag) {
+			switch(nonseq_info->row_info_node[i].nonseq_type) {
+			case NONSEQ_KEY_IF:
+				mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + (mid_code*)this->mid_code_stack.get_base_addr();
+				mid_code_ptr->opda_addr = (mid_code*)this->mid_code_stack.get_current_ptr() - mid_code_ptr;
+				break;
+			case NONSEQ_KEY_ELSE:
+				break;
+			}
+		}
+	}
+	return ERROR_NO;
+}
+
+int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_type)
+{
+	mid_code* mid_code_ptr;
+	node_attribute_t token_node;
+	int key_len = get_token(str, &token_node);
+	get_token(str + key_len, &token_node);
+	if(token_node.node_type != TOKEN_OPERATOR || token_node.value.int_value != OPT_L_SMALL_BRACKET) {
+		error("Lack of bracket\n");
+		return ERROR_NONSEQ_GRAMMER;
+	}
 	switch(non_seq_type) {
 	case NONSEQ_KEY_IF:
-
+		this->generate_mid_code(str + key_len, len - key_len, false);
+		mid_code_ptr = (mid_code*)this->mid_code_stack.get_current_ptr();
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->mid_code_stack.get_base_addr();
+		mid_code_ptr->ret_operator = CTL_BRANCH_FALSE;
+		this->mid_code_stack.push();
 		break;
 	case NONSEQ_KEY_FOR:
 		break;
@@ -1333,7 +1387,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	if(str[len-1] != ';' && need_semicolon) {
 		error("Missing ;\n");
 		str[source_len] = ch_last;
-		return ERROR_MISS_SEMICOLON;
+		return ERROR_SEMICOLON;
 	}
 	strcpy(this->analysis_buf_ptr, str);
 	analysis_varity_count = this->varity_declare->analysis_varity_stack->get_count();
@@ -1346,7 +1400,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	if(total_bracket_depth < 0)
 		return ERROR_BRACKET_UNMATCH;
 	//从最深级循环解析深度递减的各级，以立即数/临时变量？表示各级返回结果
-	this->generate_mid_code(str, len);
+	this->generate_mid_code(str, len, true);
 	int mid_code_count = this->mid_code_stack.get_count();
 	for(int n=0; n<mid_code_count; n++) {
 		((mid_code*)this->mid_code_stack.visit_element_by_index(n))->exec_code(this->stack_pointer, this->tmp_varity_stack_pointer);
