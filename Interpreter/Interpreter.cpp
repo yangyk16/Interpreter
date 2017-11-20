@@ -938,6 +938,9 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 			case 1:
 				this->nonseq_end_gen_mid_code(str, len);
 				break;
+			case 2:
+				this->nonseq_mid_gen_mid_code(str, len);
+				break;
 			default:
 				break;
 			}
@@ -961,7 +964,25 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	}
 	return ERROR_NO;
 }
-
+int c_interpreter::nonseq_mid_gen_mid_code(char *str, uint len)
+{
+	mid_code* mid_code_ptr;
+	int cur_depth = nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth;
+	mid_code_ptr = (mid_code*)this->mid_code_stack.get_current_ptr();
+	mid_code_ptr->ret_operator = CTL_BRANCH;
+	this->mid_code_stack.push();
+	nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->mid_code_stack.get_base_addr();
+	for(int i=nonseq_info->row_num-1; i>=0; i--) {
+		if(nonseq_info->row_info_node[i].non_seq_depth == cur_depth 
+			&& nonseq_info->row_info_node[i].non_seq_info == 0) {
+			mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + (mid_code*)this->mid_code_stack.get_base_addr();
+			mid_code_ptr->opda_addr++;
+			nonseq_info->row_info_node[i].finish_flag = 1;
+			break;
+		}
+	}
+	return ERROR_NO;
+}
 int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
 {
 	int i;
@@ -982,8 +1003,11 @@ int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
 			case NONSEQ_KEY_IF:
 				mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + (mid_code*)this->mid_code_stack.get_base_addr();
 				mid_code_ptr->opda_addr = (mid_code*)this->mid_code_stack.get_current_ptr() - mid_code_ptr;
+				nonseq_info->row_info_node[i].finish_flag = 1;
 				break;
 			case NONSEQ_KEY_ELSE:
+				mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + (mid_code*)this->mid_code_stack.get_base_addr();
+				mid_code_ptr->opda_addr = (mid_code*)this->mid_code_stack.get_current_ptr() - mid_code_ptr;
 				break;
 			}
 		}

@@ -161,6 +161,7 @@ class c_interpreter: public interpreter {
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int generate_mid_code(char *str, uint len, bool need_semicolon);
 	int nonseq_start_gen_mid_code(char *str, uint len, int non_seq_type);
+	int nonseq_mid_gen_mid_code(char *str, uint len);
 	int nonseq_end_gen_mid_code(char *str, uint len);
 	int tree_to_code(node *tree, stack *code_stack);
 	int pre_operate(stack* code_stack_ptr, node *opt_node_ptr);
