@@ -731,12 +731,12 @@ int c_interpreter::equal_opt(char* str, uint* size_ptr)
 	return ERROR_NO;
 }
 
-typedef int (*opt_handle_func)(mid_code*, int*, int*, int*);
-opt_handle_func opt_handle[54];
+typedef int (*opt_handle_func)(mid_code*&, int*, int*, int*);
+opt_handle_func opt_handle[128];
 
 int min(int a, int b){return a>b?b:a;}
 
-int opt_mul_handle(mid_code* instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int opt_mul_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	int ret_type;
 	ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
@@ -796,7 +796,7 @@ int opt_mul_handle(mid_code* instruction_ptr, int *opda_addr, int *opdb_addr, in
 	return 0;
 }
 
-int opt_assign_handle(mid_code* instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int opt_assign_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	int type = instruction_ptr->opdb_varity_type;
 	if(instruction_ptr->opda_varity_type > CHAR) {
@@ -863,15 +863,42 @@ int opt_assign_handle(mid_code* instruction_ptr, int *opda_addr, int *opdb_addr,
 	return 0;
 }
 
+int ctl_branch_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	instruction_ptr += instruction_ptr->opda_addr - 1;
+	return ERROR_NO;
+}
+
+int ctl_branch_true_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *last_instruction_ptr = instruction_ptr - 1;
+	if(last_instruction_ptr->ret_operand_type != INT) return -1;//TODO:返回值编号
+	if(INT_VALUE(last_instruction_ptr->ret_operand_type) != 0)
+		instruction_ptr += instruction_ptr->opda_addr - 1;
+	return ERROR_NO;
+}
+
+int ctl_branch_false_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *last_instruction_ptr = instruction_ptr - 1;
+	if(last_instruction_ptr->ret_operand_type != INT) return -1;//TODO:返回值编号
+	if(INT_VALUE(last_instruction_ptr->ret_operand_type) == 0)
+		instruction_ptr += instruction_ptr->opda_addr - 1;
+	return ERROR_NO;
+}
+
 void handle_init(void)
 {
 	for(int i=0; i<54;i++)
 		opt_handle[i] = 0;
 	opt_handle[OPT_MUL] = opt_mul_handle;
 	opt_handle[OPT_ASSIGN] = opt_assign_handle;
+	opt_handle[CTL_BRANCH] = ctl_branch_handle;
+	opt_handle[CTL_BRANCH_TRUE] = ctl_branch_true_handle;
+	opt_handle[CTL_BRANCH_FALSE] = ctl_branch_false_handle;
 }
 
-int call_opt_handle(mid_code* instruction_ptr, char* sp, char *t_varity_sp)
+int call_opt_handle(mid_code*& instruction_ptr, char* sp, char *t_varity_sp)
 {
 	int *opda_addr, *opdb_addr, *ret_addr;
 	long long opda_value, opdb_value;

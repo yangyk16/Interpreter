@@ -104,7 +104,6 @@ public:
 	char opdb_operand_type;//操作数2类型：变量/立即数
 	char ret_operand_type;
 	char reserve;
-	int exec_code(char*, char*);
 };
 
 class interpreter {
@@ -160,11 +159,13 @@ class c_interpreter: public interpreter {
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int generate_mid_code(char *str, uint len, bool need_semicolon);
+	int exec_mid_code(mid_code *pc, uint count);
 	int nonseq_start_gen_mid_code(char *str, uint len, int non_seq_type);
 	int nonseq_mid_gen_mid_code(char *str, uint len);
 	int nonseq_end_gen_mid_code(char *str, uint len);
 	int tree_to_code(node *tree, stack *code_stack);
 	int pre_operate(stack* code_stack_ptr, node *opt_node_ptr);
+	int exec_code(mid_code*&, char*, char*);
 	int test(char *str, uint len);
 	//////////////////////////////////////////////////////////////////////
 	virtual int call_func(char*, char*, uint);

@@ -913,8 +913,19 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 	//	else
 	//		printf("%d %d\n",tmp->value.int_value,opt_number[tmp->value.int_value]);
 	//}
-	
+	return ERROR_NO;
+}
 
+int c_interpreter::exec_mid_code(mid_code *pc, uint count)
+{
+	int ret;
+	mid_code *begin_ptr = pc;
+	mid_code *end_ptr = pc + count;
+	while(pc < end_ptr) {
+		ret = this->exec_code(pc, this->stack_pointer, this->tmp_varity_stack_pointer);
+		if(ret) return ret;
+		pc++;
+	}
 	return ERROR_NO;
 }
 
@@ -1426,9 +1437,10 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	//从最深级循环解析深度递减的各级，以立即数/临时变量？表示各级返回结果
 	this->generate_mid_code(str, len, true);
 	int mid_code_count = this->mid_code_stack.get_count();
-	for(int n=0; n<mid_code_count; n++) {
-		((mid_code*)this->mid_code_stack.visit_element_by_index(n))->exec_code(this->stack_pointer, this->tmp_varity_stack_pointer);
-	}
+	this->exec_mid_code((mid_code*)this->mid_code_stack.get_base_addr(), mid_code_count);
+	//for(int n=0; n<mid_code_count; n++) {
+	//	((mid_code*)this->mid_code_stack.visit_element_by_index(n))->exec_code(this->stack_pointer, this->tmp_varity_stack_pointer);
+	//}
 	this->mid_code_stack.empty();
 	return 0;
 	char sub_analysis_buf[MAX_SUB_ANA_BUFLEN];
@@ -1532,8 +1544,8 @@ int c_interpreter::non_seq_struct_check(char* str)
 	return nonseq_key_cmp(str);
 }
 
-int mid_code::exec_code(char* sp, char* t_varity_sp)
+int c_interpreter::exec_code(mid_code *&pc, char* sp, char* t_varity_sp)
 {
-	call_opt_handle((mid_code*)this, sp, t_varity_sp);
+	call_opt_handle(pc, sp, t_varity_sp);
 	return 0;
 }
