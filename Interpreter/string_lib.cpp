@@ -401,3 +401,17 @@ bool is_non_zero(int type, void* addr)
 		return LONG_LONG_VALUE(addr) != 0;
 	}
 }
+
+int find_ch_with_bracket_level(char* str, char ch, int level)
+{
+	for(int i=0, cur_level=0; str[i]; i++) {
+		if(str[i] == ch && level == cur_level) {
+			return i;
+		} else if(str[i] == '(' || str[i] == '[') {
+			cur_level++;
+		} else if(str[i] == ')' || str[i] == ']') {
+			cur_level--;
+		}
+	}
+	return -1;
+}

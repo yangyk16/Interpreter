@@ -228,6 +228,12 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value;
 		break;
+	case OPT_L_PLUS_PLUS:
+	case OPT_L_MINUS_MINUS:
+		break;
+	case OPT_R_PLUS_PLUS:
+	case OPT_R_MINUS_MINUS:
+		break;
 	case OPT_EDGE:
 		error("Extra ;\n");
 		return ERROR_SEMICOLON;
@@ -837,6 +843,8 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 		node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
 		analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
 		token_len = this->get_token(str, node_attribute);
+		if(len < token_len)
+			break;
 		if(node_attribute->node_type == TOKEN_ERROR)
 			return node_attribute->node_type;
 		if(node_attribute->node_type == TOKEN_OPERATOR) {
@@ -969,6 +977,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		nonseq_info->non_seq_exec = 0;
 		this->exec_mid_code((mid_code*)this->mid_code_stack.get_base_addr(), this->mid_code_stack.get_count());
 		//ret = this->non_seq_section_exec(0, nonseq_info->row_num - 1);
+		this->mid_code_stack.empty();
 		nonseq_info->reset();
 		return ret;//avoid continue to exec single sentence.
 	}
@@ -1025,6 +1034,22 @@ int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
 			case NONSEQ_KEY_ELSE:
 				mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + (mid_code*)this->mid_code_stack.get_base_addr();
 				mid_code_ptr->opda_addr = (mid_code*)this->mid_code_stack.get_current_ptr() - mid_code_ptr;
+				nonseq_info->row_info_node[i].finish_flag = 1;
+				break;
+			case NONSEQ_KEY_FOR:
+			{
+				int len = find_ch_with_bracket_level(nonseq_info->row_info_node[i].row_ptr + nonseq_info->row_info_node[i].post_info_c + 1, ')', 0);
+				this->generate_mid_code(nonseq_info->row_info_node[i].row_ptr + nonseq_info->row_info_node[i].post_info_c + 1, len, false);
+				mid_code_ptr = (mid_code*)this->mid_code_stack.get_current_ptr();
+				mid_code_ptr->ret_operator = CTL_BRANCH;
+				mid_code_ptr->opda_addr = ((mid_code*)mid_code_stack.get_base_addr() + nonseq_info->row_info_node[i].post_info_b) - mid_code_ptr;
+				this->mid_code_stack.push();
+				mid_code_ptr = (mid_code*)mid_code_stack.get_base_addr() + nonseq_info->row_info_node[i].post_info_b + nonseq_info->row_info_node[i].post_info_a;
+				mid_code_ptr->opda_addr = (mid_code*)mid_code_stack.get_current_ptr() - mid_code_ptr;
+				nonseq_info->row_info_node[i].finish_flag = 1;
+				break;
+			}
+			default:
 				break;
 			}
 		}
@@ -1036,8 +1061,8 @@ int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_ty
 {
 	mid_code* mid_code_ptr;
 	node_attribute_t token_node;
-	int key_len = get_token(str, &token_node);
-	get_token(str + key_len, &token_node);
+	int key_len = get_token(str, &token_node), first_flag_pos, second_flag_pos;
+	int begin_pos = get_token(str + key_len, &token_node);
 	if(token_node.node_type != TOKEN_OPERATOR || token_node.value.int_value != OPT_L_SMALL_BRACKET) {
 		error("Lack of bracket\n");
 		return ERROR_NONSEQ_GRAMMER;
@@ -1050,7 +1075,20 @@ int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_ty
 		mid_code_ptr->ret_operator = CTL_BRANCH_FALSE;
 		this->mid_code_stack.push();
 		break;
-	case NONSEQ_KEY_FOR:
+	case NONSEQ_KEY_FOR: 
+		first_flag_pos = find_ch_with_bracket_level(str + key_len, ';', 1);
+		second_flag_pos = find_ch_with_bracket_level(str + key_len + first_flag_pos + 1, ';', 0);
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_c = key_len + first_flag_pos + second_flag_pos + 1;
+		if(first_flag_pos == -1 || second_flag_pos == -1)
+			return ERROR_NONSEQ_GRAMMER;
+		this->generate_mid_code(str + key_len + begin_pos, first_flag_pos - begin_pos, false);
+		mid_code_ptr = (mid_code*)this->mid_code_stack.get_current_ptr();
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->mid_code_stack.get_base_addr();
+		this->generate_mid_code(str + key_len + first_flag_pos + 1, second_flag_pos, false);
+		mid_code_ptr = (mid_code*)this->mid_code_stack.get_current_ptr();
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_a = mid_code_ptr - (mid_code*)this->mid_code_stack.get_base_addr() - nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b;
+		mid_code_ptr->ret_operator = CTL_BRANCH_FALSE;
+		this->mid_code_stack.push();
 		break;
 	case NONSEQ_KEY_WHILE:
 		break;

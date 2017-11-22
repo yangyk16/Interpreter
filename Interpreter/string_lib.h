@@ -78,4 +78,5 @@ bool is_valid_c_char(unsigned char ch);
 bool is_letter(unsigned char ch);
 bool is_number(unsigned char ch);
 bool is_non_zero(int type, void* addr);
+int find_ch_with_bracket_level(char* str, char ch, int level);
 #endif

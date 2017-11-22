@@ -38,7 +38,9 @@ typedef struct row_info_relative_nonseq_s {
 	char nonseq_type;
 	char post_info_a;
 	short post_info_b;
+	short post_info_c;
 	char finish_flag;
+	char reserve;
 } row_info_struct;
 
 typedef struct nonseq_info_struct_s {
