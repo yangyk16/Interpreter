@@ -77,4 +77,5 @@ int varity_check(char* str, char tailed, char**& buf, int*& count);
 bool is_valid_c_char(unsigned char ch);
 bool is_letter(unsigned char ch);
 bool is_number(unsigned char ch);
+bool is_non_zero(int type, void* addr);
 #endif

@@ -103,7 +103,7 @@ public:
 	char opda_operand_type;//操作数1类型：变量/立即数
 	char opdb_operand_type;//操作数2类型：变量/立即数
 	char ret_operand_type;
-	char reserve;
+	char ret_varity_type;
 };
 
 class interpreter {

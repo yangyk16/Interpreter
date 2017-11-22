@@ -3,8 +3,15 @@
 #define OPERATOR_H
 
 #define CHAR_VALUE(x) (*(char*)(x))
+#define U_CHAR_VALUE(x) (*(unsigned char*)(x))
 #define SHORT_VALUE(x) (*(short*)(x))
+#define U_SHORT_VALUE(x) (*(unsigned short*)(x))
 #define INT_VALUE(x) (*(int*)(x))
+#define U_INT_VALUE(x) (*(unsigned int*)(x))
+#define LONG_VALUE(x) (*(long*)(x))
+#define U_LONG_VALUE(x) (*(unsigned long*)(x))
+#define LONG_LONG_VALUE(x) (*(long long*)(x))
+#define U_LONG_LONG_VALUE(x) (*(unsigned long long*)(x))
 #define FLOAT_VALUE(x) (*(float*)(x))
 #define DOUBLE_VALUE(x) (*(double*)(x))
 #define PTR_VALUE(x) (*(void**)(x))

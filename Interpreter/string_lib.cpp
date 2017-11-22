@@ -379,3 +379,25 @@ bool is_number(unsigned char ch)
 		return true;
 	return false;
 }
+
+bool is_non_zero(int type, void* addr)
+{
+	switch(type) {
+	case DOUBLE:
+		return DOUBLE_VALUE(addr) != 0;
+	case FLOAT:
+		return FLOAT_VALUE(addr) != 0;
+	case INT:
+	case U_INT:
+		return INT_VALUE(addr) != 0;
+	case SHORT:
+	case U_SHORT:
+		return SHORT_VALUE(addr) != 0;
+	case CHAR:
+	case U_CHAR:
+		return CHAR_VALUE(addr) != 0;
+	case LONG_LONG:
+	case U_LONG_LONG:
+		return LONG_LONG_VALUE(addr) != 0;
+	}
+}

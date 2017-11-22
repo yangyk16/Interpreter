@@ -166,6 +166,7 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->ret_varity_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
@@ -192,6 +193,7 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->ret_varity_type = INT;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
@@ -222,6 +224,7 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 		instruction_ptr->ret_addr = instruction_ptr->opda_addr;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
+		instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value;
 		break;
@@ -964,6 +967,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	if(nonseq_info->non_seq_exec) {
 		debug("exec non seq struct\n");
 		nonseq_info->non_seq_exec = 0;
+		this->exec_mid_code((mid_code*)this->mid_code_stack.get_base_addr(), this->mid_code_stack.get_count());
 		//ret = this->non_seq_section_exec(0, nonseq_info->row_num - 1);
 		nonseq_info->reset();
 		return ret;//avoid continue to exec single sentence.
@@ -975,6 +979,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	}
 	return ERROR_NO;
 }
+
 int c_interpreter::nonseq_mid_gen_mid_code(char *str, uint len)
 {
 	mid_code* mid_code_ptr;
@@ -994,6 +999,7 @@ int c_interpreter::nonseq_mid_gen_mid_code(char *str, uint len)
 	}
 	return ERROR_NO;
 }
+
 int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
 {
 	int i;
