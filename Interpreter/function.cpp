@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "config.h"
+#include "interpreter.h"
 
 int function_info::init(char* name, stack* arg_list)
 {//TODO: add malloc fail action.
@@ -65,6 +66,7 @@ int function::declare(char* name, stack* arg_list)
 	}
 	function_node_ptr = (function_info*)function_stack_ptr->get_current_ptr();
 	function_node_ptr->init(name, arg_list);
+	function_node_ptr->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
 	this->current_node = function_node_ptr;
 	function_stack_ptr->push();
 	return 0;
