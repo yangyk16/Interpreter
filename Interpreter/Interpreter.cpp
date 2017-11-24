@@ -84,7 +84,7 @@ static int list_stack_to_tree(node* tree_node, list_stack* post_order_stack)
 	//}
 }
 
-int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
+int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr)
 {
 	register varity_info *varity_ptr;
 	register int opt = ((node_attribute_t*)opt_node_ptr->value)->value.int_value;
@@ -237,6 +237,10 @@ int c_interpreter::pre_operate(stack *code_stack_ptr, node *opt_node_ptr)
 	case OPT_EDGE:
 		error("Extra ;\n");
 		return ERROR_SEMICOLON;
+	case OPT_CALL_FUNC:
+		break;
+	case OPT_FUNC_COMMA:
+		break;
 	default:
 		error("what??\n");
 		break;
@@ -251,10 +255,14 @@ int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 	register int ret;
 	if(tree->left && ((node_attribute_t*)tree->left->value)->node_type == TOKEN_OPERATOR)
 		this->tree_to_code(tree->left, code_stack);
+	//需要中序处理的几个运算符：CALL_FUNC，&&，||，FUNC_COMMA等
+	if(((node_attribute_t*)tree->left->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)tree->left->value)->value.int_value == OPT_CALL_FUNC) {
+		
+	}
 	if(tree->right && ((node_attribute_t*)tree->right->value)->node_type == TOKEN_OPERATOR)
 		this->tree_to_code(tree->right, code_stack);
-	if(tree && ((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR) {
-		ret = this->pre_operate(code_stack, tree);
+	if(((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR) {
+		ret = this->operator_post_handle(code_stack, tree);
 		if(ret)
 			return ret;
 	}
@@ -886,6 +894,15 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 								else
 									node_attribute->value.int_value = OPT_R_MINUS_MINUS;
 							}
+						} else if(node_attribute->value.int_value == OPT_COMMA) {
+							for(int n=node_index-1; n>=0; n--) {
+								if(analysis_data_struct_ptr->node_attribute[n].node_type == TOKEN_OPERATOR && analysis_data_struct_ptr->node_attribute[n].value.int_value == OPT_L_SMALL_BRACKET) {
+									if(n>0 && analysis_data_struct_ptr->node_attribute[n-1].node_type == TOKEN_OPERATOR && analysis_data_struct_ptr->node_attribute[n-1].value.int_value == OPT_CALL_FUNC) {
+										node_attribute->value.int_value = OPT_FUNC_COMMA;
+										break;
+									}
+								}
+							}
 						}
 						analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
 						break;
@@ -914,6 +931,10 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 	}
 	//后序表达式构造完成，下面构造二叉树
 	node *root = analysis_data_struct_ptr->expression_final_stack.pop();
+	if(!root) {
+		error("No token found.\n");
+		return 0;//TODO:找个合适的返回值
+	}
 	root->link_reset();
 	list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
 	int ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
@@ -936,12 +957,12 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 {
 	int ret;
-	mid_code *begin_ptr = pc;
 	mid_code *end_ptr = pc + count;
-	while(pc < end_ptr) {
-		ret = this->exec_code(pc, this->stack_pointer, this->tmp_varity_stack_pointer);
+	this->pc = pc;
+	while(this->pc < end_ptr) {
+		ret = this->exec_code(this->pc, this->stack_pointer, this->tmp_varity_stack_pointer);
 		if(ret) return ret;
-		pc++;
+		this->pc++;
 	}
 	return ERROR_NO;
 }

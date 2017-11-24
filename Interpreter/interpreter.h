@@ -91,6 +91,13 @@ typedef struct sentence_analysis_data_struct_s {
 	node_attribute_t last_token;
 } sentence_analysis_data_struct_t;
 
+typedef struct call_func_info_s {
+	function_info *function_ptr[MAX_FUNCTION_DEPTH];
+	int cur_arg_number[MAX_FUNCTION_DEPTH];
+	int cur_stack_frame_size[MAX_FUNCTION_DEPTH];
+	int function_depth;
+} call_func_info_t;
+
 class mid_code {
 public:
 	char break_flag;
@@ -160,6 +167,8 @@ class c_interpreter: public interpreter {
 	char simulation_stack[STACK_SIZE];
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	bool exec_flag;
+	mid_code *pc;
+	call_func_info_t call_func_info;
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int generate_mid_code(char *str, uint len, bool need_semicolon);
@@ -168,7 +177,7 @@ class c_interpreter: public interpreter {
 	int nonseq_mid_gen_mid_code(char *str, uint len);
 	int nonseq_end_gen_mid_code(char *str, uint len);
 	int tree_to_code(node *tree, stack *code_stack);
-	int pre_operate(stack* code_stack_ptr, node *opt_node_ptr);
+	int operator_post_handle(stack* code_stack_ptr, node *opt_node_ptr);
 	int exec_code(mid_code*&, char*, char*);
 	int test(char *str, uint len);
 	//////////////////////////////////////////////////////////////////////
