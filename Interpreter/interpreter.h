@@ -94,6 +94,7 @@ typedef struct sentence_analysis_data_struct_s {
 typedef struct call_func_info_s {
 	function_info *function_ptr[MAX_FUNCTION_DEPTH];
 	int cur_arg_number[MAX_FUNCTION_DEPTH];
+	int arg_count[MAX_FUNCTION_DEPTH];
 	int cur_stack_frame_size[MAX_FUNCTION_DEPTH];
 	int function_depth;
 } call_func_info_t;
@@ -177,6 +178,7 @@ class c_interpreter: public interpreter {
 	int nonseq_mid_gen_mid_code(char *str, uint len);
 	int nonseq_end_gen_mid_code(char *str, uint len);
 	int tree_to_code(node *tree, stack *code_stack);
+	int operator_mid_handle(stack* code_stack_ptr, node *opt_node_ptr);
 	int operator_post_handle(stack* code_stack_ptr, node *opt_node_ptr);
 	int exec_code(mid_code*&, char*, char*);
 	int test(char *str, uint len);

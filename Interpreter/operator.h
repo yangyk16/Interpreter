@@ -79,6 +79,7 @@
 #define CTL_BRANCH				100
 #define CTL_BRANCH_TRUE			101
 #define CTL_BRANCH_FALSE		102
+#define OPT_PASS_PARA			103
 
 class mid_code;
 

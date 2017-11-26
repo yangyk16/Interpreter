@@ -104,17 +104,27 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				instruction_ptr->opda_addr = 8 * node_attribute->value.ptr_value[1];
 				instruction_ptr->opda_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 			} else {
-				varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
-				if(!varity_ptr) {
-					error("Varity not exist\n");
-					return ERROR_VARITY_NONEXIST;
+				if(opt != OPT_CALL_FUNC) {
+					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
+					if(!varity_ptr) {
+						error("Varity not exist\n");
+						return ERROR_VARITY_NONEXIST;
+					}
+					if(varity_scope == VARITY_SCOPE_GLOBAL)
+						instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
+					else
+						instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
+					instruction_ptr->opda_addr = (int)varity_ptr->get_content_ptr();
+					instruction_ptr->opda_varity_type = varity_ptr->get_type();
+				} else {
+					function_info *function_ptr;
+					function_ptr = this->function_declare->find(node_attribute->value.ptr_value);
+					if(!function_ptr) {//TODO:中序检查中进行
+						error("Function not exist\n");
+						return ERROR_VARITY_NONEXIST;					
+					}
+					instruction_ptr->ret_addr = (int)function_ptr;
 				}
-				if(varity_scope == VARITY_SCOPE_GLOBAL)
-					instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
-				else
-					instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
-				instruction_ptr->opda_addr = (int)varity_ptr->get_content_ptr();
-				instruction_ptr->opda_varity_type = varity_ptr->get_type();
 			}
 		}
 	}
@@ -238,8 +248,44 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		error("Extra ;\n");
 		return ERROR_SEMICOLON;
 	case OPT_CALL_FUNC:
-		break;
+		instruction_ptr->ret_operator = opt;
+		code_stack_ptr->push();
 	case OPT_FUNC_COMMA:
+		if(((node_attribute_t*)opt_node_ptr->right->value)->node_type == TOKEN_NAME ||  ((node_attribute_t*)opt_node_ptr->right->value)->node_type == TOKEN_CONST_VALUE) {
+			stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
+			instruction_ptr->ret_operator = OPT_PASS_PARA;
+			instruction_ptr->ret_varity_type = ((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1])))->get_type();
+			instruction_ptr->ret_addr = (int)((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++)))->get_content_ptr();
+			node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
+			if(node_attribute->node_type == TOKEN_CONST_VALUE) {
+				instruction_ptr->opda_operand_type = OPERAND_CONST;
+				instruction_ptr->opda_varity_type = node_attribute->value_type;
+				memcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
+			} else if(node_attribute->node_type == TOKEN_NAME) {
+				if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
+					instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
+					instruction_ptr->opda_addr = 8 * node_attribute->value.ptr_value[1];
+					instruction_ptr->opda_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+				} else {
+					varity_info *varity_ptr;
+					int varity_scope;
+					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
+					if(!varity_ptr) {
+						error("Varity not exist\n");
+						return ERROR_VARITY_NONEXIST;
+					}
+					if(varity_scope == VARITY_SCOPE_GLOBAL)
+						instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
+					else
+						instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
+					instruction_ptr->opda_addr = (int)varity_ptr->get_content_ptr();
+					instruction_ptr->opda_varity_type = varity_ptr->get_type();
+				}
+			}
+		}
+		if(opt == OPT_CALL_FUNC) {
+			this->call_func_info.function_depth--;
+		}
 		break;
 	default:
 		error("what??\n");
@@ -250,14 +296,70 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	return ERROR_NO;
 }
 
+int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr)
+{
+	register mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
+	node_attribute_t *node_attribute = ((node_attribute_t*)opt_node_ptr->value);
+	switch(node_attribute->value.int_value) {
+	case OPT_CALL_FUNC:
+		this->call_func_info.function_ptr[this->call_func_info.function_depth] = this->function_declare->find(((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value);
+		if(!this->call_func_info.function_ptr) {
+			error("Function not found.\n");
+			return -1; //TODO: 找一个合适的错误码
+		}
+		this->call_func_info.arg_count[this->call_func_info.function_depth] = this->call_func_info.function_ptr[this->call_func_info.function_depth]->arg_list->get_count();
+		this->call_func_info.cur_arg_number[this->call_func_info.function_depth] = 0;
+		this->call_func_info.function_depth++;
+		break;
+	case OPT_FUNC_COMMA:
+		if(((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_NAME ||  ((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_CONST_VALUE) {
+			stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
+			instruction_ptr->ret_operator = OPT_PASS_PARA;
+			instruction_ptr->ret_varity_type = ((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1])))->get_type();
+			instruction_ptr->ret_addr = (int)((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++)))->get_content_ptr();
+			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
+			if(node_attribute->node_type == TOKEN_CONST_VALUE) {
+				instruction_ptr->opda_operand_type = OPERAND_CONST;
+				instruction_ptr->opda_varity_type = node_attribute->value_type;
+				memcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
+			} else if(node_attribute->node_type == TOKEN_NAME) {
+				if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
+					instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
+					instruction_ptr->opda_addr = 8 * node_attribute->value.ptr_value[1];
+					instruction_ptr->opda_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+				} else {
+					varity_info *varity_ptr;
+					int varity_scope;
+					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
+					if(!varity_ptr) {
+						error("Varity not exist\n");
+						return ERROR_VARITY_NONEXIST;
+					}
+					if(varity_scope == VARITY_SCOPE_GLOBAL)
+						instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
+					else
+						instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
+					instruction_ptr->opda_addr = (int)varity_ptr->get_content_ptr();
+					instruction_ptr->opda_varity_type = varity_ptr->get_type();
+				}
+			}
+			code_stack_ptr->push();
+		}
+		break;
+	case OPT_AND:
+	case OPT_OR:
+		break;
+	}
+}
+
 int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 {
 	register int ret;
 	if(tree->left && ((node_attribute_t*)tree->left->value)->node_type == TOKEN_OPERATOR)
 		this->tree_to_code(tree->left, code_stack);
 	//需要中序处理的几个运算符：CALL_FUNC，&&，||，FUNC_COMMA等
-	if(((node_attribute_t*)tree->left->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)tree->left->value)->value.int_value == OPT_CALL_FUNC) {
-		
+	if(((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)tree->value)->value.int_value == OPT_CALL_FUNC) {
+		ret = this->operator_mid_handle(code_stack, tree);
 	}
 	if(tree->right && ((node_attribute_t*)tree->right->value)->node_type == TOKEN_OPERATOR)
 		this->tree_to_code(tree->right, code_stack);
@@ -659,12 +761,13 @@ int c_interpreter::function_analysis(char* str, uint len)
 			memcpy(function_name, str + symbol_begin_pos, i - symbol_begin_pos);
 			function_name[i - symbol_begin_pos] = 0;
 
-			varity_attribute* arg_node_ptr = (varity_attribute*)vmalloc(sizeof(varity_attribute) * MAX_FUNCTION_ARGC);
+			varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);
 			arg_stack = (stack*)vmalloc(sizeof(stack));
-			arg_stack->init(sizeof(varity_attribute), arg_node_ptr, MAX_FUNCTION_ARGC);
-			varity_attribute::init(arg_node_ptr, "", ret_function_define, 0, sizeof_type[ret_function_define]);
+			arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
+			arg_node_ptr->arg_init("", ret_function_define, sizeof_type[ret_function_define], 0);//TODO:加上offset
 			arg_stack->push(arg_node_ptr++);
 			bool void_flag = false;
+			int offset = 0;
 			for(int i=l_bracket_pos+1; i<r_bracket_pos; i++) {
 				char varity_name[32];
 				int type, arg_name_begin_pos, arg_name_end_pos;
@@ -699,7 +802,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 				memcpy(varity_name, str + arg_name_begin_pos, arg_name_end_pos - arg_name_begin_pos + 1);
 				varity_name[arg_name_end_pos - arg_name_begin_pos + 1] = 0;
 				if(!void_flag) {
-					varity_attribute::init(arg_node_ptr, varity_name, type, 0, sizeof_type[type]);
+					arg_node_ptr->arg_init(varity_name, type, sizeof_type[type], (void*)make_align(offset, sizeof_type[type]));
 					arg_stack->push(arg_node_ptr++);
 				} else {
 					if(varity_name[0] != 0) {
@@ -707,6 +810,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 						return ERROR_FUNC_ARG_LIST;
 					}
 				}
+				offset = make_align(offset, sizeof_type[type]) + sizeof_type[type];
 			}
 			//TODO: 释放申请的多余空间
 			this->function_declare->declare(function_name, arg_stack);
