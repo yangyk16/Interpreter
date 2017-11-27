@@ -116,14 +116,6 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 						instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
 					instruction_ptr->opda_addr = (int)varity_ptr->get_content_ptr();
 					instruction_ptr->opda_varity_type = varity_ptr->get_type();
-				} else {
-					function_info *function_ptr;
-					function_ptr = this->function_declare->find(node_attribute->value.ptr_value);
-					if(!function_ptr) {//TODO:中序检查中进行
-						error("Function not exist\n");
-						return ERROR_VARITY_NONEXIST;					
-					}
-					instruction_ptr->ret_addr = (int)function_ptr;
 				}
 			}
 		}
@@ -244,55 +236,61 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_R_PLUS_PLUS:
 	case OPT_R_MINUS_MINUS:
 		break;
-	case OPT_EDGE:
-		error("Extra ;\n");
-		return ERROR_SEMICOLON;
+	case OPT_NOT:
+	case OPT_BIT_REVERT:
+
+	case OPT_POSITIVE:
+	case OPT_NEGATIVE:
+		break;
+	case OPT_ADDRESS_OF:
+		break;
+	case OPT_PTR_CONTENT:
+		break;
+	case OPT_BIT_AND:
+	case OPT_BIT_OR:
+	case OPT_MOD:
+	case OPT_ASL:
+	case OPT_ASR:
+		break;
 	case OPT_CALL_FUNC:
-		instruction_ptr->ret_operator = opt;
-		code_stack_ptr->push();
 	case OPT_FUNC_COMMA:
-		if(((node_attribute_t*)opt_node_ptr->right->value)->node_type == TOKEN_NAME ||  ((node_attribute_t*)opt_node_ptr->right->value)->node_type == TOKEN_CONST_VALUE) {
+		node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
+		if(node_attribute->node_type == TOKEN_NAME ||  node_attribute->node_type == TOKEN_CONST_VALUE) {
 			stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
 			instruction_ptr->ret_operator = OPT_PASS_PARA;
+			instruction_ptr->ret_operand_type = OPERAND_L_S_VARITY;
 			instruction_ptr->ret_varity_type = ((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1])))->get_type();
 			instruction_ptr->ret_addr = (int)((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++)))->get_content_ptr();
-			node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
-			if(node_attribute->node_type == TOKEN_CONST_VALUE) {
-				instruction_ptr->opda_operand_type = OPERAND_CONST;
-				instruction_ptr->opda_varity_type = node_attribute->value_type;
-				memcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
-			} else if(node_attribute->node_type == TOKEN_NAME) {
-				if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
-					instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
-					instruction_ptr->opda_addr = 8 * node_attribute->value.ptr_value[1];
-					instruction_ptr->opda_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
-				} else {
-					varity_info *varity_ptr;
-					int varity_scope;
-					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
-					if(!varity_ptr) {
-						error("Varity not exist\n");
-						return ERROR_VARITY_NONEXIST;
-					}
-					if(varity_scope == VARITY_SCOPE_GLOBAL)
-						instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
-					else
-						instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
-					instruction_ptr->opda_addr = (int)varity_ptr->get_content_ptr();
-					instruction_ptr->opda_varity_type = varity_ptr->get_type();
-				}
+			if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+				this->mid_varity_stack.pop();
 			}
 		}
 		if(opt == OPT_CALL_FUNC) {
+			code_stack_ptr->push();
+			function_info *function_ptr;
+			instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
+			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
+			function_ptr = this->function_declare->find(node_attribute->value.ptr_value);
+			instruction_ptr->opda_addr = (int)function_ptr;
+			instruction_ptr->ret_operator = opt;
+			instruction_ptr->ret_varity_type = ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type();
+			varity_number = this->mid_varity_stack.get_count();
+			instruction_ptr->ret_addr = varity_number * 8;
+			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
+			this->mid_varity_stack.push();
 			this->call_func_info.function_depth--;
 		}
 		break;
+	case OPT_EDGE:
+		error("Extra ;\n");
+		return ERROR_SEMICOLON;
 	default:
 		error("what??\n");
 		break;
 	}
-	if(opt != OPT_EDGE)
-		code_stack_ptr->push();
+	code_stack_ptr->push();
 	return ERROR_NO;
 }
 
@@ -303,9 +301,9 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 	switch(node_attribute->value.int_value) {
 	case OPT_CALL_FUNC:
 		this->call_func_info.function_ptr[this->call_func_info.function_depth] = this->function_declare->find(((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value);
-		if(!this->call_func_info.function_ptr) {
+		if(!this->call_func_info.function_ptr[this->call_func_info.function_depth]) {
 			error("Function not found.\n");
-			return -1; //TODO: 找一个合适的错误码
+			return ERROR_VARITY_NONEXIST; //TODO: 找一个合适的错误码
 		}
 		this->call_func_info.arg_count[this->call_func_info.function_depth] = this->call_func_info.function_ptr[this->call_func_info.function_depth]->arg_list->get_count();
 		this->call_func_info.cur_arg_number[this->call_func_info.function_depth] = 0;
@@ -315,6 +313,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		if(((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_NAME ||  ((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_CONST_VALUE) {
 			stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
 			instruction_ptr->ret_operator = OPT_PASS_PARA;
+			instruction_ptr->ret_operand_type = OPERAND_L_S_VARITY;
 			instruction_ptr->ret_varity_type = ((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1])))->get_type();
 			instruction_ptr->ret_addr = (int)((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++)))->get_content_ptr();
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;

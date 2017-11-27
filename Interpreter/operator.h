@@ -27,7 +27,7 @@
 #define OPT_PLUS_PLUS			3
 #define OPT_MINUS_MINUS			4
 #define OPT_ASL					5
-#define OPT_RSL					6
+#define OPT_ASR					6
 #define OPT_BIG_EQU				7
 #define OPT_SMALL_EQU			8
 #define OPT_EQU					9

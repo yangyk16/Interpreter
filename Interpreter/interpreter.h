@@ -23,7 +23,10 @@
 #define OPERAND_G_VARITY	0
 #define OPERAND_L_VARITY	1
 #define OPERAND_T_VARITY	2
-#define OPERAND_CONST   	3
+#define OPERAND_L_S_VARITY	3//递进深度局部变量
+#define OPERAND_LINK_VARITY	4
+#define OPERAND_CONST   	5
+
 
 #define C_OPT_PRIO_COUNT		15
 class c_interpreter;
