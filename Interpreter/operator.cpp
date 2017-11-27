@@ -1135,6 +1135,14 @@ int opt_assign_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr
 	return 0;
 }
 
+int opt_call_func_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	function_info *function_ptr = (function_info*)opda_addr;
+	int code_count = function_ptr->mid_code_stack.get_count();
+
+	return 0;
+}
+
 static int* last_ret_abs_addr;
 int ctl_branch_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
@@ -1162,6 +1170,12 @@ int ctl_branch_false_handle(mid_code*& instruction_ptr, int *opda_addr, int *opd
 	return ERROR_NO;
 }
 
+int ctl_return_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	instruction_ptr += instruction_ptr->opda_addr - 1;
+	return ERROR_NO;
+}
+
 void handle_init(void)
 {
 	for(int i=0; i<OPERATOR_TYPE_NUM;i++)
@@ -1174,10 +1188,13 @@ void handle_init(void)
 	opt_handle[CTL_BRANCH] = ctl_branch_handle;
 	opt_handle[CTL_BRANCH_TRUE] = ctl_branch_true_handle;
 	opt_handle[CTL_BRANCH_FALSE] = ctl_branch_false_handle;
+	opt_handle[CTL_RETURN] = ctl_return_handle;
 }
 
-int call_opt_handle(mid_code*& instruction_ptr, char* sp, char *t_varity_sp)
+int call_opt_handle(c_interpreter *interpreter_ptr)
 {
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
 	int *opda_addr, *opdb_addr, *ret_addr, ret;
 	long long opda_value, opdb_value;
 	switch(instruction_ptr->opda_operand_type) {
@@ -1205,6 +1222,9 @@ int call_opt_handle(mid_code*& instruction_ptr, char* sp, char *t_varity_sp)
 		break;
 	case OPERAND_T_VARITY:
 		opdb_addr = (int*)(t_varity_sp + instruction_ptr->opdb_addr);
+		break;
+	case OPERAND_L_S_VARITY:
+		opdb_addr = (int*)(sp + instruction_ptr->opdb_addr);
 		break;
 	default:
 		opdb_addr = (int*)instruction_ptr->opdb_addr;

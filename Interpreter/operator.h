@@ -80,11 +80,12 @@
 #define CTL_BRANCH_TRUE			101
 #define CTL_BRANCH_FALSE		102
 #define OPT_PASS_PARA			103
+#define CTL_RETURN				104
 
-class mid_code;
+class c_interpreter;
 
 int min(int a, int b);
 void handle_init(void);
-int call_opt_handle(mid_code*& instruction_ptr, char* sp, char *t_varity_sp);
+int call_opt_handle(c_interpreter *interpreter_ptr);
 
 #endif

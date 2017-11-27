@@ -148,7 +148,7 @@ class c_interpreter: public interpreter {
 	round_queue non_seq_code_fifo;
 	int varity_global_flag;
 	varity_info* function_return_value;
-	int function_depth;
+	//int function_depth;
 	unsigned int analysis_buf_inc_stack[MAX_FUNCTION_DEPTH];
 	int save_sentence(char*, uint);
 	int non_seq_struct_check(char* str);
@@ -183,7 +183,7 @@ class c_interpreter: public interpreter {
 	int tree_to_code(node *tree, stack *code_stack);
 	int operator_mid_handle(stack* code_stack_ptr, node *opt_node_ptr);
 	int operator_post_handle(stack* code_stack_ptr, node *opt_node_ptr);
-	int exec_code(mid_code*&, char*, char*);
+	friend int call_opt_handle(c_interpreter *interpreter_ptr);
 	int test(char *str, uint len);
 	//////////////////////////////////////////////////////////////////////
 	virtual int call_func(char*, char*, uint);
