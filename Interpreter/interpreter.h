@@ -58,6 +58,7 @@ typedef struct nonseq_info_struct_s {
 	char nonseq_begin_bracket_stack[MAX_STACK_INDEX];
 	char non_seq_type_stack[MAX_STACK_INDEX];
 	int nonseq_begin_stack_ptr;
+	int stack_frame_size;
 	void reset(void);
 } nonseq_info_struct;
 

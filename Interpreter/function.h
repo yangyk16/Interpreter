@@ -12,6 +12,7 @@ public:
 	int row_line;
 	char** row_begin_pos;
 	int* row_len;
+	int stack_frame_size;
 	stack* arg_list;
 	int init(char*, stack*);
 	int reset(void);

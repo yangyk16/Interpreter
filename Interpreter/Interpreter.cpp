@@ -492,7 +492,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->token_fifo.init(MAX_ANALYSIS_BUFLEN);
 	this->analysis_buf_ptr = this->analysis_buf;
 	this->nonseq_info->nonseq_begin_stack_ptr = 0;
-	this->function_depth = 0;
+	this->call_func_info.function_depth = 0;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 	///////////
 	handle_init();
@@ -742,7 +742,9 @@ int c_interpreter::function_analysis(char* str, uint len)
 				}
 				this->function_flag_set.function_flag = 0;
 				this->cur_mid_code_stack_ptr = &this->mid_code_stack;
+				this->function_declare->get_current_node()->stack_frame_size = this->varity_declare->local_varity_stack->offset;
 				this->exec_flag = true;
+				this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 				return OK_FUNC_FINISH;
 			}
 		}
@@ -775,6 +777,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 			arg_stack->push(arg_node_ptr++);
 			bool void_flag = false;
 			int offset = 0;
+			this->varity_global_flag = VARITY_SCOPE_LOCAL;
 			for(int i=l_bracket_pos+1; i<r_bracket_pos; i++) {
 				char varity_name[32];
 				int type, arg_name_begin_pos, arg_name_end_pos;
@@ -811,6 +814,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 				if(!void_flag) {
 					arg_node_ptr->arg_init(varity_name, type, sizeof_type[type], (void*)make_align(offset, sizeof_type[type]));
 					arg_stack->push(arg_node_ptr++);
+					this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, type, sizeof_type[type], 0);
 				} else {
 					if(varity_name[0] != 0) {
 						error("arg cannot use void type.\n");
@@ -824,7 +828,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 			this->cur_mid_code_stack_ptr = &this->function_declare->get_current_node()->mid_code_stack;
 			this->exec_flag = false;
 			this->function_declare->save_sentence(str, len);
-			return OK_FUNC_INPUTING;
+			return OK_FUNC_DEFINE;
 		}
 	}
 	return OK_FUNC_NOFUNC;
@@ -835,7 +839,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 	this->varity_declare->destroy_local_varity_cur_depth(); \
 	if(is_dedeep) \
 		this->varity_declare->local_varity_stack->dedeep(); \
-	this->analysis_buf_ptr -= this->analysis_buf_inc_stack[--this->function_depth]; \
+	this->analysis_buf_ptr -= this->analysis_buf_inc_stack[--this->call_func_info.function_depth]; \
 	this->varity_declare->local_varity_stack->visible_depth = visible_depth_backup; \
 	vfree(this->nonseq_info); \
 	this->nonseq_info = nonseq_info_backup; \
@@ -846,7 +850,7 @@ int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 	int varity_global_flag_backup = this->varity_global_flag;
 	int visible_depth_backup = this->varity_declare->local_varity_stack->visible_depth;
 	nonseq_info_struct* nonseq_info_backup = this->nonseq_info;
-	this->analysis_buf_ptr += this->analysis_buf_inc_stack[this->function_depth++];
+	this->analysis_buf_ptr += this->analysis_buf_inc_stack[this->call_func_info.function_depth++];
 	this->nonseq_info = (nonseq_info_struct*)vmalloc(sizeof(nonseq_info_struct));
 	int arg_end_pos = arg_len - 1;
 	varity_info* arg_varity;
@@ -957,7 +961,7 @@ bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int 
 
 int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 {
-	if(len == 0)return ERROR_NO;
+	if(len == 0 || str[0] == '{' || str[0] == '}')return ERROR_NO;
 	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
 	int token_len;
 	int node_index = 0;
@@ -1052,8 +1056,8 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 	if(ret)return ret;
 	if(this->mid_varity_stack.get_count())
 		this->mid_varity_stack.pop();
-	root->middle_visit();
-	
+	//root->middle_visit();
+	debug("generate code.\n");
 	//while(analysis_data_struct_ptr->expression_final_stack.get_count()) {
 	//	node_attribute_t *tmp = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.pop()->value;
 	//	printf("%d ",tmp->node_type);
@@ -1080,18 +1084,18 @@ int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 
 int c_interpreter::sentence_analysis(char* str, uint len)
 {
-	int ret;
-	ret = struct_analysis(str, len);
-	if(ret != OK_STRUCT_NOSTRUCT)
+	int ret1, ret2;
+	ret1 = struct_analysis(str, len);
+	if(ret1 != OK_STRUCT_NOSTRUCT)
 		return ERROR_NO;
-	ret = function_analysis(str, len);
-	if(ret < 0 || ret == OK_FUNC_FINISH)
-		return ret;
+	ret1 = function_analysis(str, len);
+	if(ret1 < 0 || ret1 == OK_FUNC_FINISH)
+		return ret1;
 	//if(ret != OK_FUNC_NOFUNC)
 	//	return ERROR_NO;
-	ret = non_seq_struct_analysis(str, len);
-	debug("nonseqret=%d\n", ret);
-	if(ret == OK_NONSEQ_FINISH || ret == OK_NONSEQ_INPUTING || ret == OK_NONSEQ_DEFINE) {
+	ret2 = non_seq_struct_analysis(str, len);
+	//debug("nonseqret=%d\n", ret2);
+	if(ret2 == OK_NONSEQ_FINISH || ret2 == OK_NONSEQ_INPUTING || ret2 == OK_NONSEQ_DEFINE) {
 		if(nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth) {
 			switch(nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info) {
 			case 0:
@@ -1109,8 +1113,8 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		} else {
 			this->generate_mid_code(str, len, true);
 		}
-	} else if(ret == ERROR_NONSEQ_GRAMMER)
-		return ret;
+	} else if(ret2 == ERROR_NONSEQ_GRAMMER)
+		return ret2;
 	
 	if(nonseq_info->non_seq_exec) {
 		debug("exec non seq struct\n");
@@ -1121,12 +1125,12 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 			this->cur_mid_code_stack_ptr->empty();
 		}
 		nonseq_info->reset();
-		return ret;//avoid continue to exec single sentence.
+		return ret2;//avoid continue to exec single sentence.
 	}
-	if(this->exec_flag && !nonseq_info->non_seq_struct_depth && ret != OK_NONSEQ_INPUTING && str[0] != '}') {
-	//if(!nonseq_info->non_seq_struct_depth && str[0] != '}') {
-		ret = sentence_exec(str, len, true, NULL);
-		return ret;
+	if(!nonseq_info->non_seq_struct_depth && ret2 != OK_NONSEQ_INPUTING && str[0] != '}' && str[0] != '{' && ret1 != OK_FUNC_DEFINE || ret1 == OK_FUNC_INPUTING && ret2 != OK_NONSEQ_DEFINE && str[0] != '{') {
+	//if(str[0] != '}') {
+		ret1 = sentence_exec(str, len, true, NULL);
+		return ret1;
 	}
 	return ERROR_NO;
 }
@@ -1611,27 +1615,29 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	strcpy(this->analysis_buf_ptr, str);
 	analysis_varity_count = this->varity_declare->analysis_varity_stack->get_count();
 	int key_word_ret = key_word_analysis(this->analysis_buf_ptr, len);
-	/*if(key_word_ret) {
+	if(key_word_ret) {
 		str[source_len] = ch_last;
 		return key_word_ret;
-	}*/
+	}
 	if(!strmcmp(str, "return ", 7)) {
 		mid_code *mid_code_ptr;
 		if(!this->call_func_info.function_depth)
 			return OK_FUNC_RETURN;
 		ret = this->generate_mid_code(str + 7, len - 7, true);
-		mid_code_ptr = this->cur_mid_code_stack_ptr->get_current_ptr();
+		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 		mid_code_ptr->ret_operator = CTL_RETURN;
 		this->cur_mid_code_stack_ptr->push();
 		return ret;
 	}
 	ret = this->generate_mid_code(str, len, true);
-	int mid_code_count = this->cur_mid_code_stack_ptr->get_count();
-	this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), mid_code_count);
+	if(this->exec_flag) {
+		int mid_code_count = this->cur_mid_code_stack_ptr->get_count();
+		this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), mid_code_count);
+		this->cur_mid_code_stack_ptr->empty();
+	}
 	//for(int n=0; n<mid_code_count; n++) {
 	//	((mid_code*)this->cur_mid_code_stack_ptr->visit_element_by_index(n))->exec_code(this->stack_pointer, this->tmp_varity_stack_pointer);
 	//}
-	this->cur_mid_code_stack_ptr->empty();
 	return 0;
 	uint current_analysis_varity_count = this->varity_declare->analysis_varity_stack->get_count();
 	this->varity_declare->destroy_analysis_varity(current_analysis_varity_count - analysis_varity_count);
