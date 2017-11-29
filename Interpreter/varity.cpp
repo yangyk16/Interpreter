@@ -473,6 +473,12 @@ int varity::destroy_local_varity_cur_depth(void)
 	return 0;
 }
 
+int varity::destroy_local_varity(void)
+{
+	this->local_varity_stack->reset();
+	return 0;
+}
+
 int varity::undeclare(void)
 {
 	return 0;

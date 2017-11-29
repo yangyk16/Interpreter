@@ -732,7 +732,7 @@ int c_interpreter::equal_opt(char* str, uint* size_ptr)
 	return ERROR_NO;
 }
 
-typedef int (*opt_handle_func)(mid_code*&, int*, int*, int*);
+typedef int (*opt_handle_func)(c_interpreter*, int*, int*, int*);
 opt_handle_func opt_handle[OPERATOR_TYPE_NUM];
 
 int min(int a, int b){return a>b?b:a;}
@@ -882,9 +882,10 @@ int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr
 	return ERROR_NO;
 }
 
-int opt_equ_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int opt_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	int ret_type;
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 	if(instruction_ptr->opda_varity_type == instruction_ptr->opdb_varity_type) {
 		if(ret_type == U_LONG || ret_type == LONG || ret_type == U_INT || ret_type == INT) {
@@ -942,9 +943,10 @@ int opt_equ_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, i
 	return 0;
 }
 
-int opt_mul_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int opt_mul_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	int ret_type;
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 	if(instruction_ptr->opda_varity_type == instruction_ptr->opdb_varity_type) {
 		if(ret_type == U_LONG || ret_type == LONG || ret_type == U_INT || ret_type == INT) {
@@ -1002,9 +1004,10 @@ int opt_mul_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, i
 	return 0;
 }
 
-int opt_plus_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int opt_plus_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	int ret_type, converting_varity_type;
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	double converted_varity;
 	void* converted_varity_ptr = &converted_varity, *converting_varity_ptr;
 	ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
@@ -1035,9 +1038,10 @@ int opt_plus_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, 
 	return ERROR_NO;
 }
 
-int opt_small_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int opt_small_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
-	int ret_type, converting_varity_type;
+	int ret_type, converting_varity_type, ret;
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	double converted_varity;
 	void* converted_varity_ptr = &converted_varity, *converting_varity_ptr;
 	ret_type = INT;
@@ -1051,8 +1055,8 @@ int opt_small_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr,
 			converting_varity_type = instruction_ptr->opda_varity_type;
 			opda_addr = (int*)converted_varity_ptr;
 		}
-		ret_type = varity_convert(converted_varity_ptr, ret_type, converting_varity_ptr, converting_varity_type);
-		if(ret_type) return ret_type;
+		ret = varity_convert(converted_varity_ptr, ret_type, converting_varity_ptr, converting_varity_type);
+		if(ret) return ret;
 	}
 	if(ret_type == U_LONG || ret_type == LONG || ret_type == U_INT || ret_type == INT) {
 		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) < INT_VALUE(opdb_addr);
@@ -1068,8 +1072,9 @@ int opt_small_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr,
 	return ERROR_NO;
 }
 
-int opt_assign_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	int type = instruction_ptr->opdb_varity_type;
 	if(instruction_ptr->opda_varity_type > CHAR) {
 		if(type == INT || type == U_INT || type == LONG || type == U_LONG) {
@@ -1135,23 +1140,48 @@ int opt_assign_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr
 	return 0;
 }
 
-int opt_call_func_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
+	mid_code *&instruction_ptr = interpreter_ptr->pc, *pc_backup = interpreter_ptr->pc;
 	function_info *function_ptr = (function_info*)opda_addr;
 	int code_count = function_ptr->mid_code_stack.get_count();
+	if(interpreter_ptr->call_func_info.function_depth == 0)
+		interpreter_ptr->stack_pointer += interpreter_ptr->nonseq_info->stack_frame_size;
+	else
+		interpreter_ptr->stack_pointer += interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1];
+	interpreter_ptr->tmp_varity_stack_pointer += 16;
+	interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth] = function_ptr->stack_frame_size;
+	interpreter_ptr->call_func_info.function_depth++;
 
+	interpreter_ptr->exec_mid_code((mid_code*)function_ptr->mid_code_stack.get_base_addr(), code_count);
+	
+	interpreter_ptr->pc = pc_backup;
+	varity_convert(ret_addr, instruction_ptr->ret_varity_type, interpreter_ptr->tmp_varity_stack_pointer, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
+	interpreter_ptr->call_func_info.function_depth--;
+	interpreter_ptr->tmp_varity_stack_pointer -= 16;
+	if(interpreter_ptr->call_func_info.function_depth == 0)
+		interpreter_ptr->stack_pointer -= interpreter_ptr->nonseq_info->stack_frame_size;
+	else
+		interpreter_ptr->stack_pointer -= interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1];
 	return 0;
 }
 
-static int* last_ret_abs_addr;
-int ctl_branch_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int opt_func_comma_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)//TODO: 可删，根本不会生成comma中间代码，生成的是passpara
 {
+	return opt_assign_handle(interpreter_ptr, opda_addr, opdb_addr, ret_addr);
+}
+
+static int* last_ret_abs_addr;
+int ctl_branch_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	instruction_ptr += instruction_ptr->opda_addr - 1;
 	return ERROR_NO;
 }
 
-int ctl_branch_true_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int ctl_branch_true_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	mid_code *last_instruction_ptr = instruction_ptr - 1;
 	if(last_instruction_ptr->ret_varity_type != INT)
 		return ERROR_CONDITION_TYPE;
@@ -1160,8 +1190,9 @@ int ctl_branch_true_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb
 	return ERROR_NO;
 }
 
-int ctl_branch_false_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int ctl_branch_false_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	mid_code *last_instruction_ptr = instruction_ptr - 1;
 	if(last_instruction_ptr->ret_varity_type != INT)
 		return ERROR_CONDITION_TYPE;
@@ -1170,8 +1201,14 @@ int ctl_branch_false_handle(mid_code*& instruction_ptr, int *opda_addr, int *opd
 	return ERROR_NO;
 }
 
-int ctl_return_handle(mid_code*& instruction_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+int opt_pass_para_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
+	return opt_assign_handle(interpreter_ptr, opda_addr, opdb_addr, ret_addr);
+}
+
+int ctl_return_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	instruction_ptr += instruction_ptr->opda_addr - 1;
 	return ERROR_NO;
 }
@@ -1185,9 +1222,12 @@ void handle_init(void)
 	opt_handle[OPT_PLUS] = opt_plus_handle;
 	opt_handle[OPT_SMALL] = opt_small_handle;
 	opt_handle[OPT_ASSIGN] = opt_assign_handle;
+	opt_handle[OPT_CALL_FUNC] = opt_call_func_handle;
+	opt_handle[OPT_FUNC_COMMA] = opt_func_comma_handle;
 	opt_handle[CTL_BRANCH] = ctl_branch_handle;
 	opt_handle[CTL_BRANCH_TRUE] = ctl_branch_true_handle;
 	opt_handle[CTL_BRANCH_FALSE] = ctl_branch_false_handle;
+	opt_handle[OPT_PASS_PARA] = opt_pass_para_handle;
 	opt_handle[CTL_RETURN] = ctl_return_handle;
 }
 
@@ -1208,6 +1248,12 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 	case OPERAND_T_VARITY:
 		opda_addr = (int*)(t_varity_sp + instruction_ptr->opda_addr);
 		break;
+	case OPERAND_L_S_VARITY:
+		if(interpreter_ptr->call_func_info.function_depth == 0)
+			opda_addr = (int*)(interpreter_ptr->nonseq_info->stack_frame_size + instruction_ptr->opda_addr + sp);
+		else
+			opda_addr = (int*)(interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + instruction_ptr->opda_addr + sp);
+		break;
 	default:
 		opda_addr = (int*)instruction_ptr->opda_addr;
 		break;
@@ -1224,7 +1270,10 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 		opdb_addr = (int*)(t_varity_sp + instruction_ptr->opdb_addr);
 		break;
 	case OPERAND_L_S_VARITY:
-		opdb_addr = (int*)(sp + instruction_ptr->opdb_addr);
+		if(interpreter_ptr->call_func_info.function_depth == 0)
+			opdb_addr = (int*)(interpreter_ptr->nonseq_info->stack_frame_size + instruction_ptr->opdb_addr + sp);
+		else
+			opdb_addr = (int*)(interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + instruction_ptr->opdb_addr + sp);
 		break;
 	default:
 		opdb_addr = (int*)instruction_ptr->opdb_addr;
@@ -1242,7 +1291,7 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 		break;
 	}
 	if(opt_handle[instruction_ptr->ret_operator])
-		ret = opt_handle[instruction_ptr->ret_operator](instruction_ptr, opda_addr, opdb_addr, ret_addr);
+		ret = opt_handle[instruction_ptr->ret_operator](interpreter_ptr, opda_addr, opdb_addr, ret_addr);
 	else
 		ret = 0;
 	last_ret_abs_addr = ret_addr;

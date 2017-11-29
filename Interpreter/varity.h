@@ -136,6 +136,7 @@ public:
 	int destroy_analysis_varity(void);
 	int destroy_analysis_varity(int);
 	int destroy_local_varity_cur_depth(void);
+	int destroy_local_varity(void);
 	int undeclare();
 };
 

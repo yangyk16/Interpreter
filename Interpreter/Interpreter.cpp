@@ -258,9 +258,9 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		if(node_attribute->node_type == TOKEN_NAME ||  node_attribute->node_type == TOKEN_CONST_VALUE) {
 			stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
 			instruction_ptr->ret_operator = OPT_PASS_PARA;
-			instruction_ptr->ret_operand_type = OPERAND_L_S_VARITY;
-			instruction_ptr->ret_varity_type = ((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1])))->get_type();
-			instruction_ptr->ret_addr = (int)((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++)))->get_content_ptr();
+			instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
+			instruction_ptr->opda_varity_type = ((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1])))->get_type();
+			instruction_ptr->opda_addr = (int)((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++)))->get_content_ptr();
 			if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
 				this->mid_varity_stack.pop();
 			}
@@ -745,6 +745,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 				this->function_declare->get_current_node()->stack_frame_size = this->varity_declare->local_varity_stack->offset;
 				this->exec_flag = true;
 				this->varity_global_flag = VARITY_SCOPE_GLOBAL;
+				this->varity_declare->destroy_local_varity();
 				return OK_FUNC_FINISH;
 			}
 		}
@@ -1050,6 +1051,11 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 		error("No token found.\n");
 		return 0;//TODO:找个合适的返回值
 	}
+	this->sentence_analysis_data_struct.tree_root = root;
+	if(analysis_data_struct_ptr->expression_final_stack.get_count() == 0) {
+		generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
+		return ERROR_NO;
+	}
 	root->link_reset();
 	list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
 	int ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
@@ -1067,6 +1073,43 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 	//		printf("%d %d\n",tmp->value.int_value,opt_number[tmp->value.int_value]);
 	//}
 	return ERROR_NO;
+}
+
+int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribute_t *node_attribute)
+{
+		mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
+		instruction_ptr->opda_addr = 0;
+		instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->ret_operator = OPT_ASSIGN;
+		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
+			instruction_ptr->opdb_operand_type = OPERAND_CONST;
+			instruction_ptr->opdb_varity_type = node_attribute->value_type;
+			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
+		} else if(node_attribute->node_type == TOKEN_NAME) {
+			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
+				instruction_ptr->opdb_operand_type = OPERAND_T_VARITY;
+				instruction_ptr->opdb_addr = 8 * node_attribute->value.ptr_value[1];
+				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+			} else {
+					varity_info *varity_ptr;
+					int varity_scope;
+					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
+					if(!varity_ptr) {
+						error("Varity not exist\n");
+						return ERROR_VARITY_NONEXIST;
+					}
+					if(varity_scope == VARITY_SCOPE_GLOBAL)
+						instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
+					else
+						instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
+					instruction_ptr->opdb_addr = (int)varity_ptr->get_content_ptr();
+					instruction_ptr->opdb_varity_type = varity_ptr->get_type();
+				
+			}
+		}
+		instruction_ptr->opda_varity_type = instruction_ptr->opdb_varity_type;
+		code_stack_ptr->push();
+		return ERROR_NO;
 }
 
 int c_interpreter::exec_mid_code(mid_code *pc, uint count)
@@ -1096,6 +1139,9 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 	ret2 = non_seq_struct_analysis(str, len);
 	//debug("nonseqret=%d\n", ret2);
 	if(ret2 == OK_NONSEQ_FINISH || ret2 == OK_NONSEQ_INPUTING || ret2 == OK_NONSEQ_DEFINE) {
+		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack) {
+			this->varity_global_flag = VARITY_SCOPE_LOCAL;
+		}
 		if(nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth) {
 			switch(nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info) {
 			case 0:
@@ -1112,6 +1158,11 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 			}
 		} else {
 			this->generate_mid_code(str, len, true);
+		}
+		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack && ret2 == OK_NONSEQ_FINISH) {
+			this->varity_global_flag = VARITY_SCOPE_GLOBAL;
+			this->nonseq_info->stack_frame_size = this->varity_declare->local_varity_stack->offset;
+			this->varity_declare->destroy_local_varity();
 		}
 	} else if(ret2 == ERROR_NONSEQ_GRAMMER)
 		return ret2;
@@ -1621,9 +1672,10 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	}
 	if(!strmcmp(str, "return ", 7)) {
 		mid_code *mid_code_ptr;
-		if(!this->call_func_info.function_depth)
+		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack)
 			return OK_FUNC_RETURN;
-		ret = this->generate_mid_code(str + 7, len - 7, true);
+		ret = this->generate_mid_code(str + 7, len - 7, true);//下一句貌似重复了，所以注释掉。
+		//this->generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)this->sentence_analysis_data_struct.tree_root->value);
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 		mid_code_ptr->ret_operator = CTL_RETURN;
 		this->cur_mid_code_stack_ptr->push();

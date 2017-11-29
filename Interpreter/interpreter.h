@@ -93,6 +93,7 @@ typedef struct sentence_analysis_data_struct_s {
 	node_attribute_t node_attribute[MAX_ANALYSIS_NODE];
 	node node_struct[MAX_ANALYSIS_NODE];
 	node_attribute_t last_token;
+	node *tree_root;
 } sentence_analysis_data_struct_t;
 
 typedef struct call_func_info_s {
@@ -172,7 +173,6 @@ class c_interpreter: public interpreter {
 	char simulation_stack[STACK_SIZE];
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	bool exec_flag;
-	mid_code *pc;
 	call_func_info_t call_func_info;
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
@@ -182,9 +182,11 @@ class c_interpreter: public interpreter {
 	int nonseq_mid_gen_mid_code(char *str, uint len);
 	int nonseq_end_gen_mid_code(char *str, uint len);
 	int tree_to_code(node *tree, stack *code_stack);
-	int operator_mid_handle(stack* code_stack_ptr, node *opt_node_ptr);
-	int operator_post_handle(stack* code_stack_ptr, node *opt_node_ptr);
+	int operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr);
+	int operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr);
+	int generate_expression_value(stack *code_stack_ptr, node_attribute_t *opt_node_ptr);
 	friend int call_opt_handle(c_interpreter *interpreter_ptr);
+	friend int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr);
 	int test(char *str, uint len);
 	//////////////////////////////////////////////////////////////////////
 	virtual int call_func(char*, char*, uint);
@@ -201,6 +203,7 @@ class c_interpreter: public interpreter {
 	//int bracket_opt(char*, char*, char*, uint*);
 	opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT];
 public:
+	mid_code *pc;
 	c_interpreter(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
 	virtual int run_interpreter(void);
 };
