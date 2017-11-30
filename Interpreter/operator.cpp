@@ -918,6 +918,40 @@ int opt_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_add
 	return 0;
 }
 
+int opt_minus_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	int ret_type, converting_varity_type;
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	double converted_varity;
+	void* converted_varity_ptr = &converted_varity, *converting_varity_ptr;
+	ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+	if(instruction_ptr->opda_varity_type != instruction_ptr->opdb_varity_type) {
+		if(instruction_ptr->opda_varity_type == ret_type) {
+			converting_varity_ptr = (void*)opdb_addr;
+			converting_varity_type = instruction_ptr->opdb_varity_type;
+			opdb_addr = (int*)converted_varity_ptr;
+		} else {
+			converting_varity_ptr = (void*)opda_addr;
+			converting_varity_type = instruction_ptr->opda_varity_type;
+			opda_addr = (int*)converted_varity_ptr;
+		}
+		ret_type = varity_convert(converted_varity_ptr, ret_type, converting_varity_ptr, converting_varity_type);
+		if(ret_type) return ret_type;
+	}
+	if(ret_type == U_LONG || ret_type == LONG || ret_type == U_INT || ret_type == INT) {
+		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) - INT_VALUE(opdb_addr);
+	} else if(ret_type == U_SHORT || ret_type == SHORT) {
+		SHORT_VALUE(ret_addr) = SHORT_VALUE(opda_addr) - SHORT_VALUE(opdb_addr);
+	} else if(ret_type == U_CHAR || ret_type == CHAR) {
+		CHAR_VALUE(ret_addr) = CHAR_VALUE(opda_addr) - CHAR_VALUE(opdb_addr);
+	} else if(ret_type == DOUBLE) {
+		DOUBLE_VALUE(ret_addr) = DOUBLE_VALUE(opda_addr) - DOUBLE_VALUE(opdb_addr);
+	} else if(ret_type == FLOAT) {
+		FLOAT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) - FLOAT_VALUE(opdb_addr);
+	}
+	return ERROR_NO;
+}
+
 int opt_mul_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	int ret_type;
@@ -1193,6 +1227,7 @@ void handle_init(void)
 	for(int i=0; i<OPERATOR_TYPE_NUM;i++)
 		opt_handle[i] = 0;
 	opt_handle[OPT_EQU] = opt_equ_handle;
+	opt_handle[OPT_MINUS] = opt_minus_handle;
 	opt_handle[OPT_MUL] = opt_mul_handle;
 	opt_handle[OPT_PLUS] = opt_plus_handle;
 	opt_handle[OPT_SMALL] = opt_small_handle;

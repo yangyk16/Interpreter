@@ -59,7 +59,7 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 		}
 		//TODO: 函数查参数个数, 避免使用全局function数组，应把全局量改为类的静态成员变量
 		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)tree_node->value)->value.int_value == OPT_CALL_FUNC) {
-			function_info *function_ptr = this->function_declare->find(last_node_attribute->value.ptr_value);
+			function_info *function_ptr = this->function_declare->find(((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
 			if(!function_ptr) {
 				error("Function not found.\n");
 				return ERROR_VARITY_NONEXIST; //TODO: 找一个合适的错误码
@@ -665,7 +665,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 	if(nonseq_info->non_seq_struct_depth) {
 		//save_sentence(str, len);
 	}
-	if(str[0] == '{') {
+	if(str[0] == '{' && nonseq_info->non_seq_struct_depth) {
 		nonseq_info->brace_depth++;
 		if(nonseq_info->last_non_seq_check_ret) {
 			this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] = nonseq_info->brace_depth;
@@ -987,6 +987,18 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 	node_attribute_t *node_attribute, *stack_top_node_ptr;
 	this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
 	this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
+	if(!strmcmp(str, "return ", 7)) {
+		int ret;
+		mid_code *mid_code_ptr;
+		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack)
+			return OK_FUNC_RETURN;
+		ret = this->generate_mid_code(str + 7, len - 7, true);//下一句貌似重复了，所以注释掉。
+		//this->generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)this->sentence_analysis_data_struct.tree_root->value);
+		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+		mid_code_ptr->ret_operator = CTL_RETURN;
+		this->cur_mid_code_stack_ptr->push();
+		return ret;
+	}
 	while(len > 0) {
 		node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
 		analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
@@ -1196,7 +1208,7 @@ int c_interpreter::sentence_analysis(char* str, uint len)
 		nonseq_info->reset();
 		return ret2;//avoid continue to exec single sentence.
 	}
-	if(!nonseq_info->non_seq_struct_depth && ret2 != OK_NONSEQ_INPUTING && str[0] != '}' && str[0] != '{' && ret1 != OK_FUNC_DEFINE || ret1 == OK_FUNC_INPUTING && ret2 != OK_NONSEQ_DEFINE && str[0] != '{') {
+	if(!nonseq_info->non_seq_struct_depth && ret2 != OK_NONSEQ_INPUTING && str[0] != '}' && str[0] != '{' && ret1 != OK_FUNC_DEFINE || ret1 == OK_FUNC_INPUTING && ret2 != OK_NONSEQ_INPUTING && !nonseq_info->non_seq_struct_depth && str[0] != '{') {
 	//if(str[0] != '}') {
 		ret1 = sentence_exec(str, len, true, NULL);
 		return ret1;
@@ -1687,17 +1699,6 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	if(key_word_ret) {
 		str[source_len] = ch_last;
 		return key_word_ret;
-	}
-	if(!strmcmp(str, "return ", 7)) {
-		mid_code *mid_code_ptr;
-		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack)
-			return OK_FUNC_RETURN;
-		ret = this->generate_mid_code(str + 7, len - 7, true);//下一句貌似重复了，所以注释掉。
-		//this->generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)this->sentence_analysis_data_struct.tree_root->value);
-		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		mid_code_ptr->ret_operator = CTL_RETURN;
-		this->cur_mid_code_stack_ptr->push();
-		return ret;
 	}
 	ret = this->generate_mid_code(str, len, true);
 	if(this->exec_flag) {
