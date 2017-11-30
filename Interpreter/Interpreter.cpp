@@ -31,7 +31,7 @@ const char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,
 const char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1};
 char tmp_varity_name[MAX_A_VARITY_NODE][3];
 
-static int list_stack_to_tree(node* tree_node, list_stack* post_order_stack)
+int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_stack)
 {
 	node *last_node;
 	node_attribute_t *last_node_attribute;
@@ -56,6 +56,19 @@ static int list_stack_to_tree(node* tree_node, list_stack* post_order_stack)
 		}
 		if(opt_number[((node_attribute_t*)tree_node->value)->value.int_value] == 1) {
 			return ERROR_NO;
+		}
+		//TODO: 函数查参数个数, 避免使用全局function数组，应把全局量改为类的静态成员变量
+		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)tree_node->value)->value.int_value == OPT_CALL_FUNC) {
+			function_info *function_ptr = this->function_declare->find(last_node_attribute->value.ptr_value);
+			if(!function_ptr) {
+				error("Function not found.\n");
+				return ERROR_VARITY_NONEXIST; //TODO: 找一个合适的错误码
+			}
+			if(function_ptr->arg_list->get_count() == 1) {
+				tree_node->left = last_node;
+				tree_node->right = 0;
+				return ERROR_NO;
+			}
 		}
 	}
 	if(!tree_node->left) {
@@ -120,28 +133,30 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			}
 		}
 	}
-	node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
-	if(node_attribute->node_type == TOKEN_CONST_VALUE) {
-		instruction_ptr->opdb_operand_type = OPERAND_CONST;
-		instruction_ptr->opdb_varity_type = node_attribute->value_type;
-		memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
-	} else if(node_attribute->node_type == TOKEN_NAME) {
-		if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
-			instruction_ptr->opdb_operand_type = OPERAND_T_VARITY;
-			instruction_ptr->opdb_addr = 8 * node_attribute->value.ptr_value[1];
-			instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
-		} else {
-			varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
-			if(!varity_ptr) {
-				error("Varity not exist\n");
-				return ERROR_VARITY_NONEXIST;
+	if(opt_node_ptr->right) {
+		node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
+		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
+			instruction_ptr->opdb_operand_type = OPERAND_CONST;
+			instruction_ptr->opdb_varity_type = node_attribute->value_type;
+			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
+		} else if(node_attribute->node_type == TOKEN_NAME) {
+			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
+				instruction_ptr->opdb_operand_type = OPERAND_T_VARITY;
+				instruction_ptr->opdb_addr = 8 * node_attribute->value.ptr_value[1];
+				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+			} else {
+				varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
+				if(!varity_ptr) {
+					error("Varity not exist\n");
+					return ERROR_VARITY_NONEXIST;
+				}
+				if(varity_scope == VARITY_SCOPE_GLOBAL)
+					instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
+				else
+					instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
+				instruction_ptr->opdb_addr = (int)varity_ptr->get_content_ptr();
+				instruction_ptr->opdb_varity_type = varity_ptr->get_type();
 			}
-			if(varity_scope == VARITY_SCOPE_GLOBAL)
-				instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
-			else
-				instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
-			instruction_ptr->opdb_addr = (int)varity_ptr->get_content_ptr();
-			instruction_ptr->opdb_varity_type = varity_ptr->get_type();
 		}
 	}
 
@@ -254,19 +269,22 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		break;
 	case OPT_CALL_FUNC:
 	case OPT_FUNC_COMMA:
-		node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
-		if(node_attribute->node_type == TOKEN_NAME ||  node_attribute->node_type == TOKEN_CONST_VALUE) {
-			stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
-			instruction_ptr->ret_operator = OPT_PASS_PARA;
-			instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
-			instruction_ptr->opda_varity_type = ((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1])))->get_type();
-			instruction_ptr->opda_addr = (int)((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++)))->get_content_ptr();
-			if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
-				this->mid_varity_stack.pop();
+		if(opt_node_ptr->right) {
+			node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
+			if(node_attribute->node_type == TOKEN_NAME ||  node_attribute->node_type == TOKEN_CONST_VALUE) {
+				stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
+				instruction_ptr->ret_operator = OPT_PASS_PARA;
+				instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
+				instruction_ptr->opda_varity_type = ((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1])))->get_type();
+				instruction_ptr->opda_addr = (int)((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++)))->get_content_ptr();
+				if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+					this->mid_varity_stack.pop();
+				}
 			}
 		}
 		if(opt == OPT_CALL_FUNC) {
-			code_stack_ptr->push();
+			if(opt_node_ptr->right)
+				code_stack_ptr->push();
 			function_info *function_ptr;
 			instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;

@@ -177,6 +177,7 @@ class c_interpreter: public interpreter {
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int generate_mid_code(char *str, uint len, bool need_semicolon);
+	int list_stack_to_tree(node* tree_node, list_stack* post_order_stack);
 	int exec_mid_code(mid_code *pc, uint count);
 	int nonseq_start_gen_mid_code(char *str, uint len, int non_seq_type);
 	int nonseq_mid_gen_mid_code(char *str, uint len);

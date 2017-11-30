@@ -884,9 +884,24 @@ int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr
 
 int opt_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
-	int ret_type;
+	int ret_type, converting_varity_type;
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	double converted_varity;
+	void* converted_varity_ptr = &converted_varity, *converting_varity_ptr;
 	ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+	if(instruction_ptr->opda_varity_type != instruction_ptr->opdb_varity_type) {
+		if(instruction_ptr->opda_varity_type == ret_type) {
+			converting_varity_ptr = (void*)opdb_addr;
+			converting_varity_type = instruction_ptr->opdb_varity_type;
+			opdb_addr = (int*)converted_varity_ptr;
+		} else {
+			converting_varity_ptr = (void*)opda_addr;
+			converting_varity_type = instruction_ptr->opda_varity_type;
+			opda_addr = (int*)converted_varity_ptr;
+		}
+		ret_type = varity_convert(converted_varity_ptr, ret_type, converting_varity_ptr, converting_varity_type);
+		if(ret_type) return ret_type;
+	}
 	if(instruction_ptr->opda_varity_type == instruction_ptr->opdb_varity_type) {
 		if(ret_type == U_LONG || ret_type == LONG || ret_type == U_INT || ret_type == INT) {
 			INT_VALUE(ret_addr) = INT_VALUE(opda_addr) == INT_VALUE(opdb_addr);
@@ -898,46 +913,6 @@ int opt_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_add
 			INT_VALUE(ret_addr) = DOUBLE_VALUE(opda_addr) == DOUBLE_VALUE(opdb_addr);
 		} else if(ret_type == FLOAT) {
 			INT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) == FLOAT_VALUE(opdb_addr);
-		}
-	} else {
-		if(ret_type == U_LONG || ret_type == LONG || ret_type == U_INT || ret_type == INT) {
-			INT_VALUE(ret_addr) = INT_VALUE(opda_addr) == INT_VALUE(opdb_addr);
-		} else if(ret_type == U_SHORT || ret_type == SHORT) {
-			INT_VALUE(ret_addr) = SHORT_VALUE(opda_addr) == SHORT_VALUE(opdb_addr);
-		} else if(ret_type == U_CHAR) {
-			INT_VALUE(ret_addr) = CHAR_VALUE(opda_addr) == CHAR_VALUE(opdb_addr);
-		} else if(ret_type == DOUBLE) {
-			if(instruction_ptr->opda_varity_type == DOUBLE) {
-				if(instruction_ptr->opdb_varity_type == LONG || instruction_ptr->opdb_varity_type == INT || instruction_ptr->opdb_varity_type == SHORT || instruction_ptr->opdb_varity_type == CHAR) {
-					INT_VALUE(ret_addr) = DOUBLE_VALUE(opda_addr) == (double)(INT_VALUE(opdb_addr));
-				} else if(instruction_ptr->opdb_varity_type == U_LONG || instruction_ptr->opdb_varity_type == U_INT || instruction_ptr->opdb_varity_type == U_SHORT || instruction_ptr->opdb_varity_type == U_CHAR) {
-					INT_VALUE(ret_addr) = DOUBLE_VALUE(opda_addr) == (double)(U_INT_VALUE(opdb_addr));
-				} else if(instruction_ptr->opdb_varity_type == FLOAT) {
-					INT_VALUE(ret_addr) = DOUBLE_VALUE(opda_addr) == (double)(FLOAT_VALUE(opdb_addr));
-				}
-			} else {
-				if(instruction_ptr->opda_varity_type == LONG || instruction_ptr->opda_varity_type == INT || instruction_ptr->opda_varity_type == SHORT || instruction_ptr->opda_varity_type == CHAR) {
-					INT_VALUE(ret_addr) = (double)(INT_VALUE(opda_addr)) == DOUBLE_VALUE(opdb_addr);
-				} else if(instruction_ptr->opda_varity_type == U_LONG || instruction_ptr->opda_varity_type == U_INT || instruction_ptr->opda_varity_type == U_SHORT || instruction_ptr->opda_varity_type == U_CHAR) {
-					INT_VALUE(ret_addr) = (double)(U_INT_VALUE(opda_addr)) == DOUBLE_VALUE(opdb_addr);
-				} else if(instruction_ptr->opda_varity_type == FLOAT) {
-					INT_VALUE(ret_addr) = (double)(FLOAT_VALUE(opda_addr)) == DOUBLE_VALUE(opdb_addr);
-				}
-			}
-		} else if(ret_type == FLOAT) {
-			if(instruction_ptr->opda_varity_type == FLOAT) {
-				if(instruction_ptr->opdb_varity_type == LONG || instruction_ptr->opdb_varity_type == INT || instruction_ptr->opdb_varity_type == SHORT || instruction_ptr->opdb_varity_type == CHAR) {
-					INT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) == (float)(INT_VALUE(opdb_addr));
-				} else if(instruction_ptr->opdb_varity_type == U_LONG || instruction_ptr->opdb_varity_type == U_INT || instruction_ptr->opdb_varity_type == U_SHORT || instruction_ptr->opdb_varity_type == U_CHAR) {
-					INT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) == (float)(U_INT_VALUE(opdb_addr));
-				}
-			} else {
-				if(instruction_ptr->opda_varity_type == LONG || instruction_ptr->opda_varity_type == INT || instruction_ptr->opda_varity_type == SHORT || instruction_ptr->opda_varity_type == CHAR) {
-					INT_VALUE(ret_addr) = (float)(INT_VALUE(opda_addr)) == FLOAT_VALUE(opdb_addr);
-				} else if(instruction_ptr->opda_varity_type == U_LONG || instruction_ptr->opda_varity_type == U_INT || instruction_ptr->opda_varity_type == U_SHORT || instruction_ptr->opda_varity_type == U_CHAR) {
-					INT_VALUE(ret_addr) = (float)(U_INT_VALUE(opda_addr)) == FLOAT_VALUE(opdb_addr);
-				}
-			}
 		}
 	}
 	return 0;
@@ -1149,7 +1124,7 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 		interpreter_ptr->stack_pointer += interpreter_ptr->nonseq_info->stack_frame_size;
 	else
 		interpreter_ptr->stack_pointer += interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1];
-	interpreter_ptr->tmp_varity_stack_pointer += 16;
+	interpreter_ptr->tmp_varity_stack_pointer += 24;//一句产生的中间代码可能最多用三个临时变量吧…
 	interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth] = function_ptr->stack_frame_size;
 	interpreter_ptr->call_func_info.function_depth++;
 
@@ -1158,7 +1133,7 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 	interpreter_ptr->pc = pc_backup;
 	varity_convert(ret_addr, instruction_ptr->ret_varity_type, interpreter_ptr->tmp_varity_stack_pointer, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
 	interpreter_ptr->call_func_info.function_depth--;
-	interpreter_ptr->tmp_varity_stack_pointer -= 16;
+	interpreter_ptr->tmp_varity_stack_pointer -= 24;
 	if(interpreter_ptr->call_func_info.function_depth == 0)
 		interpreter_ptr->stack_pointer -= interpreter_ptr->nonseq_info->stack_frame_size;
 	else
