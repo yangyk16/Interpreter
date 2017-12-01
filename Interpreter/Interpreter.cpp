@@ -267,6 +267,14 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_ASL:
 	case OPT_ASR:
 		break;
+	case OPT_AND:
+	{
+		int delta;
+		delta = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - (mid_code*)this->sentence_analysis_data_struct.short_calc_stack[--this->sentence_analysis_data_struct.short_depth];
+		break;
+	}
+	case OPT_OR:
+		break;
 	case OPT_CALL_FUNC:
 	case OPT_FUNC_COMMA:
 		if(opt_node_ptr->right) {
@@ -364,7 +372,14 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		}
 		break;
 	case OPT_AND:
+		instruction_ptr->ret_operator = CTL_BRANCH_FALSE;
+		this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth++] = this->cur_mid_code_stack_ptr->get_current_ptr();
+		code_stack_ptr->push();
+		break;
 	case OPT_OR:
+		instruction_ptr->ret_operator = CTL_BRANCH_TRUE;
+		this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth++] = this->cur_mid_code_stack_ptr->get_current_ptr();
+		code_stack_ptr->push();
 		break;
 	}
 }
@@ -520,6 +535,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->mid_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 	this->exec_flag = true;
+	this->sentence_analysis_data_struct.short_depth = 0;
 	for(int i=0; i<MAX_A_VARITY_NODE; i++) {
 		tmp_varity_name[i][0] = TMP_VAIRTY_PREFIX;
 		tmp_varity_name[i][1] = i;

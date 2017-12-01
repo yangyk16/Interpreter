@@ -94,6 +94,8 @@ typedef struct sentence_analysis_data_struct_s {
 	node node_struct[MAX_ANALYSIS_NODE];
 	node_attribute_t last_token;
 	node *tree_root;
+	int short_calc_stack[MAX_LOGIC_DEPTH];//TODO:保存地址的变量换成平台相关宏
+	char short_depth;
 } sentence_analysis_data_struct_t;
 
 typedef struct call_func_info_s {
