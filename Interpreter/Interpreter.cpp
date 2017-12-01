@@ -268,13 +268,34 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_ASR:
 		break;
 	case OPT_AND:
+	case OPT_OR:
 	{
-		int delta;
-		delta = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - (mid_code*)this->sentence_analysis_data_struct.short_calc_stack[--this->sentence_analysis_data_struct.short_depth];
+		ret_type = INT;
+		if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY && instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			varity_number = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value[1];
+			this->mid_varity_stack.pop();
+		} else if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY && instruction_ptr->opdb_operand_type != OPERAND_T_VARITY) {
+			varity_number = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value[1];
+		} else if(instruction_ptr->opda_operand_type != OPERAND_T_VARITY && instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			varity_number = ((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value[1];
+		} else {
+			varity_number = this->mid_varity_stack.get_count();
+			this->mid_varity_stack.push();
+		}
+		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		varity_ptr->set_type(ret_type);
+		instruction_ptr->ret_addr = varity_number * 8;
+		instruction_ptr->ret_operator = opt;
+		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->ret_varity_type = INT;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
+		//code_stack_ptr->push();
+		instruction_ptr = (mid_code*)this->sentence_analysis_data_struct.short_calc_stack[--this->sentence_analysis_data_struct.short_depth];
+		instruction_ptr->opda_addr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - instruction_ptr + 1;
+		(instruction_ptr - 1)->opda_addr = varity_number * 8;
 		break;
 	}
-	case OPT_OR:
-		break;
 	case OPT_CALL_FUNC:
 	case OPT_FUNC_COMMA:
 		if(opt_node_ptr->right) {
@@ -372,13 +393,45 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		}
 		break;
 	case OPT_AND:
-		instruction_ptr->ret_operator = CTL_BRANCH_FALSE;
-		this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth++] = this->cur_mid_code_stack_ptr->get_current_ptr();
+		this->generate_expression_value(code_stack_ptr, (node_attribute_t*)opt_node_ptr->left->value);
+		instruction_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+		instruction_ptr->ret_operator = CTL_BRANCH_TRUE;
+		instruction_ptr->opda_addr = 3;
+		code_stack_ptr->push();
+		instruction_ptr++;
+		instruction_ptr->ret_operator = OPT_ASSIGN;
+		instruction_ptr->ret_varity_type = INT;
+		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->opdb_addr = 0;
+		instruction_ptr->opdb_varity_type = INT;
+		instruction_ptr->opdb_operand_type = OPERAND_CONST;
+		instruction_ptr->opda_varity_type = INT;
+		instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
+		code_stack_ptr->push();
+		instruction_ptr++;
+		instruction_ptr->ret_operator = CTL_BRANCH;
+		this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth++] = (int)this->cur_mid_code_stack_ptr->get_current_ptr();
 		code_stack_ptr->push();
 		break;
 	case OPT_OR:
-		instruction_ptr->ret_operator = CTL_BRANCH_TRUE;
-		this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth++] = this->cur_mid_code_stack_ptr->get_current_ptr();
+		this->generate_expression_value(code_stack_ptr, (node_attribute_t*)opt_node_ptr->left->value);
+		instruction_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+		instruction_ptr->ret_operator = CTL_BRANCH_FALSE;
+		instruction_ptr->opda_addr = 3;
+		code_stack_ptr->push();
+		instruction_ptr++;
+		instruction_ptr->ret_operator = OPT_ASSIGN;
+		instruction_ptr->ret_varity_type = INT;
+		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->opdb_addr = 1;
+		instruction_ptr->opdb_varity_type = INT;
+		instruction_ptr->opdb_operand_type = OPERAND_CONST;
+		instruction_ptr->opda_varity_type = INT;
+		instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
+		code_stack_ptr->push();
+		instruction_ptr++;
+		instruction_ptr->ret_operator = CTL_BRANCH;
+		this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth++] = (int)this->cur_mid_code_stack_ptr->get_current_ptr();
 		code_stack_ptr->push();
 		break;
 	}
@@ -1127,6 +1180,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 		instruction_ptr->opda_addr = 0;
 		instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
 		instruction_ptr->ret_operator = OPT_ASSIGN;
+		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 			instruction_ptr->opdb_operand_type = OPERAND_CONST;
 			instruction_ptr->opdb_varity_type = node_attribute->value_type;
@@ -1154,6 +1208,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 			}
 		}
 		instruction_ptr->opda_varity_type = instruction_ptr->opdb_varity_type;
+		instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type;
 		code_stack_ptr->push();
 		return ERROR_NO;
 }

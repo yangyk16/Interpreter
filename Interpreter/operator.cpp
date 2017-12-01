@@ -918,6 +918,30 @@ int opt_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_add
 	return 0;
 }
 
+int opt_and_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	int ret;
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	int converted_varitya, converted_varityb;
+	ret = varity_convert(&converted_varitya, INT, opda_addr, instruction_ptr->opda_varity_type);
+	ret |= varity_convert(&converted_varityb, INT, opdb_addr, instruction_ptr->opdb_varity_type);
+	if(ret)
+		return ERROR_TYPE_CONVERT;
+	INT_VALUE(ret_addr) = converted_varitya && converted_varityb;
+}
+
+int opt_or_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	int ret;
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	int converted_varitya, converted_varityb;
+	ret = varity_convert(&converted_varitya, INT, opda_addr, instruction_ptr->opda_varity_type);
+	ret |= varity_convert(&converted_varityb, INT, opdb_addr, instruction_ptr->opdb_varity_type);
+	if(ret)
+		return ERROR_TYPE_CONVERT;
+	INT_VALUE(ret_addr) = converted_varitya || converted_varityb;
+}
+
 int opt_minus_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	int ret_type, converting_varity_type;
@@ -1192,7 +1216,7 @@ int ctl_branch_true_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	mid_code *last_instruction_ptr = instruction_ptr - 1;
-	if(last_instruction_ptr->ret_varity_type != INT)
+	if(last_instruction_ptr->ret_varity_type != INT)//TODO:加入其他合法类型
 		return ERROR_CONDITION_TYPE;
 	if(is_non_zero(last_instruction_ptr->ret_varity_type, last_ret_abs_addr))
 		instruction_ptr += instruction_ptr->opda_addr - 1;
@@ -1227,6 +1251,8 @@ void handle_init(void)
 	for(int i=0; i<OPERATOR_TYPE_NUM;i++)
 		opt_handle[i] = 0;
 	opt_handle[OPT_EQU] = opt_equ_handle;
+	opt_handle[OPT_AND] = opt_and_handle;
+	opt_handle[OPT_OR] = opt_or_handle;
 	opt_handle[OPT_MINUS] = opt_minus_handle;
 	opt_handle[OPT_MUL] = opt_mul_handle;
 	opt_handle[OPT_PLUS] = opt_plus_handle;
