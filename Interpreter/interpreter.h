@@ -169,11 +169,14 @@ class c_interpreter: public interpreter {
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;
 	stack mid_code_stack;
 	stack mid_varity_stack;
+	stack link_varity_stack;
 	stack *cur_mid_code_stack_ptr;
 	char *stack_pointer;
 	char *tmp_varity_stack_pointer;
+	char *link_varity_satck_pointer;
 	char simulation_stack[STACK_SIZE];
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
+	char link_varity_stack_space[LINK_VARITY_STACK_SIZE];
 	bool exec_flag;
 	call_func_info_t call_func_info;
 	int get_token(char *str, node_attribute_t *info);

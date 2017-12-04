@@ -162,6 +162,30 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 
 	switch(opt) {
 		int ret_type;
+	case OPT_MEMBER:
+	case OPT_REFERENCE:
+	case OPT_INDEX://TODO:不生成中间代码，只产生链接变量换掉节点name.
+		ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+		if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY && instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			varity_number = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value[1];
+			this->mid_varity_stack.pop();
+		} else if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY && instruction_ptr->opdb_operand_type != OPERAND_T_VARITY) {
+			varity_number = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value[1];
+		} else if(instruction_ptr->opda_operand_type != OPERAND_T_VARITY && instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			varity_number = ((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value[1];
+		} else {
+			varity_number = this->mid_varity_stack.get_count();
+			this->mid_varity_stack.push();
+		}
+		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		varity_ptr->set_type(ret_type);
+		instruction_ptr->ret_addr = varity_number * 8;
+		instruction_ptr->ret_operator = opt;
+		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->ret_varity_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
+		break;
 	case OPT_PLUS:
 	case OPT_MINUS:
 	case OPT_MUL:
@@ -584,8 +608,12 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	handle_init();
 	this->stack_pointer = this->simulation_stack;
 	this->tmp_varity_stack_pointer = this->tmp_varity_stack;
+	this->link_varity_satck_pointer = this->link_varity_stack_space;
 	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
-	this->mid_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);
+	this->mid_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);//TODO: 设置node最大count
+	this->link_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);
+	this->mid_varity_stack.set_base(this->tmp_varity_stack_pointer);
+	this->link_varity_stack.set_base(this->link_varity_satck_pointer);
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 	this->exec_flag = true;
 	this->sentence_analysis_data_struct.short_depth = 0;

@@ -28,6 +28,7 @@
 #define MAX_MID_CODE_COUNT		1024
 #define STACK_SIZE				131072//128k
 #define TMP_VARITY_STACK_SIZE	(8 * MAX_A_VARITY_NODE)
+#define LINK_VARITY_STACK_SIZE	(PLATFORM_WORD_LEN * MAX_A_VARITY_NODE)
 
 #define debug	printf
 #define error	printf
