@@ -6,7 +6,8 @@
 #include "data_struct.h"
 
 #define BASIC_VARITY_TYPE_COUNT	15
-#define TMP_VAIRTY_PREFIX 0x02 //STX
+#define TMP_VAIRTY_PREFIX	0x02 //STX
+#define LINK_VARITY_PREFIX	0x03
 
 #define PRODUCED_DECLARE	1
 #define PRODUCED_ANALIES	2
