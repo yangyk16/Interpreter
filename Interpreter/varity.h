@@ -25,6 +25,11 @@
 #define ATTRIBUTE_RIGHT_VALUE	(1 << 4)
 #define ATTRIBUTE_REFERENCE		(1 << 5)
 
+#define COMPLEX_ARRAY	1
+#define COMPLEX_PTR		2
+#define COMPLEX_ARG		3
+#define COMPLEX_COMPLEX	4
+
 #if PLATFORM_WORD_LEN == 4
 #define U_INT 8
 #define LONG 9
@@ -32,7 +37,7 @@
 #define LONG 8
 #define U_INT 9
 #endif
-#define EMPTY	0
+#define COMPLEX	0
 #define STRUCT	1
 #define VOID 2
 #define DOUBLE 3

@@ -1328,8 +1328,10 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 	}
 	if(opt_handle[instruction_ptr->ret_operator])
 		ret = opt_handle[instruction_ptr->ret_operator](interpreter_ptr, opda_addr, opdb_addr, ret_addr);
-	else
+	else {
+		debug("no handle for operator %d\n", instruction_ptr->ret_operator);
 		ret = 0;
+	}
 	last_ret_abs_addr = ret_addr;
 	return ret;
 }
