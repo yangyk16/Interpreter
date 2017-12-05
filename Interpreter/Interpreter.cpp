@@ -119,6 +119,9 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				instruction_ptr->opda_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 				this->mid_varity_stack.pop();
 			} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {
+				instruction_ptr->opda_operand_type = node_attribute->value_type;
+				instruction_ptr->opda_varity_type = ((varity_info*)this->link_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+				instruction_ptr->opda_addr = (int)((varity_info*)this->link_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
 				this->link_varity_stack.pop();
 			} else {
 				if(opt != OPT_CALL_FUNC) {
@@ -150,6 +153,9 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 				this->mid_varity_stack.pop();
 			} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {
+				instruction_ptr->opdb_operand_type = node_attribute->value_type;
+				instruction_ptr->opdb_varity_type = ((varity_info*)this->link_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+				instruction_ptr->opdb_addr = (int)((varity_info*)this->link_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
 				this->link_varity_stack.pop();
 			} else {
 				if(opt != OPT_MEMBER && opt != OPT_REFERENCE) {
@@ -175,16 +181,16 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_REFERENCE:
 	case OPT_INDEX:
 	{
-		varity_info *member_varity_ptr;
+		varity_info *member_varity_ptr, *struct_ptr = varity_ptr;
 		struct_info *struct_info_ptr = (struct_info*)varity_ptr->get_complex_ptr();
 		ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 		varity_number = this->link_varity_stack.get_count();
 		this->link_varity_stack.push();
 		member_varity_ptr = (varity_info*)struct_info_ptr->varity_stack_ptr->find(node_attribute->value.ptr_value);
-		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		varity_ptr = (varity_info*)this->link_varity_stack.visit_element_by_index(varity_number);
 		varity_ptr->set_type(member_varity_ptr->get_type());
 		if(opt == OPT_MEMBER)
-			varity_ptr->set_content_ptr((void*)((int)varity_ptr->get_content_ptr() + (int)member_varity_ptr->get_content_ptr()));
+			varity_ptr->set_content_ptr((void*)((int)struct_ptr->get_content_ptr() + (int)member_varity_ptr->get_content_ptr()));
 		else if(opt == OPT_REFERENCE)
 			varity_ptr->set_content_ptr((void*)(INT_VALUE(varity_ptr->get_content_ptr()) + (int)member_varity_ptr->get_content_ptr()));
 		else {
