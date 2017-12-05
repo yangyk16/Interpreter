@@ -1247,7 +1247,7 @@ int ctl_return_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 }
 
 void handle_init(void)
-{
+{//部分运算符没有中间代码，例如前/后++，前述运算符
 	for(int i=0; i<OPERATOR_TYPE_NUM;i++)
 		opt_handle[i] = 0;
 	opt_handle[OPT_EQU] = opt_equ_handle;

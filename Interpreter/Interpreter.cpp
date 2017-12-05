@@ -255,7 +255,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			error("Assign operator need left value.\n");
 			return ERROR_NEED_LEFT_VALUE;
 		} else if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
-			this->mid_varity_stack.pop();
+			//this->mid_varity_stack.pop();
 		} else {
 		}
 		instruction_ptr->ret_addr = instruction_ptr->opda_addr;
@@ -267,9 +267,50 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		break;
 	case OPT_L_PLUS_PLUS:
 	case OPT_L_MINUS_MINUS:
+		if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			error("++ operator need left value.\n");
+			return ERROR_NEED_LEFT_VALUE;
+		}
+		instruction_ptr->opda_addr = instruction_ptr->opdb_addr;
+		instruction_ptr->opda_operand_type = instruction_ptr->opdb_operand_type;
+		instruction_ptr->opda_varity_type = instruction_ptr->opdb_varity_type;
+		instruction_ptr->ret_addr = instruction_ptr->opda_addr;
+		instruction_ptr->ret_operator = (opt == OPT_L_PLUS_PLUS) ? OPT_PLUS : OPT_MINUS;
+		instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
+		instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type;
+		instruction_ptr->opdb_addr = 1;
+		instruction_ptr->opdb_operand_type = OPERAND_CONST;
+		instruction_ptr->opdb_varity_type = INT;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = ((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value;
 		break;
 	case OPT_R_PLUS_PLUS:
 	case OPT_R_MINUS_MINUS:
+		if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			error("++ operator need left value.\n");
+			return ERROR_NEED_LEFT_VALUE;
+		}
+		varity_number = this->mid_varity_stack.get_count();
+		this->mid_varity_stack.push();
+
+		instruction_ptr->ret_addr = instruction_ptr->opda_addr = varity_number * 8;
+		instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = instruction_ptr->opdb_varity_type;
+		instruction_ptr->ret_operator = OPT_ASSIGN;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
+		code_stack_ptr->push();
+
+		(instruction_ptr + 1)->ret_addr = instruction_ptr->opdb_addr;
+		(instruction_ptr + 1)->ret_operator = (opt == OPT_R_PLUS_PLUS) ? OPT_PLUS : OPT_MINUS;
+		(instruction_ptr + 1)->ret_operand_type = instruction_ptr->opdb_operand_type;
+		(instruction_ptr + 1)->ret_varity_type = instruction_ptr->opdb_varity_type;
+		(instruction_ptr + 1)->opda_addr = instruction_ptr->opdb_addr;
+		(instruction_ptr + 1)->opda_operand_type = instruction_ptr->opdb_operand_type;
+		(instruction_ptr + 1)->opda_varity_type = instruction_ptr->opdb_varity_type;
+		(instruction_ptr + 1)->opdb_addr = 1;
+		(instruction_ptr + 1)->opdb_operand_type = OPERAND_CONST;
+		(instruction_ptr + 1)->opdb_varity_type = INT;
 		break;
 	case OPT_NOT:
 	case OPT_BIT_REVERT:
@@ -1114,7 +1155,7 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 							node_attribute->value.int_value = OPT_L_SMALL_BRACKET;
 						} else if(node_attribute->value.int_value == OPT_PLUS_PLUS || node_attribute->value.int_value == OPT_MINUS_MINUS) {
 							node_attribute_t *final_stack_top_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.get_lastest_element()->value;
-							if(!analysis_data_struct_ptr->expression_final_stack.get_count() || final_stack_top_ptr->node_type == TOKEN_OPERATOR) {
+							if(!analysis_data_struct_ptr->expression_final_stack.get_count() || this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR) {
 								if(node_attribute->value.int_value == OPT_PLUS_PLUS)
 									node_attribute->value.int_value = OPT_L_PLUS_PLUS;
 								else
