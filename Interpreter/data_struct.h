@@ -97,6 +97,7 @@ public:
 	node *pop(void) {if(!this->get_count())return 0; node* ret = tail.left; tail.left = ret->left; ret->left->right = &tail; count--; return ret;}
 	void reset(void) {this->head.right = &tail; this->tail.left = &head;}
 	int get_count(void) {return count;}
+	node* get_head(void) {return &head;}
 	node* get_lastest_element(void) {return tail.left;}
 };
 

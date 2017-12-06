@@ -35,6 +35,11 @@ void varity_info::config_varity(char attribute, void* info_ptr)
 		this->comlex_info_ptr = info_ptr;
 }
 
+void varity_info::config_complex_info(void* info_ptr)
+{
+	this->comlex_info_ptr = info_ptr;
+}
+
 void varity_info::clear_attribute(char attribute)
 {
 	this->attribute &= ~attribute;
@@ -491,4 +496,22 @@ varity::varity(stack* g_stack, indexed_stack* l_stack, stack* a_stack)
 	this->analysis_varity_stack = a_stack;
 	this->cur_analysis_varity_count = 0;
 	this->current_stack_depth = 0;
+}
+
+int get_varity_size(int basic_type, int *complex_info, int attribute)
+{
+	if(complex_info == 0) {
+		if(basic_type > CHAR) {
+			return PLATFORM_WORD_LEN;
+		} else {
+			if(basic_type >= VOID)
+				return sizeof_type[basic_type];
+			else {
+				if(basic_type == STRUCT) {
+					return ((struct_info*)complex_info)->struct_size;
+				}
+			}
+		}
+	}
+	return 0;
 }

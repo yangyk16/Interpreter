@@ -29,6 +29,9 @@
 #define COMPLEX_PTR		2
 #define COMPLEX_ARG		3
 #define COMPLEX_COMPLEX	4
+#define COMPLEX_BASIC	5
+
+#define COMPLEX_TYPE_BIT	29
 
 #if PLATFORM_WORD_LEN == 4
 #define U_INT 8
@@ -71,6 +74,7 @@ public:
 	static void init_varity(void*, char*, char, uint);
 	void arg_init(char*, char, uint, void*);
 	void config_varity(char, void* = 0);
+	void config_complex_info(void*);
 	void clear_attribute(char);
 	varity_info();
 	varity_info(char*, int, uint);
@@ -147,6 +151,7 @@ public:
 };
 
 void* vmalloc(unsigned int size);
+int get_varity_size(int basic_type, int *complex_info, int attribute = 0);
 
 extern const char type_key[15][19];
 extern const char sizeof_type[15];
