@@ -1782,28 +1782,32 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 						analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
 					}
 					int node_count = analysis_data_struct_ptr->expression_final_stack.get_count();
-					int *complex_info = 0;
+					uint *complex_info = 0, *cur_complex_info_ptr;
 					if(node_count) {
 						if(ptr_level)
 							node_count++;
-						complex_info = (int*)vmalloc((node_count + 2) * sizeof(int)); //+个数和基本类型
+						complex_info = (uint*)vmalloc((node_count + 2) * sizeof(int)); //+个数和基本类型
+						cur_complex_info_ptr = complex_info + 1;
 						node *head = analysis_data_struct_ptr->expression_final_stack.get_head();
 						for(int n=0; n<node_count; n++) {
 							head = head->right;
 							node_attribute_t *complex_attribute = (node_attribute_t*)head->value;
 							if(complex_attribute->value.int_value == OPT_INDEX) {
-								*complex_info = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
+								*cur_complex_info_ptr = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
 							} else if(complex_attribute->value.int_value == OPT_PTR_CONTENT) {
-								*complex_info = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
+								*cur_complex_info_ptr = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
 							}
-							complex_info++;
+							cur_complex_info_ptr++;
 						}
 						if(ptr_level)
-							*complex_info++ = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | ptr_level;
-						*complex_info++ = (COMPLEX_BASIC << COMPLEX_TYPE_BIT) | varity_basic_type;
+							*cur_complex_info_ptr++ = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | ptr_level;
+						*cur_complex_info_ptr++ = (COMPLEX_BASIC << COMPLEX_TYPE_BIT) | is_varity_declare;
+						*complex_info = (node_count + 1 << 8) + 1;//末尾置1表复杂类型
 					}
 					////////
 					varity_basic_type = is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT;
+					if(node_count)
+						varity_basic_type = COMPLEX;
 					varity_size = get_varity_size(varity_basic_type, complex_info);
 					if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
 						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_basic_type, varity_size);

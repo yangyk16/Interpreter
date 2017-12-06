@@ -498,9 +498,26 @@ varity::varity(stack* g_stack, indexed_stack* l_stack, stack* a_stack)
 	this->current_stack_depth = 0;
 }
 
-int get_varity_size(int basic_type, int *complex_info, int attribute)
+int get_varity_size(int basic_type, uint *complex_info, int attribute)
 {
-	if(complex_info == 0) {
+	if(basic_type == COMPLEX) {
+		int varity_size = 0;
+		int n = complex_info[0] >> 8;
+		for(int i=n; i>0; i--) {
+			switch(complex_info[i] >> COMPLEX_TYPE_BIT) {
+			case COMPLEX_BASIC:
+				varity_size = sizeof_type[complex_info[i] & COMPLEX_BIT_MASK];
+				break;
+			case COMPLEX_PTR:
+				varity_size = PLATFORM_WORD_LEN;
+				break;
+			case COMPLEX_ARRAY:
+				varity_size *= complex_info[i] & COMPLEX_BIT_MASK;
+				break;
+			}
+		}
+		return varity_size;
+	} else {
 		if(basic_type > CHAR) {
 			return PLATFORM_WORD_LEN;
 		} else {

@@ -32,6 +32,7 @@
 #define COMPLEX_BASIC	5
 
 #define COMPLEX_TYPE_BIT	29
+#define COMPLEX_BIT_MASK	(~(0xFFFFFFFFu >> COMPLEX_TYPE_BIT << COMPLEX_TYPE_BIT))
 
 #if PLATFORM_WORD_LEN == 4
 #define U_INT 8
@@ -151,7 +152,7 @@ public:
 };
 
 void* vmalloc(unsigned int size);
-int get_varity_size(int basic_type, int *complex_info, int attribute = 0);
+int get_varity_size(int basic_type, uint *complex_info, int attribute = 0);
 
 extern const char type_key[15][19];
 extern const char sizeof_type[15];
