@@ -127,7 +127,7 @@ int c_interpreter::member_opt(char* str, uint* size_ptr)
 						index = y_atoi(name_buf);
 					} else if(tmp_varity_type == OPERAND_FLOAT) {
 						error("Float can not used as index!\n");
-						return ERROR_FLOAT_USED_INDEX;
+						return ERROR_USED_INDEX;
 					} else
 						return tmp_varity_type;
 					tmp_varity->set_to_single(index);//TODO: 增加获取变量值整数值的函数，增加count字段
@@ -1273,7 +1273,7 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
 	int *opda_addr, *opdb_addr, *ret_addr, ret;
 	long long opda_value, opdb_value;
-	switch(instruction_ptr->opda_operand_type) {
+	switch(instruction_ptr->opda_operand_type & 3) {
 	case OPERAND_CONST:
 		opda_addr = (int*)&opda_value;
 		memcpy(opda_addr, &instruction_ptr->opda_addr, 8);
@@ -1294,6 +1294,8 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 		opda_addr = (int*)instruction_ptr->opda_addr;
 		break;
 	}
+	if(instruction_ptr->opda_operand_type & OPERAND_LINK_VARITY)
+		opda_addr = (int*)INT_VALUE(t_varity_sp + instruction_ptr->opda_addr);
 	switch(instruction_ptr->opdb_operand_type) {
 	case OPERAND_CONST:
 		opdb_addr = (int*)&opdb_value;

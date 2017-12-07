@@ -120,10 +120,12 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				instruction_ptr->opda_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 				this->mid_varity_stack.pop();
 			} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {
-				instruction_ptr->opda_operand_type = node_attribute->value_type;
-				instruction_ptr->opda_varity_type = ((varity_info*)this->link_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
-				instruction_ptr->opda_addr = (int)((varity_info*)this->link_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
-				this->link_varity_stack.pop();
+				varity_number = node_attribute->value.ptr_value[1];
+				varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+				instruction_ptr->opda_operand_type = OPERAND_LINK_VARITY;
+				instruction_ptr->opda_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+				instruction_ptr->opda_addr = 8 * node_attribute->value.ptr_value[1];
+				this->mid_varity_stack.pop();
 			} else {
 				if(opt != OPT_CALL_FUNC) {
 					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
@@ -155,9 +157,9 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				this->mid_varity_stack.pop();
 			} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {
 				instruction_ptr->opdb_operand_type = node_attribute->value_type;
-				instruction_ptr->opdb_varity_type = ((varity_info*)this->link_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
-				instruction_ptr->opdb_addr = (int)((varity_info*)this->link_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
-				this->link_varity_stack.pop();
+				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+				instruction_ptr->opdb_addr = (int)((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
+				this->mid_varity_stack.pop();
 			} else {
 				if(opt != OPT_MEMBER && opt != OPT_REFERENCE) {
 					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
@@ -180,26 +182,51 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		int ret_type;
 	case OPT_MEMBER:
 	case OPT_REFERENCE:
-	case OPT_INDEX:
 	{
 		varity_info *member_varity_ptr, *struct_ptr = varity_ptr;
 		struct_info *struct_info_ptr = (struct_info*)varity_ptr->get_complex_ptr();
-		ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
-		varity_number = this->link_varity_stack.get_count();
-		this->link_varity_stack.push();
+		//ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+		varity_number = this->mid_varity_stack.get_count();
+		this->mid_varity_stack.push();
 		member_varity_ptr = (varity_info*)struct_info_ptr->varity_stack_ptr->find(node_attribute->value.ptr_value);
-		varity_ptr = (varity_info*)this->link_varity_stack.visit_element_by_index(varity_number);
+		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 		varity_ptr->set_type(member_varity_ptr->get_type());
 		if(opt == OPT_MEMBER)
 			varity_ptr->set_content_ptr((void*)((int)struct_ptr->get_content_ptr() + (int)member_varity_ptr->get_content_ptr()));
 		else if(opt == OPT_REFERENCE)
 			varity_ptr->set_content_ptr((void*)(INT_VALUE(varity_ptr->get_content_ptr()) + (int)member_varity_ptr->get_content_ptr()));
-		else {
-		}
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
 		((node_attribute_t*)opt_node_ptr->value)->value_type = varity_scope;
 		return ERROR_NO;
+	}
+	case OPT_INDEX:
+	{
+		varity_number = this->mid_varity_stack.get_count();
+		this->mid_varity_stack.push();
+		uint *complex_info_ptr = (uint*)varity_ptr->get_complex_ptr();
+		int complex_arg_count = varity_ptr->get_complex_arg_count();
+		if(GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count - 1]) == COMPLEX_ARRAY || GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count - 1]) == COMPLEX_PTR) {
+			varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+			if(complex_arg_count - 1 == 1)
+				varity_ptr->set_type(complex_info_ptr[0]);
+			else
+				varity_ptr->set_type(COMPLEX);
+			varity_ptr->set_size(get_varity_size(GET_COMPLEX_DATA(complex_info_ptr[0]), complex_info_ptr, complex_arg_count - 1));
+			varity_ptr->config_complex_info(complex_arg_count - 1, complex_info_ptr);
+			instruction_ptr->data = get_varity_size(0, complex_info_ptr, complex_arg_count - 1);
+			instruction_ptr->ret_addr = varity_number * 8;
+			instruction_ptr->ret_varity_type = INT;
+			instruction_ptr->ret_operand_type = OPERAND_LINK_VARITY;
+			instruction_ptr->ret_operator = opt;
+			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+			((node_attribute_t*)opt_node_ptr->value)->value_type = instruction_ptr->opda_operand_type;
+			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
+		} else {
+			error("No array or ptr varity for using [].\n");
+			return ERROR_USED_INDEX;
+		}
+		break;
 	}
 	case OPT_PLUS:
 	case OPT_MINUS:
@@ -640,7 +667,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->link_varity_satck_pointer = this->link_varity_stack_space;
 	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
 	this->mid_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);//TODO: 设置node最大count
-	this->link_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);
+	this->mid_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);
 	this->mid_varity_stack.set_base(this->tmp_varity_stack_pointer);
 	this->link_varity_stack.set_base(this->link_varity_satck_pointer);
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack;
@@ -1094,6 +1121,9 @@ bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int 
 	case OPT_L_MID_BRACKET:
 		type = OPT_INDEX;
 		return true;
+	case OPT_R_MID_BRACKET:
+		type = OPT_R_SMALL_BRACKET;
+		return true;
 	case OPT_L_SMALL_BRACKET:
 		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_NAME) {
 			type = OPT_CALL_FUNC;
@@ -1219,8 +1249,8 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 	if(ret)return ret;
 	if(this->mid_varity_stack.get_count())
 		this->mid_varity_stack.pop();
-	if(this->link_varity_stack.get_count())
-		this->link_varity_stack.pop();
+	if(this->mid_varity_stack.get_count())
+		this->mid_varity_stack.pop();
 	//root->middle_visit();
 	debug("generate code.\n");
 	//while(analysis_data_struct_ptr->expression_final_stack.get_count()) {
@@ -1252,8 +1282,8 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 			} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {//TODO:检查一遍operand_type
 				instruction_ptr->opdb_operand_type = node_attribute->value_type;
-				instruction_ptr->opdb_addr = (int)((varity_info*)this->link_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
-				instruction_ptr->opdb_varity_type = ((varity_info*)this->link_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
+				instruction_ptr->opdb_addr = (int)((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
+				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 			} else {
 					varity_info *varity_ptr;
 					int varity_scope;
@@ -1805,6 +1835,8 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					}
 					////////
 					varity_basic_type = is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT;
+					if(is_varity_declare == STRUCT)
+						complex_info = (unsigned int*)struct_node_ptr;
 					if(node_count)
 						varity_basic_type = COMPLEX;
 					varity_size = get_varity_size(varity_basic_type, complex_info, node_count + 1);

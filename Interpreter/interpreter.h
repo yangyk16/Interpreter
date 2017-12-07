@@ -20,12 +20,12 @@
 #define NONSEQ_KEY_WAIT_ELSE	7
 #define NONSEQ_KEY_WAIT_WHILE	8
 
-#define OPERAND_G_VARITY	0
-#define OPERAND_L_VARITY	1
-#define OPERAND_T_VARITY	2
-#define OPERAND_L_S_VARITY	3//递进深度局部变量
-#define OPERAND_LINK_VARITY	4
-#define OPERAND_CONST   	5
+#define OPERAND_G_VARITY	(0 << 0)
+#define OPERAND_L_VARITY	(1 << 0)
+#define OPERAND_T_VARITY	(2 << 0)
+#define OPERAND_L_S_VARITY	(3 << 0)//递进深度局部变量
+#define OPERAND_LINK_VARITY	(1 << 2)
+#define OPERAND_CONST   	(1 << 3)
 
 
 #define C_OPT_PRIO_COUNT		15
@@ -117,6 +117,7 @@ public:
 	int double_space1;    //操作数1为double立即数时使用的空间
 	int opdb_addr;
 	int double_space2;
+	int data;
 	char opda_operand_type;//操作数1类型：变量/立即数
 	char opdb_operand_type;//操作数2类型：变量/立即数
 	char ret_operand_type;

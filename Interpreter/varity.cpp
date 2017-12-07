@@ -507,13 +507,13 @@ int get_varity_size(int basic_type, uint *complex_info, int complex_arg_count)
 		for(int i=0; i<n; i++) {
 			switch(complex_info[i] >> COMPLEX_TYPE_BIT) {
 			case COMPLEX_BASIC:
-				varity_size = sizeof_type[complex_info[i] & COMPLEX_BIT_MASK];
+				varity_size = sizeof_type[complex_info[i] & COMPLEX_DATA_BIT_MASK];
 				break;
 			case COMPLEX_PTR:
 				varity_size = PLATFORM_WORD_LEN;
 				break;
 			case COMPLEX_ARRAY:
-				varity_size *= complex_info[i] & COMPLEX_BIT_MASK;
+				varity_size *= complex_info[i] & COMPLEX_DATA_BIT_MASK;
 				break;
 			}
 		}

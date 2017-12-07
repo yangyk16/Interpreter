@@ -32,7 +32,11 @@
 #define COMPLEX_BASIC	5
 
 #define COMPLEX_TYPE_BIT	29
-#define COMPLEX_BIT_MASK	(~(0xFFFFFFFFu >> COMPLEX_TYPE_BIT << COMPLEX_TYPE_BIT))
+#define COMPLEX_DATA_BIT_MASK	(~(0xFFFFFFFFu >> COMPLEX_TYPE_BIT << COMPLEX_TYPE_BIT))
+#define COMPLEX_TYPE_BIT_MASK	(~COMPLEX_DATA_BIT_MASK)
+
+#define GET_COMPLEX_TYPE(x)		(((x) & COMPLEX_TYPE_BIT_MASK) >> COMPLEX_TYPE_BIT)
+#define GET_COMPLEX_DATA(x)		((x) & COMPLEX_DATA_BIT_MASK)
 
 #if PLATFORM_WORD_LEN == 4
 #define U_INT 8
@@ -119,8 +123,11 @@ public:
 	int get_element_size(void);
 	void* get_content_ptr(void){return content_ptr;}
 	void* get_complex_ptr(void){return this->comlex_info_ptr;}
+	int   get_complex_arg_count(void) {return this->complex_arg_count;}
 	void* get_element_ptr(int);
+	void set_complex_arg_count(int n) {this->complex_arg_count = n;}
 	void set_to_single(int);
+	void set_size(uint size) {this->size = size;}
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
 	void set_type(int type){this->type = type;}
 	char get_attribute(void){return this->attribute;}
