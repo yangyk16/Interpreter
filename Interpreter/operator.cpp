@@ -764,7 +764,7 @@ int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr
 		return ERROR_NO;
 	}
 	if(converted_type == converting_type) {
-		memcpy(converted_ptr, converting_ptr, get_varity_size(converting_type));
+		memcpy(converted_ptr, converting_ptr, get_varity_size(converting_type, 0, 0));//TODO:É¾³ýget_varity_sizeµÄ¼òµ¥ÖØÔØ
 	} else if(converted_type < converting_type) {
 		if(converted_type == INT || converted_type == U_INT || converted_type == LONG || converted_type == U_LONG) {
 			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG || converting_type == LONG_LONG || converting_type == U_LONG_LONG)

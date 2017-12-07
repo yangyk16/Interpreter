@@ -61,6 +61,7 @@ protected:
 	char attribute;
 	uint size;
 	void*	comlex_info_ptr;
+	int complex_arg_count;
 public:
 	inline uint get_size(void){return this->size;}
 	inline int get_type(void) {return this->type;}
@@ -75,7 +76,7 @@ public:
 	static void init_varity(void*, char*, char, uint);
 	void arg_init(char*, char, uint, void*);
 	void config_varity(char, void* = 0);
-	void config_complex_info(void*);
+	void config_complex_info(int, void*);
 	void clear_attribute(char);
 	varity_info();
 	varity_info(char*, int, uint);
@@ -152,7 +153,7 @@ public:
 };
 
 void* vmalloc(unsigned int size);
-int get_varity_size(int basic_type, uint *complex_info, int attribute = 0);
+int get_varity_size(int basic_type, uint *complex_info = 0, int complex_arg_count = 0);
 
 extern const char type_key[15][19];
 extern const char sizeof_type[15];

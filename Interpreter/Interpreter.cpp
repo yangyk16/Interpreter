@@ -1786,8 +1786,8 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					if(node_count) {
 						if(ptr_level)
 							node_count++;
-						complex_info = (uint*)vmalloc((node_count + 2) * sizeof(int)); //+个数和基本类型
-						cur_complex_info_ptr = complex_info + 1;
+						complex_info = (uint*)vmalloc((node_count + 1) * sizeof(int)); //+基本类型
+						cur_complex_info_ptr = complex_info + node_count;
 						node *head = analysis_data_struct_ptr->expression_final_stack.get_head();
 						for(int n=0; n<node_count; n++) {
 							head = head->right;
@@ -1797,18 +1797,17 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 							} else if(complex_attribute->value.int_value == OPT_PTR_CONTENT) {
 								*cur_complex_info_ptr = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
 							}
-							cur_complex_info_ptr++;
+							cur_complex_info_ptr--;
 						}
 						if(ptr_level)
-							*cur_complex_info_ptr++ = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | ptr_level;
-						*cur_complex_info_ptr++ = (COMPLEX_BASIC << COMPLEX_TYPE_BIT) | is_varity_declare;
-						*complex_info = (node_count + 1 << 8) + 1;//末尾置1表复杂类型
+							*cur_complex_info_ptr-- = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | ptr_level;
+						*cur_complex_info_ptr-- = (COMPLEX_BASIC << COMPLEX_TYPE_BIT) | is_varity_declare;
 					}
 					////////
 					varity_basic_type = is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT;
 					if(node_count)
 						varity_basic_type = COMPLEX;
-					varity_size = get_varity_size(varity_basic_type, complex_info);
+					varity_size = get_varity_size(varity_basic_type, complex_info, node_count + 1);
 					if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
 						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_basic_type, varity_size);
 						new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
@@ -1816,7 +1815,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, varity_basic_type, varity_size);
 						new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
 					}
-					new_varity_ptr->config_complex_info(complex_info);
+					new_varity_ptr->config_complex_info(node_count + 1, complex_info);
 					////////
 					break;
 				} else {

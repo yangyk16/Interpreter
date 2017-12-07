@@ -35,8 +35,9 @@ void varity_info::config_varity(char attribute, void* info_ptr)
 		this->comlex_info_ptr = info_ptr;
 }
 
-void varity_info::config_complex_info(void* info_ptr)
+void varity_info::config_complex_info(int complex_arg_count, void* info_ptr)
 {
+	this->complex_arg_count = complex_arg_count;
 	this->comlex_info_ptr = info_ptr;
 }
 
@@ -498,12 +499,12 @@ varity::varity(stack* g_stack, indexed_stack* l_stack, stack* a_stack)
 	this->current_stack_depth = 0;
 }
 
-int get_varity_size(int basic_type, uint *complex_info, int attribute)
+int get_varity_size(int basic_type, uint *complex_info, int complex_arg_count)
 {
 	if(basic_type == COMPLEX) {
 		int varity_size = 0;
-		int n = complex_info[0] >> 8;
-		for(int i=n; i>0; i--) {
+		int &n = complex_arg_count;
+		for(int i=0; i<n; i++) {
 			switch(complex_info[i] >> COMPLEX_TYPE_BIT) {
 			case COMPLEX_BASIC:
 				varity_size = sizeof_type[complex_info[i] & COMPLEX_BIT_MASK];
