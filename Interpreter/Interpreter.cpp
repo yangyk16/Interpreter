@@ -342,9 +342,17 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		break;
 	case OPT_NOT:
 	case OPT_BIT_REVERT:
-
 	case OPT_POSITIVE:
 	case OPT_NEGATIVE:
+		varity_number = this->mid_varity_stack.get_count();
+		this->mid_varity_stack.push();
+		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		varity_ptr->set_type(INT);
+		instruction_ptr->ret_addr = varity_number * 8;
+		instruction_ptr->ret_operator = opt;
+		instruction_ptr->ret_varity_type = INT;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
 	case OPT_ADDRESS_OF:
 		break;
@@ -352,9 +360,25 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		break;
 	case OPT_BIT_AND:
 	case OPT_BIT_OR:
+	case OPT_BIT_XOR:
 	case OPT_MOD:
 	case OPT_ASL:
-	case OPT_ASR:
+	case OPT_ASR://TODO：可能可以和NOT BIT_REVERT合并
+		varity_number = this->mid_varity_stack.get_count();
+		this->mid_varity_stack.push();
+		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		varity_ptr->set_type(INT);
+		instruction_ptr->ret_addr = varity_number * 8;
+		instruction_ptr->ret_operator = opt;
+		instruction_ptr->ret_varity_type = INT;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
+		break;
+	case OPT_TERNARY_Q://三目
+		static bool q_flag;
+		static mid_code *ternary_mid_code_ptr;
+		break;
+	case OPT_TERNARY_C:
 		break;
 	case OPT_AND:
 	case OPT_OR:
@@ -376,6 +400,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		(instruction_ptr - 1)->opda_addr = varity_number * 8;
 		break;
 	}
+	case OPT_COMMA:
+		break;
 	case OPT_CALL_FUNC:
 	case OPT_FUNC_COMMA:
 		if(opt_node_ptr->right) {
@@ -404,6 +430,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			varity_number = this->mid_varity_stack.get_count();
 			instruction_ptr->ret_addr = varity_number * 8;
 			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+			instruction_ptr->data = varity_number; //确认再确认，此处和中间代码函数调用运算符时栈的申请的联动处理。
 			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 			this->mid_varity_stack.push();
@@ -1206,6 +1233,13 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 									}
 								}
 							}
+						} else if(node_attribute->value.int_value == OPT_INDEX) {
+							analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
+							node_attribute = &analysis_data_struct_ptr->node_attribute[++node_index];
+							analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
+							node_attribute->node_type = TOKEN_OPERATOR;
+							node_attribute->value_type = 1;
+							node_attribute->value.int_value = OPT_L_SMALL_BRACKET;
 						}
 						analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
 						break;
@@ -1245,13 +1279,13 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 	}
 	root->link_reset();
 	list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
+	//root->middle_visit();
 	int ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
 	if(ret)return ret;
 	if(this->mid_varity_stack.get_count())
 		this->mid_varity_stack.pop();
 	if(this->mid_varity_stack.get_count())
 		this->mid_varity_stack.pop();
-	//root->middle_visit();
 	debug("generate code.\n");
 	//while(analysis_data_struct_ptr->expression_final_stack.get_count()) {
 	//	node_attribute_t *tmp = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.pop()->value;

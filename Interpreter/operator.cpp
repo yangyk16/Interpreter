@@ -1173,6 +1173,13 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 	return 0;
 }
 
+int opt_index_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	INT_VALUE(ret_addr) = (int)opda_addr + INT_VALUE(opdb_addr) * instruction_ptr->data;
+	return ERROR_NO;
+}
+
 int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc, *pc_backup = interpreter_ptr->pc;
@@ -1182,7 +1189,7 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 		interpreter_ptr->stack_pointer += interpreter_ptr->nonseq_info->stack_frame_size;
 	else
 		interpreter_ptr->stack_pointer += interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1];
-	interpreter_ptr->tmp_varity_stack_pointer += 24;//一句产生的中间代码可能最多用三个临时变量吧…
+	interpreter_ptr->tmp_varity_stack_pointer += 24;//一句产生的中间代码可能最多用三个临时变量吧…TODO:考虑link变量后在CALL_FUNC生成代码时附加当前使用get_count()值？
 	interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth] = function_ptr->stack_frame_size;
 	interpreter_ptr->call_func_info.function_depth++;
 
@@ -1258,6 +1265,7 @@ void handle_init(void)
 	opt_handle[OPT_PLUS] = opt_plus_handle;
 	opt_handle[OPT_SMALL] = opt_small_handle;
 	opt_handle[OPT_ASSIGN] = opt_assign_handle;
+	opt_handle[OPT_INDEX] = opt_index_handle;
 	opt_handle[OPT_CALL_FUNC] = opt_call_func_handle;
 	opt_handle[OPT_FUNC_COMMA] = opt_func_comma_handle;
 	opt_handle[CTL_BRANCH] = ctl_branch_handle;
@@ -1273,7 +1281,7 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
 	int *opda_addr, *opdb_addr, *ret_addr, ret;
 	long long opda_value, opdb_value;
-	switch(instruction_ptr->opda_operand_type & 3) {
+	switch(instruction_ptr->opda_operand_type) {
 	case OPERAND_CONST:
 		opda_addr = (int*)&opda_value;
 		memcpy(opda_addr, &instruction_ptr->opda_addr, 8);
@@ -1290,12 +1298,14 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 		else
 			opda_addr = (int*)(interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + instruction_ptr->opda_addr + sp);
 		break;
+	case OPERAND_LINK_VARITY:
+		opda_addr = (int*)PTR_VALUE(t_varity_sp + instruction_ptr->opda_addr);
+		break;
 	default:
 		opda_addr = (int*)instruction_ptr->opda_addr;
 		break;
 	}
-	if(instruction_ptr->opda_operand_type & OPERAND_LINK_VARITY)
-		opda_addr = (int*)INT_VALUE(t_varity_sp + instruction_ptr->opda_addr);
+		
 	switch(instruction_ptr->opdb_operand_type) {
 	case OPERAND_CONST:
 		opdb_addr = (int*)&opdb_value;
@@ -1313,6 +1323,9 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 		else
 			opdb_addr = (int*)(interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + instruction_ptr->opdb_addr + sp);
 		break;
+	case OPERAND_LINK_VARITY:
+		opdb_addr = (int*)PTR_VALUE(t_varity_sp + instruction_ptr->opdb_addr);
+		break;
 	default:
 		opdb_addr = (int*)instruction_ptr->opdb_addr;
 		break;
@@ -1323,6 +1336,9 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 		break;
 	case OPERAND_T_VARITY:
 		ret_addr = (int*)(instruction_ptr->ret_addr + t_varity_sp);
+		break;
+	case OPERAND_LINK_VARITY:
+		ret_addr = (int*)(t_varity_sp + instruction_ptr->ret_addr);
 		break;
 	default:
 		ret_addr = (int*)instruction_ptr->ret_addr;
