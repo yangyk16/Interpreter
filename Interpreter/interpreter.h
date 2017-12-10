@@ -195,6 +195,7 @@ class c_interpreter: public interpreter {
 	friend int call_opt_handle(c_interpreter *interpreter_ptr);
 	friend int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr);
 	int test(char *str, uint len);
+	void print_code(void);
 	//////////////////////////////////////////////////////////////////////
 	virtual int call_func(char*, char*, uint);
 	virtual int sentence_analysis(char*, uint);

@@ -24,8 +24,8 @@
 #define OPT_ASL_ASSIGN			0
 #define OPT_ASR_ASSIGN			1
 #define OPT_REFERENCE			2
-#define OPT_PLUS_PLUS			3
-#define OPT_MINUS_MINUS			4
+#define OPT_PLUS_PLUS			3//no mid code
+#define OPT_MINUS_MINUS			4//no mid code
 #define OPT_ASL					5
 #define OPT_ASR					6
 #define OPT_BIG_EQU				7
@@ -42,10 +42,10 @@
 #define OPT_BIT_AND_ASSIGN		18
 #define OPT_BIT_XOR_ASSIGN		19
 #define OPT_BIT_OR_ASSIGN		20
-#define OPT_L_MID_BRACKET		21
-#define OPT_R_MID_BRACKET		22
-#define OPT_L_SMALL_BRACKET		23
-#define OPT_R_SMALL_BRACKET		24
+#define OPT_L_MID_BRACKET		21//no mid code
+#define OPT_R_MID_BRACKET		22//no mid code
+#define OPT_L_SMALL_BRACKET		23//no mid code
+#define OPT_R_SMALL_BRACKET		24//no mid code
 #define OPT_MEMBER				25
 #define OPT_MINUS				26
 #define OPT_BIT_REVERT			27
@@ -62,8 +62,8 @@
 #define OPT_TERNARY_Q			38
 #define OPT_TERNARY_C			39
 #define OPT_ASSIGN				40
-#define OPT_COMMA				41
-#define OPT_EDGE				42
+#define OPT_COMMA				41//no mid code
+#define OPT_EDGE				42//no mid code
 #define OPT_NEGATIVE			43
 #define OPT_POSITIVE			44
 #define OPT_PTR_CONTENT			45
@@ -71,10 +71,10 @@
 #define OPT_INDEX				47
 #define OPT_CALL_FUNC			48
 #define OPT_FUNC_COMMA 			49
-#define OPT_L_PLUS_PLUS			50
-#define OPT_R_PLUS_PLUS			51
-#define OPT_L_MINUS_MINUS		52
-#define OPT_R_MINUS_MINUS		53
+#define OPT_L_PLUS_PLUS			50//no mid code
+#define OPT_R_PLUS_PLUS			51//no mid code
+#define OPT_L_MINUS_MINUS		52//no mid code
+#define OPT_R_MINUS_MINUS		53//no mid code
 
 #define CTL_BRANCH				100
 #define CTL_BRANCH_TRUE			101

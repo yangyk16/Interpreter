@@ -928,6 +928,7 @@ int opt_and_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_add
 	if(ret)
 		return ERROR_TYPE_CONVERT;
 	INT_VALUE(ret_addr) = converted_varitya && converted_varityb;
+	return 0;
 }
 
 int opt_or_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
@@ -1108,6 +1109,7 @@ int opt_small_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_a
 int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	//varity_convert(opda_addr, instruction_ptr->opda_varity_type, opdb_addr, instruction_ptr->opdb_varity_type);
 	int type = instruction_ptr->opdb_varity_type;
 	if(instruction_ptr->opda_varity_type > CHAR) {
 		if(type == INT || type == U_INT || type == LONG || type == U_LONG) {

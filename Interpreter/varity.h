@@ -65,8 +65,8 @@ protected:
 	char attribute;
 	uint size;
 	void*	comlex_info_ptr;
-	int complex_arg_count;
 public:
+	int complex_arg_count;
 	inline uint get_size(void){return this->size;}
 	inline int get_type(void) {return this->type;}
 	static void init(void*, char*, char, char, uint);

@@ -181,7 +181,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	switch(opt) {
 		int ret_type;
 	case OPT_MEMBER:
-	case OPT_REFERENCE:
+	case OPT_REFERENCE://TODO：这种实现是错的，如果不是全局变量结构体，结果会错。还是要经由中间代码实现
 	{
 		varity_info *member_varity_ptr, *struct_ptr = varity_ptr;
 		struct_info *struct_info_ptr = (struct_info*)varity_ptr->get_complex_ptr();
@@ -354,9 +354,27 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
-	case OPT_ADDRESS_OF:
+	case OPT_ADDRESS_OF://TODO:变量声明时，基本变量也设置complex_info，增加complex_info最大容限，避免无限取地址出错，在声明时可预留1次取地址扩展，取址时先验证扩展位是否为0再扩展，否则覆盖其他变量类型。
+		varity_number = this->mid_varity_stack.get_count();
+		this->mid_varity_stack.push();
+		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		
+		instruction_ptr->ret_addr = varity_number * 8;
+		instruction_ptr->ret_varity_type = VOID + BASIC_VARITY_TYPE_COUNT;//TODO：考察所有指针在生成中间代码时置为void*的可行性
+		instruction_ptr->ret_operator = opt;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
 		break;
-	case OPT_PTR_CONTENT:
+	case OPT_PTR_CONTENT://做成链接变量，即使是基本类型的一级指针取内容
+		varity_number = this->mid_varity_stack.get_count();
+		this->mid_varity_stack.push();
+		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		
+		instruction_ptr->ret_addr = varity_number * 8;
+		instruction_ptr->ret_varity_type = VOID + BASIC_VARITY_TYPE_COUNT;//TODO：考察所有指针在生成中间代码时置为void*的可行性
+		instruction_ptr->ret_operator = opt;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
 		break;
 	case OPT_BIT_AND:
 	case OPT_BIT_OR:
@@ -374,12 +392,20 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
-	case OPT_TERNARY_Q://三目
-		static bool q_flag;
-		static mid_code *ternary_mid_code_ptr;
-		break;
+	case OPT_TERNARY_Q://OPT_TERNARY_C的中序中处理
+		return ERROR_NO;
 	case OPT_TERNARY_C:
-		break;
+	{
+		this->generate_expression_value(code_stack_ptr, (node_attribute_t*)opt_node_ptr->right->value);
+		varity_number = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value[1];
+		instruction_ptr->ret_addr = instruction_ptr->opda_addr = varity_number * 8;
+		mid_code *&ternary_code_ptr = (mid_code*&)this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth];
+		ternary_code_ptr->opda_addr = instruction_ptr + 1 - ternary_code_ptr;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
+		((varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number))->set_type(instruction_ptr->ret_varity_type);
+		return ERROR_NO;
+	}
 	case OPT_AND:
 	case OPT_OR:
 	{
@@ -401,7 +427,13 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		break;
 	}
 	case OPT_COMMA:
-		break;
+	{
+		node_attribute_t *&root_attribute_ptr = (node_attribute_t*&)opt_node_ptr->value;
+		root_attribute_ptr->node_type = node_attribute->node_type;
+		root_attribute_ptr->value = node_attribute->value;
+		root_attribute_ptr->value_type = node_attribute->value_type;
+		return ERROR_NO;
+	}
 	case OPT_CALL_FUNC:
 	case OPT_FUNC_COMMA:
 		if(opt_node_ptr->right) {
@@ -451,8 +483,34 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr)
 {
 	register mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
-	node_attribute_t *node_attribute = ((node_attribute_t*)opt_node_ptr->value);
+	node_attribute_t *&node_attribute = ((node_attribute_t*&)opt_node_ptr->value);
 	switch(node_attribute->value.int_value) {
+	case OPT_TERNARY_Q:
+		this->generate_expression_value(code_stack_ptr, (node_attribute_t*)opt_node_ptr->left->value);
+		instruction_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+		instruction_ptr->ret_operator = CTL_BRANCH_FALSE;
+		this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth++] = (int)instruction_ptr;
+		code_stack_ptr->push();
+		break;
+	case OPT_TERNARY_C:
+	{
+		if(((node_attribute_t*)opt_node_ptr->left->value)->value.int_value != OPT_TERNARY_Q) {
+			error("? && : unmatch.\n");
+			return ERROR_TERNARY_UNMATCH;
+		}
+		this->generate_expression_value(code_stack_ptr, (node_attribute_t*)opt_node_ptr->left->right->value);
+		register int varity_number = instruction_ptr->opda_addr / 8;
+		((varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number))->set_type(instruction_ptr->ret_varity_type);
+		((node_attribute_t*)opt_node_ptr->left->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value = tmp_varity_name[varity_number];
+		instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
+		instruction_ptr->ret_operator = CTL_BRANCH;
+		code_stack_ptr->push();
+		mid_code *&ternary_code_ptr = (mid_code*&)this->sentence_analysis_data_struct.short_calc_stack[--this->sentence_analysis_data_struct.short_depth];
+		ternary_code_ptr->opda_addr = ++instruction_ptr - ternary_code_ptr;
+		this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth] = (int)(instruction_ptr - 1);
+		break;
+	}
 	case OPT_CALL_FUNC:
 		this->call_func_info.function_ptr[this->call_func_info.function_depth] = this->function_declare->find(((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value);
 		if(!this->call_func_info.function_ptr[this->call_func_info.function_depth]) {
@@ -499,7 +557,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 			code_stack_ptr->push();
 		}
 		break;
-	case OPT_AND:
+	case OPT_AND://TODO:和OR合并
 		this->generate_expression_value(code_stack_ptr, (node_attribute_t*)opt_node_ptr->left->value);
 		instruction_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 		instruction_ptr->ret_operator = CTL_BRANCH_TRUE;
@@ -542,6 +600,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		code_stack_ptr->push();
 		break;
 	}
+	return ERROR_NO;
 }
 
 int c_interpreter::tree_to_code(node *tree, stack *code_stack)
@@ -550,10 +609,7 @@ int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 	if(tree->left && ((node_attribute_t*)tree->left->value)->node_type == TOKEN_OPERATOR)
 		this->tree_to_code(tree->left, code_stack);
 	//需要中序处理的几个运算符：CALL_FUNC，&&，||，FUNC_COMMA等
-	if(((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR && (((node_attribute_t*)tree->value)->value.int_value == OPT_CALL_FUNC
-		|| ((node_attribute_t*)tree->value)->value.int_value == OPT_FUNC_COMMA
-		|| ((node_attribute_t*)tree->value)->value.int_value == OPT_AND
-		|| ((node_attribute_t*)tree->value)->value.int_value == OPT_OR)) {
+	if(((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR) {
 		ret = this->operator_mid_handle(code_stack, tree);
 	}
 	if(tree->right && ((node_attribute_t*)tree->right->value)->node_type == TOKEN_OPERATOR)
@@ -1278,10 +1334,16 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 		return ERROR_NO;
 	}
 	root->link_reset();
-	list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
-	//root->middle_visit();
-	int ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
+	int ret;
+	ret = list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
 	if(ret)return ret;
+	//root->middle_visit();
+	ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
+	if(ret)return ret;
+	if(this->sentence_analysis_data_struct.short_depth) {
+		error("? && : unmatch.\n");
+		return ERROR_TERNARY_UNMATCH;
+	}
 	if(this->mid_varity_stack.get_count())
 		this->mid_varity_stack.pop();
 	if(this->mid_varity_stack.get_count())
@@ -1301,7 +1363,12 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribute_t *node_attribute)
 {
 		mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
-		instruction_ptr->opda_addr = 0;
+		if(node_attribute->node_type == TOKEN_NAME && node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
+			instruction_ptr->opda_addr = 8 * node_attribute->value.ptr_value[1];
+		} else {
+			instruction_ptr->opda_addr = this->mid_code_stack.get_count() * 8;//TODO：0只适合全表达式的值，&&和？等运算符会出问题
+			this->mid_varity_stack.push();
+		}
 		instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
 		instruction_ptr->ret_operator = OPT_ASSIGN;
 		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
@@ -1337,6 +1404,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 		}
 		instruction_ptr->opda_varity_type = instruction_ptr->opdb_varity_type;
 		instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type;
+		instruction_ptr->ret_addr = instruction_ptr->opda_addr;//TODO：需要吗？核对一下handle
 		code_stack_ptr->push();
 		return ERROR_NO;
 }
@@ -2006,18 +2074,13 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 		return key_word_ret;
 	}
 	ret = this->generate_mid_code(str, len, true);
+	if(ret) return ret;
 	if(this->exec_flag) {
 		int mid_code_count = this->cur_mid_code_stack_ptr->get_count();
+		this->print_code();
 		this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), mid_code_count);
 		this->cur_mid_code_stack_ptr->empty();
 	}
-	//for(int n=0; n<mid_code_count; n++) {
-	//	((mid_code*)this->cur_mid_code_stack_ptr->visit_element_by_index(n))->exec_code(this->stack_pointer, this->tmp_varity_stack_pointer);
-	//}
-	return 0;
-	uint current_analysis_varity_count = this->varity_declare->analysis_varity_stack->get_count();
-	this->varity_declare->destroy_analysis_varity(current_analysis_varity_count - analysis_varity_count);
-	str[source_len] = ch_last;
 	return ERROR_NO;
 }
 
@@ -2037,4 +2100,13 @@ int c_interpreter::sub_sentence_analysis(char* str, uint *len)//无括号或仅含类型
 int c_interpreter::non_seq_struct_check(char* str)
 {
 	return nonseq_key_cmp(str);
+}
+
+void c_interpreter::print_code(void)
+{
+	int n = this->cur_mid_code_stack_ptr->get_count();
+	mid_code *ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+	for(int i=0; i<n; i++, ptr++) {
+		debug("opt=%d,radd=%x,rtype=%d,ropd=%d,aadd=%x,atype=%d,aopd=%d,badd=%x,byte=%d,bopd=%d\n",ptr->ret_operator,ptr->ret_addr,ptr->ret_varity_type,ptr->ret_operand_type,ptr->opda_addr,ptr->opda_varity_type,ptr->opda_operand_type,ptr->opdb_addr,ptr->opdb_varity_type,ptr->opdb_operand_type);
+	}
 }
