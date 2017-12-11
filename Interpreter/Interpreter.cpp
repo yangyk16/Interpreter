@@ -1949,7 +1949,8 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, varity_basic_type, varity_size);
 						new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
 					}
-					new_varity_ptr->config_complex_info(node_count + 1, complex_info);
+					if(node_count)
+						new_varity_ptr->config_complex_info(node_count + 1, complex_info);
 					////////
 					break;
 				} else {
