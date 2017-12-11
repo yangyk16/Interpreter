@@ -206,10 +206,10 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		this->mid_varity_stack.push();
 		uint *complex_info_ptr = (uint*)varity_ptr->get_complex_ptr();
 		int complex_arg_count = varity_ptr->get_complex_arg_count();
-		if(GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count - 1]) == COMPLEX_ARRAY || GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count - 1]) == COMPLEX_PTR) {
+		if(GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count]) == COMPLEX_ARRAY || GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count]) == COMPLEX_PTR) {
 			varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-			if(complex_arg_count - 1 == 1)
-				varity_ptr->set_type(complex_info_ptr[0]);
+			if(complex_arg_count == 1)
+				varity_ptr->set_type(complex_info_ptr[0]);//TODO:set_type也需要重写与声明统一
 			else
 				varity_ptr->set_type(COMPLEX);
 			varity_ptr->set_size(get_varity_size(GET_COMPLEX_DATA(complex_info_ptr[0]), complex_info_ptr, complex_arg_count - 1));
@@ -1918,8 +1918,8 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					if(node_count) {
 						if(ptr_level)
 							node_count++;
-						complex_info = (uint*)vmalloc((node_count + 1) * sizeof(int)); //+基本类型
-						cur_complex_info_ptr = complex_info + node_count;
+						complex_info = (uint*)vmalloc((node_count + 2) * sizeof(int)); //+基本类型
+						cur_complex_info_ptr = complex_info + node_count + 1;
 						node *head = analysis_data_struct_ptr->expression_final_stack.get_head();
 						for(int n=0; n<node_count; n++) {
 							head = head->right;
@@ -1937,8 +1937,6 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					}
 					////////
 					varity_basic_type = is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT;
-					if(is_varity_declare == STRUCT)
-						complex_info = (unsigned int*)struct_node_ptr;
 					if(node_count)
 						varity_basic_type = COMPLEX;
 					varity_size = get_varity_size(varity_basic_type, complex_info, node_count + 1);
@@ -1951,6 +1949,10 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					}
 					if(node_count)
 						new_varity_ptr->config_complex_info(node_count + 1, complex_info);
+					else {
+						if(is_varity_declare == STRUCT)
+							((void**)new_varity_ptr->get_complex_ptr())[1] = (int*)struct_node_ptr;					
+					}
 					////////
 					break;
 				} else {

@@ -12,7 +12,7 @@
 const char type_key[15][19] = {"empty", "struct", "void", "double", "float", "unsigned long long", "long long", "unsigned long", "unsigned int", "long", "int", "unsigned short", "short", "unsigned char", "char"};
 const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 4, 4, 4, 4, 2, 2, 1, 1};
 const char type_len[] = {5, 6, 4, 6, 5, 18, 9, 13, 12, 4, 3, 14, 5, 13, 4};
-int basic_type_info[15][4] = {{1, COMPLEX}, {1, STRUCT}, {1, VOID}, {1, DOUBLE}, {1, FLOAT}, {1, U_LONG_LONG}, {1, LONG_LONG}, {1, U_INT}, {1, LONG}, {1, INT}, {1, U_SHORT}, {1, SHORT}, {1, U_CHAR}, {1, CHAR}};
+int basic_type_info[15][4] = {{1, COMPLEX}, {1, 0, STRUCT}, {1, VOID}, {1, DOUBLE}, {1, FLOAT}, {1, U_LONG_LONG}, {1, LONG_LONG}, {1, U_INT}, {1, LONG}, {1, INT}, {1, U_SHORT}, {1, SHORT}, {1, U_CHAR}, {1, CHAR}};
 #elif PLATFORM_WORD_LEN == 8
 const char type_key[15][19] = {"empty", "struct", "void", "double", "float", "unsigned long long", "long long", "unsigned long", "long", "unsigned int", "int", "unsigned short", "short", "unsigned char", "char"};
 const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};
@@ -77,8 +77,12 @@ void varity_info::init_varity(void* addr, char* name, char type, uint size)
 	varity_ptr->attribute = 0;
 	if(type != COMPLEX) {
 		varity_ptr->comlex_info_ptr = basic_type_info[type];
-		varity_ptr->complex_arg_count = 1;
 		basic_type_info[type][0]++;
+		if(type != STRUCT) {
+			varity_ptr->complex_arg_count = 1;
+		} else {
+			varity_ptr->complex_arg_count = 2;
+		}
 	}
 }
 
@@ -510,10 +514,13 @@ int get_varity_size(int basic_type, uint *complex_info, int complex_arg_count)
 	if(basic_type == COMPLEX) {
 		int varity_size = 0;
 		int &n = complex_arg_count;
-		for(int i=0; i<n; i++) {
+		for(int i=1; i<n+1; i++) {
 			switch(complex_info[i] >> COMPLEX_TYPE_BIT) {
 			case COMPLEX_BASIC:
-				varity_size = sizeof_type[complex_info[i] & COMPLEX_DATA_BIT_MASK];
+				if((complex_info[i] & COMPLEX_DATA_BIT_MASK) != STRUCT)
+					varity_size = sizeof_type[complex_info[i] & COMPLEX_DATA_BIT_MASK];
+				else
+					varity_size = ((struct_info*)complex_info[i - 1])->struct_size;
 				break;
 			case COMPLEX_PTR:
 				varity_size = PLATFORM_WORD_LEN;

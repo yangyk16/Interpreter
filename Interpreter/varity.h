@@ -68,7 +68,7 @@ protected:
 public:
 	int complex_arg_count;
 	inline uint get_size(void){return this->size;}
-	inline int get_type(void) {if(this->complex_arg_count == 1)return this->comlex_info_ptr[1];else return COMPLEX;}
+	inline int get_type(void) {if(this->complex_arg_count == 1)return this->comlex_info_ptr[1];else if(this->complex_arg_count == 2 && this->comlex_info_ptr[2] == STRUCT) return STRUCT; else return COMPLEX;}
 	static void init(void*, char*, char, char, uint);
 };
 
