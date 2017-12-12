@@ -237,6 +237,9 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		this->mid_varity_stack.push();
 		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 		varity_ptr->set_type(ret_type);
+		if(ret_type == PTR) {
+			instruction_ptr->data = varity_ptr->get_element_size();
+		}
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
@@ -355,27 +358,32 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
 	case OPT_ADDRESS_OF://TODO:变量声明时，基本变量也设置complex_info，增加complex_info最大容限，避免无限取地址出错，在声明时可预留1次取地址扩展，取址时先验证扩展位是否为0再扩展，否则覆盖其他变量类型。
+	{
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
 		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_varity_type = VOID + BASIC_VARITY_TYPE_COUNT;//TODO：考察所有指针在生成中间代码时置为void*的可行性
 		instruction_ptr->ret_operator = opt;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
 		break;
+	}
 	case OPT_PTR_CONTENT://做成链接变量，即使是基本类型的一级指针取内容
+	{
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
-		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		
+		varity_info *link_varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		link_varity_ptr->config_complex_info(varity_ptr->get_complex_arg_count() - 1, varity_ptr->get_complex_ptr());
+		link_varity_ptr->set_size(get_varity_size(0, (uint*)varity_ptr->get_complex_ptr(), link_varity_ptr->get_complex_arg_count()));
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_varity_type = VOID + BASIC_VARITY_TYPE_COUNT;//TODO：考察所有指针在生成中间代码时置为void*的可行性
 		instruction_ptr->ret_operator = opt;
+		instruction_ptr->ret_operand_type = OPERAND_LINK_VARITY;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
 		break;
+	}
 	case OPT_BIT_AND:
 	case OPT_BIT_OR:
 	case OPT_BIT_XOR:

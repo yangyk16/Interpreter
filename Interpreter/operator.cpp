@@ -1175,6 +1175,13 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 	return 0;
 }
 
+int opt_ptr_content_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	PTR_VALUE(ret_addr) = opdb_addr;
+	return ERROR_NO;
+}
+
 int opt_index_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
@@ -1267,6 +1274,7 @@ void handle_init(void)
 	opt_handle[OPT_PLUS] = opt_plus_handle;
 	opt_handle[OPT_SMALL] = opt_small_handle;
 	opt_handle[OPT_ASSIGN] = opt_assign_handle;
+	opt_handle[OPT_PTR_CONTENT] = opt_ptr_content_handle;
 	opt_handle[OPT_INDEX] = opt_index_handle;
 	opt_handle[OPT_CALL_FUNC] = opt_call_func_handle;
 	opt_handle[OPT_FUNC_COMMA] = opt_func_comma_handle;

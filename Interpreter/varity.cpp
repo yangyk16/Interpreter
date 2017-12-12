@@ -36,6 +36,17 @@ void varity_info::config_varity(char attribute, void* info_ptr)
 		this->comlex_info_ptr = (int*)info_ptr;
 }
 
+int varity_attribute::get_type(void)
+{
+	if(this->complex_arg_count == 1)
+		return this->comlex_info_ptr[1];
+	else if(this->complex_arg_count == 2 && this->comlex_info_ptr[2] == STRUCT)
+		return STRUCT;
+	else {
+		return PTR;
+	}
+}
+
 void varity_info::config_complex_info(int complex_arg_count, void* info_ptr)
 {
 	this->complex_arg_count = complex_arg_count;
@@ -99,11 +110,18 @@ varity_info::varity_info(char* name, int type, uint size)
 
 int varity_info::get_element_size(void)
 {
-	if(this->type == STRUCT) {
-		return ((struct_info*)this->comlex_info_ptr)->struct_size;
-	} else {
-		return sizeof_type[this->type];
+	int i;
+	for(i=this->complex_arg_count; i>0; i--) {
+		if(GET_COMPLEX_TYPE(this->comlex_info_ptr[i]) != COMPLEX_ARRAY) {
+			break;
+		}
 	}
+	return get_varity_size(0, (uint*)this->comlex_info_ptr, i);
+	//if(this->type == STRUCT) {
+	//	return ((struct_info*)this->comlex_info_ptr)->struct_size;
+	//} else {
+	//	return sizeof_type[this->type];
+	//}
 }
 
 void* varity_info::get_element_ptr(int index)
