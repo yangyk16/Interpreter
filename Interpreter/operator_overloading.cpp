@@ -16,7 +16,7 @@
 			*(float*)(ret.content_ptr) = *(float*)(obj1.content_ptr) opt *(float*)(obj2.content_ptr); \
 		} \
 	} else { \
-		int mintype = min(obj1.type, obj2.type); \
+		int mintype = max(obj1.type, obj2.type); \
 		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) { \
 			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) opt *(int*)(obj2.content_ptr); \
 		} else if(mintype == U_SHORT || mintype == SHORT) { \
@@ -73,7 +73,7 @@
 			*(int*)(ret.content_ptr) = *(float*)(obj1.content_ptr) opt *(float*)(obj2.content_ptr); \
 		} \
 	} else { \
-		int mintype = min(obj1.type, obj2.type); \
+		int mintype = max(obj1.type, obj2.type); \
 		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) { \
 			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) opt *(int*)(obj2.content_ptr); \
 		} else if(mintype == U_SHORT || mintype == SHORT) { \
@@ -126,7 +126,7 @@
 			*(int*)(ret.content_ptr) = *(char*)(obj1.content_ptr) opt *(char*)(obj2.content_ptr); \
 		} \
 	} else { \
-		int mintype = min(obj1.type, obj2.type); \
+		int mintype = max(obj1.type, obj2.type); \
 		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) { \
 			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) opt *(int*)(obj2.content_ptr); \
 		} else if(mintype == U_SHORT || mintype == SHORT) { \
@@ -147,7 +147,7 @@
 			*(char*)(ret.content_ptr) = *(char*)(obj1.content_ptr) opt *(char*)(obj2.content_ptr); \
 		} \
 	} else { \
-		int mintype = min(obj1.type, obj2.type); \
+		int mintype = max(obj1.type, obj2.type); \
 		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) { \
 			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) opt *(int*)(obj2.content_ptr); \
 		} else if(mintype == U_SHORT || mintype == SHORT) { \
@@ -162,7 +162,7 @@ varity_info& operator+(varity_info& obj1, varity_info& obj2)
 {
 	static varity_info ret;
 	ret.reset();
-	ret.type = min(obj1.type, obj2.type);
+	ret.type = max(obj1.type, obj2.type);
 	ret.size = sizeof_type[ret.type];
 	ret.apply_space();
 	if(obj1.type == obj2.type) {
@@ -210,7 +210,7 @@ varity_info& operator-(varity_info& obj1, varity_info& obj2)
 {
 	static varity_info ret;
 	ret.reset();
-	ret.type = min(obj1.type, obj2.type);
+	ret.type = max(obj1.type, obj2.type);
 	ret.size = sizeof_type[ret.type];
 	ret.apply_space();
 	OPERATOR_OVERLOAD_MACRO(-);
@@ -220,7 +220,7 @@ varity_info& operator*(varity_info& obj1, varity_info& obj2)
 {
 	static varity_info ret;
 	ret.reset();
-	ret.type = min(obj1.type, obj2.type);
+	ret.type = max(obj1.type, obj2.type);
 	ret.size = sizeof_type[ret.type];
 	ret.apply_space();
 	if(obj1.type == obj2.type) {
@@ -268,7 +268,7 @@ varity_info& operator/(varity_info& obj1, varity_info& obj2)
 {
 	static varity_info ret;
 	ret.reset();
-	ret.type = min(obj1.type, obj2.type);
+	ret.type = max(obj1.type, obj2.type);
 	ret.size = sizeof_type[ret.type];
 	ret.apply_space();
 	OPERATOR_OVERLOAD_MACRO(/);
@@ -278,7 +278,7 @@ varity_info& operator%(varity_info& obj1, varity_info& obj2)
 {
 	static varity_info ret;
 	ret.reset();
-	ret.type = min(obj1.type, obj2.type);
+	ret.type = max(obj1.type, obj2.type);
 	if(ret.type == FLOAT || ret.type == DOUBLE) {
 		ret.reset();
 		error("float cannot be used in mod operator\n");
@@ -310,7 +310,7 @@ varity_info& operator>(varity_info& obj1, varity_info& obj2)
 			*(int*)(ret.content_ptr) = *(float*)(obj1.content_ptr) > *(float*)(obj2.content_ptr);
 		}
 	} else {
-		int mintype = min(obj1.type, obj2.type);
+		int mintype = max(obj1.type, obj2.type);
 		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) {
 			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) > *(int*)(obj2.content_ptr);
 		} else if(mintype == U_SHORT || mintype == SHORT) {
@@ -374,7 +374,7 @@ varity_info& operator<(varity_info& obj1, varity_info& obj2)
 			*(int*)(ret.content_ptr) = *(float*)(obj1.content_ptr) < *(float*)(obj2.content_ptr);
 		}
 	} else {
-		int mintype = min(obj1.type, obj2.type);
+		int mintype = max(obj1.type, obj2.type);
 		if(mintype == U_LONG || mintype == LONG || mintype == U_INT || mintype == INT) {
 			*(int*)(ret.content_ptr) = *(int*)(obj1.content_ptr) < *(int*)(obj2.content_ptr);
 		} else if(mintype == U_SHORT || mintype == SHORT) {

@@ -9,10 +9,10 @@
 #include "string_lib.h"
 
 #if PLATFORM_WORD_LEN == 4
-const char type_key[15][19] = {"empty", "struct", "void", "double", "float", "unsigned long long", "long long", "unsigned long", "unsigned int", "long", "int", "unsigned short", "short", "unsigned char", "char"};
-const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 4, 4, 4, 4, 2, 2, 1, 1};
-const char type_len[] = {5, 6, 4, 6, 5, 18, 9, 13, 12, 4, 3, 14, 5, 13, 4};
-int basic_type_info[15][4] = {{1, COMPLEX}, {1, 0, STRUCT}, {1, VOID}, {1, DOUBLE}, {1, FLOAT}, {1, U_LONG_LONG}, {1, LONG_LONG}, {1, U_INT}, {1, LONG}, {1, INT}, {1, U_SHORT}, {1, SHORT}, {1, U_CHAR}, {1, CHAR}};
+const char type_key[15][19] = {"char", "unsigned char", "short", "unsigned short", "int", "long", "unsigned int", "unsigned long", "long long", "unsigned long long", "float", "double", "void", "struct", "empty"};
+const char sizeof_type[] = {1, 1, 2, 2, 4, 4, 4, 4, 8, 8, 4, 8, 0, 0, 0};
+const char type_len[] = {4, 13, 5, 14, 3, 4, 12, 13, 9, 18, 5, 6, 4, 6, 5};
+int basic_type_info[15][4] = {{1, CHAR}, {1, U_CHAR}, {1, SHORT}, {1, U_SHORT}, {1, INT}, {1, LONG}, {1, U_INT}, {1, U_LONG}, {1, LONG_LONG}, {1, U_LONG_LONG}, {1, FLOAT}, {1, DOUBLE}, {1, VOID}, {1, 0, STRUCT}, {1, COMPLEX}};
 #elif PLATFORM_WORD_LEN == 8
 const char type_key[15][19] = {"empty", "struct", "void", "double", "float", "unsigned long long", "long long", "unsigned long", "long", "unsigned int", "int", "unsigned short", "short", "unsigned char", "char"};
 const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};
@@ -106,6 +106,22 @@ varity_info::varity_info(char* name, int type, uint size)
 	this->size = size;
 	this->attribute = 0;
 	this->content_ptr = 0;
+}
+
+void varity_info::set_type(int type)
+{
+	if(type < PTR) {
+		this->comlex_info_ptr = basic_type_info[type];
+		this->complex_arg_count = 1;
+	}
+}
+
+int varity_info::get_first_order_sub_struct_size(void)
+{
+	if(this->comlex_info_ptr[this->complex_arg_count] == COMPLEX_PTR || this->comlex_info_ptr[this->complex_arg_count] == COMPLEX_ARRAY)
+		return get_varity_size(0, (uint*)this->comlex_info_ptr, this->complex_arg_count - 1);
+	else
+		return ERROR_NO_SUB_STRUCT;
 }
 
 int varity_info::get_element_size(void)

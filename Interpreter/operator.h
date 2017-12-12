@@ -84,7 +84,7 @@
 
 class c_interpreter;
 
-int min(int a, int b);
+int max(int a, int b);
 void handle_init(void);
 int call_opt_handle(c_interpreter *interpreter_ptr);
 

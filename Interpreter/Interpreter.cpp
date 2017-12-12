@@ -56,7 +56,7 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 			error("Invalid key word.\n");
 			return ERROR_INVALID_KEYWORD;
 		}
-		if(opt_number[((node_attribute_t*)tree_node->value)->value.int_value] == 1) {
+		if(opt_number[((node_attribute_t*)tree_node->value)->value.int_value] == 1 && ((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR) {
 			return ERROR_NO;
 		}
 		//TODO: 函数查参数个数, 避免使用全局function数组，应把全局量改为类的静态成员变量
@@ -101,7 +101,7 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 
 int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr)
 {
-	register varity_info *varity_ptr;
+	register varity_info *avarity_ptr, *bvarity_ptr, *rvarity_ptr;
 	register int opt = ((node_attribute_t*)opt_node_ptr->value)->value.int_value;
 	register int varity_scope;
 	register node_attribute_t *node_attribute;
@@ -121,15 +121,15 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				this->mid_varity_stack.pop();
 			} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {
 				varity_number = node_attribute->value.ptr_value[1];
-				varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+				avarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 				instruction_ptr->opda_operand_type = OPERAND_LINK_VARITY;
 				instruction_ptr->opda_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 				instruction_ptr->opda_addr = 8 * node_attribute->value.ptr_value[1];
 				this->mid_varity_stack.pop();
 			} else {
 				if(opt != OPT_CALL_FUNC) {
-					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
-					if(!varity_ptr) {
+					avarity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
+					if(!avarity_ptr) {
 						error("Varity not exist\n");
 						return ERROR_VARITY_NONEXIST;
 					}
@@ -137,8 +137,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 						instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
 					else
 						instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
-					instruction_ptr->opda_addr = (int)varity_ptr->get_content_ptr();
-					instruction_ptr->opda_varity_type = varity_ptr->get_type();
+					instruction_ptr->opda_addr = (int)avarity_ptr->get_content_ptr();
+					instruction_ptr->opda_varity_type = avarity_ptr->get_type();
 				}
 			}
 		}
@@ -162,8 +162,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				this->mid_varity_stack.pop();
 			} else {
 				if(opt != OPT_MEMBER && opt != OPT_REFERENCE) {
-					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
-					if(!varity_ptr) {
+					bvarity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
+					if(!bvarity_ptr) {
 						error("Varity not exist\n");
 						return ERROR_VARITY_NONEXIST;
 					}
@@ -171,8 +171,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 						instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
 					else
 						instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
-					instruction_ptr->opdb_addr = (int)varity_ptr->get_content_ptr();
-					instruction_ptr->opdb_varity_type = varity_ptr->get_type();
+					instruction_ptr->opdb_addr = (int)bvarity_ptr->get_content_ptr();
+					instruction_ptr->opdb_varity_type = bvarity_ptr->get_type();
 				}
 			}
 		}
@@ -183,18 +183,18 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_MEMBER:
 	case OPT_REFERENCE://TODO：这种实现是错的，如果不是全局变量结构体，结果会错。还是要经由中间代码实现
 	{
-		varity_info *member_varity_ptr, *struct_ptr = varity_ptr;
-		struct_info *struct_info_ptr = (struct_info*)varity_ptr->get_complex_ptr();
-		//ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+		varity_info *member_varity_ptr, *struct_ptr = avarity_ptr;
+		struct_info *struct_info_ptr = (struct_info*)avarity_ptr->get_complex_ptr();
+		//ret_type = max(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
 		member_varity_ptr = (varity_info*)struct_info_ptr->varity_stack_ptr->find(node_attribute->value.ptr_value);
-		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		varity_ptr->set_type(member_varity_ptr->get_type());
+		avarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		avarity_ptr->set_type(member_varity_ptr->get_type());
 		if(opt == OPT_MEMBER)
-			varity_ptr->set_content_ptr((void*)((int)struct_ptr->get_content_ptr() + (int)member_varity_ptr->get_content_ptr()));
+			avarity_ptr->set_content_ptr((void*)((int)struct_ptr->get_content_ptr() + (int)member_varity_ptr->get_content_ptr()));
 		else if(opt == OPT_REFERENCE)
-			varity_ptr->set_content_ptr((void*)(INT_VALUE(varity_ptr->get_content_ptr()) + (int)member_varity_ptr->get_content_ptr()));
+			avarity_ptr->set_content_ptr((void*)(INT_VALUE(avarity_ptr->get_content_ptr()) + (int)member_varity_ptr->get_content_ptr()));
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
 		((node_attribute_t*)opt_node_ptr->value)->value_type = varity_scope;
@@ -204,16 +204,16 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	{
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
-		uint *complex_info_ptr = (uint*)varity_ptr->get_complex_ptr();
-		int complex_arg_count = varity_ptr->get_complex_arg_count();
+		uint *complex_info_ptr = (uint*)avarity_ptr->get_complex_ptr();
+		int complex_arg_count = avarity_ptr->get_complex_arg_count();
 		if(GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count]) == COMPLEX_ARRAY || GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count]) == COMPLEX_PTR) {
-			varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+			rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 			if(complex_arg_count == 1)
-				varity_ptr->set_type(complex_info_ptr[0]);//TODO:set_type也需要重写与声明统一
+				rvarity_ptr->set_type(complex_info_ptr[0]);//TODO:set_type也需要重写与声明统一
 			else
-				varity_ptr->set_type(COMPLEX);
-			varity_ptr->set_size(get_varity_size(GET_COMPLEX_DATA(complex_info_ptr[0]), complex_info_ptr, complex_arg_count - 1));
-			varity_ptr->config_complex_info(complex_arg_count - 1, complex_info_ptr);
+				rvarity_ptr->set_type(COMPLEX);
+			rvarity_ptr->set_size(get_varity_size(GET_COMPLEX_DATA(complex_info_ptr[0]), complex_info_ptr, complex_arg_count - 1));
+			rvarity_ptr->config_complex_info(complex_arg_count - 1, complex_info_ptr);
 			instruction_ptr->data = get_varity_size(0, complex_info_ptr, complex_arg_count - 1);
 			instruction_ptr->ret_addr = varity_number * 8;
 			instruction_ptr->ret_varity_type = INT;
@@ -232,18 +232,27 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_MINUS:
 	case OPT_MUL:
 	case OPT_DIVIDE:
-		ret_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+		ret_type = max(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
-		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		varity_ptr->set_type(ret_type);
+		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		rvarity_ptr->set_type(ret_type);
 		if(ret_type == PTR) {
-			instruction_ptr->data = varity_ptr->get_element_size();
+			if(instruction_ptr->opda_varity_type > instruction_ptr->opdb_varity_type) {
+				rvarity_ptr->config_complex_info(avarity_ptr->get_complex_arg_count(), avarity_ptr->get_complex_ptr());
+				instruction_ptr->data = avarity_ptr->get_first_order_sub_struct_size();
+			} else if(instruction_ptr->opda_varity_type > instruction_ptr->opdb_varity_type) {
+				rvarity_ptr->config_complex_info(bvarity_ptr->get_complex_arg_count(), bvarity_ptr->get_complex_ptr());
+				instruction_ptr->data = bvarity_ptr->get_first_order_sub_struct_size();
+			} else {
+				error("Two ptr varities cannot do plus operator.\n");
+				return ERROR_ILLEGAL_OPERAND;
+			}
 		}
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
-		instruction_ptr->ret_varity_type = min(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+		instruction_ptr->ret_varity_type = max(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
@@ -256,8 +265,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		ret_type = INT;
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
-		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		varity_ptr->set_type(ret_type);
+		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		rvarity_ptr->set_type(ret_type);
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
@@ -271,8 +280,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_BIT_AND_ASSIGN:
 	case OPT_BIT_XOR_ASSIGN:
 	case OPT_BIT_OR_ASSIGN:
-		if(instruction_ptr->opda_varity_type < U_LONG_LONG || instruction_ptr->opda_varity_type > CHAR
-			|| instruction_ptr->opdb_varity_type < U_LONG_LONG || instruction_ptr->opdb_varity_type > CHAR) {
+		if(instruction_ptr->opda_varity_type > U_LONG_LONG || instruction_ptr->opdb_varity_type > U_LONG_LONG) {
 			error("Need int type operand.\n");
 			return ERROR_ILLEGAL_OPERAND;
 		}
@@ -349,8 +357,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_NEGATIVE:
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
-		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		varity_ptr->set_type(INT);
+		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		rvarity_ptr->set_type(INT);
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_varity_type = INT;
@@ -361,7 +369,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	{
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
-		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_varity_type = VOID + BASIC_VARITY_TYPE_COUNT;//TODO：考察所有指针在生成中间代码时置为void*的可行性
 		instruction_ptr->ret_operator = opt;
@@ -374,8 +382,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
 		varity_info *link_varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		link_varity_ptr->config_complex_info(varity_ptr->get_complex_arg_count() - 1, varity_ptr->get_complex_ptr());
-		link_varity_ptr->set_size(get_varity_size(0, (uint*)varity_ptr->get_complex_ptr(), link_varity_ptr->get_complex_arg_count()));
+		link_varity_ptr->config_complex_info(bvarity_ptr->get_complex_arg_count() - 1, bvarity_ptr->get_complex_ptr());
+		link_varity_ptr->set_size(get_varity_size(0, (uint*)bvarity_ptr->get_complex_ptr(), link_varity_ptr->get_complex_arg_count()));
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_varity_type = VOID + BASIC_VARITY_TYPE_COUNT;//TODO：考察所有指针在生成中间代码时置为void*的可行性
 		instruction_ptr->ret_operator = opt;
@@ -392,8 +400,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_ASR://TODO：可能可以和NOT BIT_REVERT合并
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
-		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		varity_ptr->set_type(INT);
+		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		rvarity_ptr->set_type(INT);
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_varity_type = INT;
@@ -420,8 +428,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		ret_type = INT;
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
-		varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		varity_ptr->set_type(ret_type);
+		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		rvarity_ptr->set_type(ret_type);
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
@@ -1345,7 +1353,7 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
 	int ret;
 	ret = list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
 	if(ret)return ret;
-	//root->middle_visit();
+	root->middle_visit();
 	ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
 	if(ret)return ret;
 	if(this->sentence_analysis_data_struct.short_depth) {

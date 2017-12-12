@@ -39,26 +39,26 @@
 #define GET_COMPLEX_DATA(x)		((x) & COMPLEX_DATA_BIT_MASK)
 
 #if PLATFORM_WORD_LEN == 4
-#define U_INT 8
-#define LONG 9
-#elif PLATFORM_WORD_LEN == 8
-#define LONG 8
 #define U_INT 9
+#define LONG 8
+#elif PLATFORM_WORD_LEN == 8
+#define LONG 9
+#define U_INT 8
 #endif
-#define COMPLEX	0
-#define STRUCT	1
-#define VOID 2
-#define DOUBLE 3
-#define FLOAT 4
-#define U_LONG_LONG 5
+#define COMPLEX	14
+#define STRUCT	13
+#define VOID 12
+#define DOUBLE 11
+#define FLOAT 10
+#define U_LONG_LONG 7
 #define LONG_LONG 6
-#define U_LONG 7
-#define INT 10
-#define U_SHORT 11
-#define SHORT 12
-#define U_CHAR 13
-#define CHAR 14
-#define PTR 17
+#define U_LONG 5
+#define INT 4
+#define U_SHORT 3
+#define SHORT 2
+#define U_CHAR 1
+#define CHAR 0
+#define PTR 15
 
 class varity_attribute: public element {
 protected:
@@ -122,6 +122,7 @@ public:
 	int apply_space(void);
 	int struct_apply(void);
 	int get_element_size(void);
+	int get_first_order_sub_struct_size(void);
 	void* get_content_ptr(void){return content_ptr;}
 	void* get_complex_ptr(void){return this->comlex_info_ptr;}
 	int   get_complex_arg_count(void) {return this->complex_arg_count;}
@@ -130,7 +131,7 @@ public:
 	void set_to_single(int);
 	void set_size(uint size) {this->size = size;}
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
-	void set_type(int type){this->type = type;}
+	void set_type(int type);
 	char get_attribute(void){return this->attribute;}
 	void reset(void);
 	void echo(void);
