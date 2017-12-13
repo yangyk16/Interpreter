@@ -15,6 +15,7 @@
 #define FLOAT_VALUE(x) (*(float*)(x))
 #define DOUBLE_VALUE(x) (*(double*)(x))
 #define PTR_VALUE(x) (*(void**)(x))
+#define PTR_N_VALUE(x) (*(long*)(x)) //long长度随平台变化，但16bit情况除外
 
 #define OPERAND_VARITY		0
 #define OPERAND_MEMBER		0
@@ -84,7 +85,7 @@
 
 class c_interpreter;
 
-int max(int a, int b);
+int get_ret_type(int a, int b);
 void handle_init(void);
 int call_opt_handle(c_interpreter *interpreter_ptr);
 

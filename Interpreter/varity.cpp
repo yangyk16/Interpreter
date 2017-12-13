@@ -43,7 +43,11 @@ int varity_attribute::get_type(void)
 	else if(this->complex_arg_count == 2 && this->comlex_info_ptr[2] == STRUCT)
 		return STRUCT;
 	else {
-		return PTR;
+		if(GET_COMPLEX_TYPE(this->comlex_info_ptr[this->complex_arg_count]) == COMPLEX_PTR) {
+			return PTR;
+		} else if(GET_COMPLEX_TYPE(this->comlex_info_ptr[this->complex_arg_count]) == COMPLEX_ARRAY) {
+			return ARRAY;
+		}
 	}
 }
 
@@ -118,7 +122,7 @@ void varity_info::set_type(int type)
 
 int varity_info::get_first_order_sub_struct_size(void)
 {
-	if(this->comlex_info_ptr[this->complex_arg_count] == COMPLEX_PTR || this->comlex_info_ptr[this->complex_arg_count] == COMPLEX_ARRAY)
+	if(GET_COMPLEX_TYPE(this->comlex_info_ptr[this->complex_arg_count]) == COMPLEX_PTR || GET_COMPLEX_TYPE(this->comlex_info_ptr[this->complex_arg_count]) == COMPLEX_ARRAY)
 		return get_varity_size(0, (uint*)this->comlex_info_ptr, this->complex_arg_count - 1);
 	else
 		return ERROR_NO_SUB_STRUCT;
@@ -545,38 +549,25 @@ varity::varity(stack* g_stack, indexed_stack* l_stack, stack* a_stack)
 
 int get_varity_size(int basic_type, uint *complex_info, int complex_arg_count)
 {
-	if(basic_type == COMPLEX) {
-		int varity_size = 0;
-		int &n = complex_arg_count;
-		for(int i=1; i<n+1; i++) {
-			switch(complex_info[i] >> COMPLEX_TYPE_BIT) {
-			case COMPLEX_BASIC:
-				if((complex_info[i] & COMPLEX_DATA_BIT_MASK) != STRUCT)
-					varity_size = sizeof_type[complex_info[i] & COMPLEX_DATA_BIT_MASK];
-				else
-					varity_size = ((struct_info*)complex_info[i - 1])->struct_size;
-				break;
-			case COMPLEX_PTR:
-				varity_size = PLATFORM_WORD_LEN;
-				break;
-			case COMPLEX_ARRAY:
-				varity_size *= complex_info[i] & COMPLEX_DATA_BIT_MASK;
-				break;
-			}
-		}
-		return varity_size;
-	} else {
-		if(basic_type > CHAR) {
-			return PLATFORM_WORD_LEN;
-		} else {
-			if(basic_type >= VOID)
-				return sizeof_type[basic_type];
-			else {
-				if(basic_type == STRUCT) {
-					return ((struct_info*)complex_info)->struct_size;
-				}
-			}
+	int varity_size = 0;
+	int &n = complex_arg_count;
+	if(basic_type <= VOID)
+		return sizeof_type[basic_type];
+	for(int i=1; i<n+1; i++) {
+		switch(GET_COMPLEX_TYPE(complex_info[i])) {
+		case COMPLEX_BASIC:
+			if(GET_COMPLEX_DATA(complex_info[i]) != STRUCT)
+				varity_size = sizeof_type[complex_info[i] & COMPLEX_DATA_BIT_MASK];
+			else
+				varity_size = ((struct_info*)complex_info[i - 1])->struct_size;
+			break;
+		case COMPLEX_PTR:
+			varity_size = PLATFORM_WORD_LEN;
+			break;
+		case COMPLEX_ARRAY:
+			varity_size *= complex_info[i] & COMPLEX_DATA_BIT_MASK;
+			break;
 		}
 	}
-	return 0;
+	return varity_size;
 }

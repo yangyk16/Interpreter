@@ -35,7 +35,7 @@
 #define COMPLEX_DATA_BIT_MASK	(~(0xFFFFFFFFu >> COMPLEX_TYPE_BIT << COMPLEX_TYPE_BIT))
 #define COMPLEX_TYPE_BIT_MASK	(~COMPLEX_DATA_BIT_MASK)
 
-#define GET_COMPLEX_TYPE(x)		(((x) & COMPLEX_TYPE_BIT_MASK) >> COMPLEX_TYPE_BIT)
+#define GET_COMPLEX_TYPE(x)		((x) >> COMPLEX_TYPE_BIT)
 #define GET_COMPLEX_DATA(x)		((x) & COMPLEX_DATA_BIT_MASK)
 
 #if PLATFORM_WORD_LEN == 4
@@ -59,6 +59,9 @@
 #define U_CHAR 1
 #define CHAR 0
 #define PTR 15
+#define ARRAY 16
+#define PLATFORM_TYPE LONG
+#define PLATFORM_WORD long
 
 class varity_attribute: public element {
 protected:
