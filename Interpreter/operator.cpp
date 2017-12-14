@@ -1196,11 +1196,18 @@ int opt_ptr_content_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	if(instruction_ptr->opdb_varity_type == ARRAY)
-		PTR_VALUE(ret_addr) = opdb_addr;
+		PTR_VALUE(ret_addr) = opdb_addr;//生成链接变量
 	else if(instruction_ptr->opdb_varity_type == PTR) {
 		PTR_VALUE(ret_addr) = PTR_VALUE(opdb_addr);
 	}
 	//varity_convert(ret_addr, PLATFORM_TYPE, PTR_VALUE(opdb_addr), PLATFORM_TYPE);
+	return ERROR_NO;
+}
+
+int opt_address_of_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	PTR_VALUE(ret_addr) = opdb_addr;//生成中间变量
 	return ERROR_NO;
 }
 
@@ -1297,6 +1304,7 @@ void handle_init(void)
 	opt_handle[OPT_SMALL] = opt_small_handle;
 	opt_handle[OPT_ASSIGN] = opt_assign_handle;
 	opt_handle[OPT_PTR_CONTENT] = opt_ptr_content_handle;
+	opt_handle[OPT_ADDRESS_OF] = opt_address_of_handle;
 	opt_handle[OPT_INDEX] = opt_index_handle;
 	opt_handle[OPT_CALL_FUNC] = opt_call_func_handle;
 	opt_handle[OPT_FUNC_COMMA] = opt_func_comma_handle;

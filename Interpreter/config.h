@@ -34,5 +34,4 @@
 
 #define debug	printf
 #define error	printf
-#define vfree	free
 #endif

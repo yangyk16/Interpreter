@@ -12,12 +12,24 @@
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "long", "unsigned int", "unsigned long", "long long", "unsigned long long", "float", "double", "void", "struct"};
 const char sizeof_type[] = {0, 1, 1, 2, 2, 4, 4, 4, 4, 8, 8, 4, 8, 0, 0};
 const char type_len[] = {5, 4, 13, 5, 14, 3, 4, 12, 13, 9, 18, 5, 6, 4, 6};
-int basic_type_info[15][4] = {{1, CHAR}, {1, U_CHAR}, {1, SHORT}, {1, U_SHORT}, {1, INT}, {1, LONG}, {1, U_INT}, {1, U_LONG}, {1, LONG_LONG}, {1, U_LONG_LONG}, {1, FLOAT}, {1, DOUBLE}, {1, VOID}, {1, 0, STRUCT}, {1, COMPLEX}};
+int basic_type_info[15][4] = {{1, COMPLEX}, {1, CHAR}, {1, U_CHAR}, {1, SHORT}, {1, U_SHORT}, {1, INT}, {1, LONG}, {1, U_INT}, {1, U_LONG}, {1, LONG_LONG}, {1, U_LONG_LONG}, {1, FLOAT}, {1, DOUBLE}, {1, VOID}, {1, 0, STRUCT}};
 #elif PLATFORM_WORD_LEN == 8
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "unsigned int", "long", "long long", "unsigned long", "unsigned long long", "float", "double", "void", "struct"};
 const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};
 const char type_len[] = {5, 6, 4, 6, 5, 18, 9, 13, 4, 12, 3, 14, 5, 13, 4};
 #endif
+
+inline void inc_varity_ref(varity_info *varity_ptr)
+{
+	PTR_N_VALUE(varity_ptr->get_complex_ptr())++;
+	debug("inc %x\n", varity_ptr);
+}
+
+inline void dec_varity_ref(varity_info *varity_ptr)
+{
+	--PTR_N_VALUE(varity_ptr->get_complex_ptr());
+	debug("dec %x\n", varity_ptr);
+}
 
 bool varity_info::en_echo = 1;
 varity_info::varity_info()
@@ -92,7 +104,7 @@ void varity_info::init_varity(void* addr, char* name, char type, uint size)
 	varity_ptr->attribute = 0;
 	if(type != COMPLEX) {
 		varity_ptr->comlex_info_ptr = basic_type_info[type];
-		basic_type_info[type][0]++;
+		inc_varity_ref(varity_ptr);
 		if(type != STRUCT) {
 			varity_ptr->complex_arg_count = 1;
 		} else {

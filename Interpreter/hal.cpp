@@ -1,4 +1,5 @@
 #include "hal.h"
+#include "config.h"
 #include <iostream>
 using namespace std;
 
@@ -29,9 +30,16 @@ void* vmalloc(unsigned int size)
 	void* ret = malloc(size);
 	if(ret) {
 		//size = size&7?size+(8-size&7):size;
+		debug("malloc %x\n",ret);
 		memset(ret, 0, size);
 		return ret;
 	} else {
 		return NULL;
 	}
+}
+
+void vfree(void *ptr)
+{
+	free(ptr);
+	debug("free %x\n", ptr);
 }
