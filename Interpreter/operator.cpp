@@ -1057,7 +1057,7 @@ int opt_plus_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_ad
 	double converted_varity;
 	void* converted_varity_ptr = &converted_varity, *converting_varity_ptr;
 	ret_type = get_ret_type(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
-	if(instruction_ptr->opda_varity_type != instruction_ptr->opdb_varity_type) {
+	if(instruction_ptr->opda_varity_type != instruction_ptr->opdb_varity_type && instruction_ptr->opda_varity_type < PTR) {
 		if(instruction_ptr->opda_varity_type == ret_type) {
 			converting_varity_ptr = (void*)opdb_addr;
 			converting_varity_type = instruction_ptr->opdb_varity_type;
@@ -1081,7 +1081,10 @@ int opt_plus_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_ad
 	} else if(ret_type == FLOAT) {
 		FLOAT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) + FLOAT_VALUE(opdb_addr);
 	} else if(ret_type == PTR) {
-		PTR_N_VALUE(ret_addr) = (PLATFORM_WORD)opda_addr + PTR_N_VALUE(opdb_addr) * instruction_ptr->data;
+		if(instruction_ptr->opda_varity_type == PTR)
+			PTR_N_VALUE(ret_addr) = PTR_N_VALUE(opda_addr) + PTR_N_VALUE(opdb_addr) * instruction_ptr->data;
+		else 
+			PTR_N_VALUE(ret_addr) = (PLATFORM_WORD)opda_addr + PTR_N_VALUE(opdb_addr) * instruction_ptr->data;
 	}
 	return ERROR_NO;
 }
@@ -1192,8 +1195,12 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 int opt_ptr_content_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
-	//PTR_VALUE(ret_addr) = PTR_VALUE(opdb_addr);
-	varity_convert(ret_addr, PLATFORM_TYPE, PTR_VALUE(opdb_addr), PLATFORM_TYPE);
+	if(instruction_ptr->opdb_varity_type == ARRAY)
+		PTR_VALUE(ret_addr) = opdb_addr;
+	else if(instruction_ptr->opdb_varity_type == PTR) {
+		PTR_VALUE(ret_addr) = PTR_VALUE(opdb_addr);
+	}
+	//varity_convert(ret_addr, PLATFORM_TYPE, PTR_VALUE(opdb_addr), PLATFORM_TYPE);
 	return ERROR_NO;
 }
 

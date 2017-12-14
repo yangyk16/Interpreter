@@ -39,27 +39,29 @@
 #define GET_COMPLEX_DATA(x)		((x) & COMPLEX_DATA_BIT_MASK)
 
 #if PLATFORM_WORD_LEN == 4
-#define U_INT 9
-#define LONG 8
+#define LONG 6
+#define U_INT 7
+#define U_LONG 8
+#define LONG_LONG 9
 #elif PLATFORM_WORD_LEN == 8
-#define LONG 9
-#define U_INT 8
+#define U_INT 6
+#define LONG 7
+#define LONG_LONG 8
+#define U_LONG 9
 #endif
-#define COMPLEX	14
-#define STRUCT	13
-#define VOID 12
-#define DOUBLE 11
-#define FLOAT 10
-#define U_LONG_LONG 7
-#define LONG_LONG 6
-#define U_LONG 5
-#define INT 4
-#define U_SHORT 3
-#define SHORT 2
-#define U_CHAR 1
-#define CHAR 0
-#define PTR 15
-#define ARRAY 16
+#define STRUCT	14
+#define VOID 13
+#define DOUBLE 12
+#define FLOAT 11
+#define U_LONG_LONG 10
+#define INT 5
+#define U_SHORT 4
+#define SHORT 3
+#define U_CHAR 2
+#define CHAR 1
+#define COMPLEX	0
+#define PTR 16
+#define ARRAY 17
 #define PLATFORM_TYPE LONG
 #define PLATFORM_WORD long
 
@@ -126,10 +128,10 @@ public:
 	int struct_apply(void);
 	int get_element_size(void);
 	int get_first_order_sub_struct_size(void);
-	void* get_content_ptr(void){return content_ptr;}
-	void* get_complex_ptr(void){return this->comlex_info_ptr;}
-	int   get_complex_arg_count(void) {return this->complex_arg_count;}
-	void* get_element_ptr(int);
+	void *get_content_ptr(void){return content_ptr;}
+	void *&get_complex_ptr(void){return (void*&)this->comlex_info_ptr;}
+	int  get_complex_arg_count(void) {return this->complex_arg_count;}
+	void *get_element_ptr(int);
 	void set_complex_arg_count(int n) {this->complex_arg_count = n;}
 	void set_to_single(int);
 	void set_size(uint size) {this->size = size;}
@@ -166,6 +168,7 @@ public:
 
 void* vmalloc(unsigned int size);
 int get_varity_size(int basic_type, uint *complex_info = 0, int complex_arg_count = 0);
+int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count);
 
 extern const char type_key[15][19];
 extern const char sizeof_type[15];

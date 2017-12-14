@@ -9,12 +9,12 @@
 #include "string_lib.h"
 
 #if PLATFORM_WORD_LEN == 4
-const char type_key[15][19] = {"char", "unsigned char", "short", "unsigned short", "int", "long", "unsigned int", "unsigned long", "long long", "unsigned long long", "float", "double", "void", "struct", "empty"};
-const char sizeof_type[] = {1, 1, 2, 2, 4, 4, 4, 4, 8, 8, 4, 8, 0, 0, 0};
-const char type_len[] = {4, 13, 5, 14, 3, 4, 12, 13, 9, 18, 5, 6, 4, 6, 5};
+const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "long", "unsigned int", "unsigned long", "long long", "unsigned long long", "float", "double", "void", "struct"};
+const char sizeof_type[] = {0, 1, 1, 2, 2, 4, 4, 4, 4, 8, 8, 4, 8, 0, 0};
+const char type_len[] = {5, 4, 13, 5, 14, 3, 4, 12, 13, 9, 18, 5, 6, 4, 6};
 int basic_type_info[15][4] = {{1, CHAR}, {1, U_CHAR}, {1, SHORT}, {1, U_SHORT}, {1, INT}, {1, LONG}, {1, U_INT}, {1, U_LONG}, {1, LONG_LONG}, {1, U_LONG_LONG}, {1, FLOAT}, {1, DOUBLE}, {1, VOID}, {1, 0, STRUCT}, {1, COMPLEX}};
 #elif PLATFORM_WORD_LEN == 8
-const char type_key[15][19] = {"empty", "struct", "void", "double", "float", "unsigned long long", "long long", "unsigned long", "long", "unsigned int", "int", "unsigned short", "short", "unsigned char", "char"};
+const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "unsigned int", "long", "long long", "unsigned long", "unsigned long long", "float", "double", "void", "struct"};
 const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};
 const char type_len[] = {5, 6, 4, 6, 5, 18, 9, 13, 4, 12, 3, 14, 5, 13, 4};
 #endif
@@ -551,7 +551,7 @@ int get_varity_size(int basic_type, uint *complex_info, int complex_arg_count)
 {
 	int varity_size = 0;
 	int &n = complex_arg_count;
-	if(basic_type <= VOID)
+	if(basic_type <= VOID && basic_type > CHAR)
 		return sizeof_type[basic_type];
 	for(int i=1; i<n+1; i++) {
 		switch(GET_COMPLEX_TYPE(complex_info[i])) {
@@ -570,4 +570,15 @@ int get_varity_size(int basic_type, uint *complex_info, int complex_arg_count)
 		}
 	}
 	return varity_size;
+}
+
+int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count)
+{
+	if(GET_COMPLEX_TYPE(complex_info[complex_arg_count]) != COMPLEX_ARRAY)
+		return -1;//TODO:找一个返回值
+	PLATFORM_WORD *new_complex_info = (PLATFORM_WORD*)vmalloc((complex_arg_count + 1) * sizeof(PLATFORM_WORD));
+	memcpy(new_complex_info + 1, complex_info + 1, (complex_arg_count - 1) * sizeof(PLATFORM_WORD));
+	new_complex_info[complex_arg_count] = COMPLEX_PTR << COMPLEX_TYPE_BIT;
+	complex_info = new_complex_info;
+	return 0;
 }
