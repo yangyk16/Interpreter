@@ -732,6 +732,95 @@ int c_interpreter::equal_opt(char* str, uint* size_ptr)
 	return ERROR_NO;
 }
 
+#define BINARY_OPT_EXEC(x)	\
+	mid_code *&instruction_ptr = interpreter_ptr->pc; \
+	int ret_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr); \
+	switch(ret_type) { \
+	case U_LONG: \
+	case LONG: \
+	case U_INT: \
+	case INT: \
+		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) x INT_VALUE(opdb_addr); \
+		break; \
+	case U_SHORT: \
+	case SHORT: \
+		SHORT_VALUE(ret_addr) = SHORT_VALUE(opda_addr) x SHORT_VALUE(opdb_addr); \
+		break; \
+	case U_CHAR: \
+	case CHAR: \
+		CHAR_VALUE(ret_addr) = CHAR_VALUE(opda_addr) x CHAR_VALUE(opdb_addr); \
+		break; \
+	case DOUBLE: \
+		DOUBLE_VALUE(ret_addr) = DOUBLE_VALUE(opda_addr) x DOUBLE_VALUE(opdb_addr); \
+		break; \
+	case FLOAT: \
+		FLOAT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) x FLOAT_VALUE(opdb_addr); \
+	}
+
+#define BINARY_RET_INT_OPT_EXEC(x)	\
+	mid_code *&instruction_ptr = interpreter_ptr->pc; \
+	int ret_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr); \
+	switch(ret_type) { \
+	case U_LONG: \
+	case LONG: \
+	case U_INT: \
+	case INT: \
+		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) x INT_VALUE(opdb_addr); \
+		break; \
+	case U_SHORT: \
+	case SHORT: \
+		INT_VALUE(ret_addr) = SHORT_VALUE(opda_addr) x SHORT_VALUE(opdb_addr); \
+		break; \
+	case U_CHAR: \
+	case CHAR: \
+		INT_VALUE(ret_addr) = CHAR_VALUE(opda_addr) x CHAR_VALUE(opdb_addr); \
+		break; \
+	case DOUBLE: \
+		INT_VALUE(ret_addr) = DOUBLE_VALUE(opda_addr) x DOUBLE_VALUE(opdb_addr); \
+		break; \
+	case FLOAT: \
+		INT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) x FLOAT_VALUE(opdb_addr); \
+	}
+
+#define BINARY_ARG_INT_OPT_EXEC(x)	\
+	mid_code *&instruction_ptr = interpreter_ptr->pc; \
+	int ret_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr); \
+	switch(ret_type) { \
+	case U_LONG: \
+	case LONG: \
+	case U_INT: \
+	case INT: \
+		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) x INT_VALUE(opdb_addr); \
+		break; \
+	case U_SHORT: \
+	case SHORT: \
+		INT_VALUE(ret_addr) = SHORT_VALUE(opda_addr) x SHORT_VALUE(opdb_addr); \
+		break; \
+	case U_CHAR: \
+	case CHAR: \
+		INT_VALUE(ret_addr) = CHAR_VALUE(opda_addr) x CHAR_VALUE(opdb_addr); \
+		break; \
+	}
+
+#define UNARY_OPT_EXEC(x)	\
+	mid_code *&instruction_ptr = interpreter_ptr->pc; \
+	int ret_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr); \
+	switch(ret_type) { \
+	case U_LONG: \
+	case LONG: \
+	case U_INT: \
+	case INT: \
+		INT_VALUE(ret_addr) = x INT_VALUE(opdb_addr); \
+		break; \
+	case U_SHORT: \
+	case SHORT: \
+		INT_VALUE(ret_addr) = x SHORT_VALUE(opdb_addr); \
+		break; \
+	case U_CHAR: \
+	case CHAR: \
+		INT_VALUE(ret_addr) = x CHAR_VALUE(opdb_addr); \
+	}/*核实是否全部单目运算符都使用int返回值*/
+
 typedef int (*opt_handle_func)(c_interpreter*, int*, int*, int*);
 opt_handle_func opt_handle[OPERATOR_TYPE_NUM];
 
@@ -758,7 +847,7 @@ int get_varity_size(int type)
 	return 0;
 }
 
-int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr, int converting_type)
+inline int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr, int converting_type)
 {
 	if(converted_type >= PTR) {
 		if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG) {
@@ -894,6 +983,51 @@ int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr
 	return ERROR_NO;
 }
 
+inline int exec_opt_preprocess(mid_code *instruction_ptr, int *&opda_addr, int *&opdb_addr)
+{
+	int converting_varity_type, ret_type;
+	double converted_varity;
+	void *converted_varity_ptr = &converted_varity, *converting_varity_ptr;
+	ret_type = get_ret_type(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+	if(instruction_ptr->opda_varity_type != instruction_ptr->opdb_varity_type && instruction_ptr->opda_varity_type < PTR) {
+		if(instruction_ptr->opda_varity_type == ret_type) {
+			converting_varity_ptr = (void*)opdb_addr;
+			converting_varity_type = instruction_ptr->opdb_varity_type;
+			opdb_addr = (int*)converted_varity_ptr;
+		} else {
+			converting_varity_ptr = (void*)opda_addr;
+			converting_varity_type = instruction_ptr->opda_varity_type;
+			opda_addr = (int*)converted_varity_ptr;
+		}
+		varity_convert(converted_varity_ptr, ret_type, converting_varity_ptr, converting_varity_type);
+	}
+	return ret_type;
+}
+
+int opt_asl_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_ARG_INT_OPT_EXEC(<<);
+	return ERROR_NO;
+}
+
+int opt_asr_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_ARG_INT_OPT_EXEC(>>);
+	return ERROR_NO;
+}
+
+int opt_big_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_RET_INT_OPT_EXEC(>=);
+	return ERROR_NO;
+}
+
+int opt_small_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_RET_INT_OPT_EXEC(<=);
+	return ERROR_NO;
+}
+
 int opt_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	int ret_type, converting_varity_type;
@@ -928,6 +1062,12 @@ int opt_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_add
 		}
 	}
 	return 0;
+}
+
+int opt_not_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_RET_INT_OPT_EXEC(!=);
+	return ERROR_NO;
 }
 
 int opt_and_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
@@ -986,6 +1126,12 @@ int opt_minus_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_a
 	} else if(ret_type == FLOAT) {
 		FLOAT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) - FLOAT_VALUE(opdb_addr);
 	}
+	return ERROR_NO;
+}
+
+int opt_bit_revert_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	UNARY_OPT_EXEC(~);
 	return ERROR_NO;
 }
 
@@ -1050,42 +1196,67 @@ int opt_mul_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_add
 	return 0;
 }
 
+int opt_bit_and_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_ARG_INT_OPT_EXEC(&);
+	return ERROR_NO;
+}
+
+int opt_not_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	UNARY_OPT_EXEC(!);
+	return ERROR_NO;
+}
+
+int opt_divide_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_OPT_EXEC(/);
+	return ERROR_NO;
+}
+
+int opt_mod_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_ARG_INT_OPT_EXEC(%);
+	return ERROR_NO;
+}
+
 int opt_plus_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
-	int ret_type, converting_varity_type, ret;
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
-	double converted_varity;
-	void* converted_varity_ptr = &converted_varity, *converting_varity_ptr;
-	ret_type = get_ret_type(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
-	if(instruction_ptr->opda_varity_type != instruction_ptr->opdb_varity_type && instruction_ptr->opda_varity_type < PTR) {
-		if(instruction_ptr->opda_varity_type == ret_type) {
-			converting_varity_ptr = (void*)opdb_addr;
-			converting_varity_type = instruction_ptr->opdb_varity_type;
-			opdb_addr = (int*)converted_varity_ptr;
-		} else {
-			converting_varity_ptr = (void*)opda_addr;
-			converting_varity_type = instruction_ptr->opda_varity_type;
-			opda_addr = (int*)converted_varity_ptr;
-		}
-		ret = varity_convert(converted_varity_ptr, ret_type, converting_varity_ptr, converting_varity_type);
-		if(ret) return ret;
-	}
-	if(ret_type == U_LONG || ret_type == LONG || ret_type == U_INT || ret_type == INT) {
+	int ret_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
+	switch(ret_type) {
+	case U_LONG:
+	case LONG:
+	case U_INT:
+	case INT:
 		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) + INT_VALUE(opdb_addr);
-	} else if(ret_type == U_SHORT || ret_type == SHORT) {
+		break;
+	case U_SHORT:
+	case SHORT:
 		SHORT_VALUE(ret_addr) = SHORT_VALUE(opda_addr) + SHORT_VALUE(opdb_addr);
-	} else if(ret_type == U_CHAR || ret_type == CHAR) {
+		break;
+	case U_CHAR:
+	case CHAR:
 		CHAR_VALUE(ret_addr) = CHAR_VALUE(opda_addr) + CHAR_VALUE(opdb_addr);
-	} else if(ret_type == DOUBLE) {
+		break;
+	case DOUBLE:
 		DOUBLE_VALUE(ret_addr) = DOUBLE_VALUE(opda_addr) + DOUBLE_VALUE(opdb_addr);
-	} else if(ret_type == FLOAT) {
+		break;
+	case FLOAT:
 		FLOAT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) + FLOAT_VALUE(opdb_addr);
-	} else if(ret_type == PTR) {
+		break;
+	case PTR:
 		if(instruction_ptr->opda_varity_type == PTR)
 			PTR_N_VALUE(ret_addr) = PTR_N_VALUE(opda_addr) + PTR_N_VALUE(opdb_addr) * instruction_ptr->data;
 		else 
 			PTR_N_VALUE(ret_addr) = (PLATFORM_WORD)opda_addr + PTR_N_VALUE(opdb_addr) * instruction_ptr->data;
 	}
+	return ERROR_NO;
+}
+
+int opt_big_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_RET_INT_OPT_EXEC(>);
 	return ERROR_NO;
 }
 
@@ -1120,6 +1291,18 @@ int opt_small_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_a
 	} else if(ret_type == FLOAT) {
 		INT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) < FLOAT_VALUE(opdb_addr);
 	}
+	return ERROR_NO;
+}
+
+int opt_bit_xor_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_ARG_INT_OPT_EXEC(^);
+	return ERROR_NO;
+}
+
+int opt_bit_or_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	BINARY_ARG_INT_OPT_EXEC(|);
 	return ERROR_NO;
 }
 
@@ -1190,6 +1373,37 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 		}
 	}
 	return 0;
+}
+
+int opt_negative_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	int ret_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
+	switch(ret_type) {
+	case U_LONG:
+	case LONG:
+	case U_INT:
+	case INT:
+		INT_VALUE(ret_addr) = - INT_VALUE(opdb_addr);
+		break;
+	case U_SHORT:
+	case SHORT:
+		SHORT_VALUE(ret_addr) = - SHORT_VALUE(opdb_addr);
+		break;
+	case U_CHAR:
+	case CHAR:
+		CHAR_VALUE(ret_addr) = - CHAR_VALUE(opdb_addr);
+	case DOUBLE:
+		DOUBLE_VALUE(ret_addr) = - DOUBLE_VALUE(opdb_addr);
+	case FLOAT:
+		FLOAT_VALUE(ret_addr) = - FLOAT_VALUE(opdb_addr);
+	}
+	return ERROR_NO;
+}
+
+int opt_positive_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	return ERROR_NO;
 }
 
 int opt_ptr_content_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
@@ -1292,17 +1506,32 @@ int ctl_return_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 }
 
 void handle_init(void)
-{//部分运算符没有中间代码，例如前/后++，前述运算符
+{
 	for(int i=0; i<OPERATOR_TYPE_NUM;i++)
 		opt_handle[i] = 0;
+	opt_handle[OPT_ASL] = opt_asl_handle;
+	opt_handle[OPT_ASR] = opt_asr_handle;
+	opt_handle[OPT_BIG_EQU] = opt_big_equ_handle;
+	opt_handle[OPT_SMALL_EQU] = opt_small_equ_handle;
 	opt_handle[OPT_EQU] = opt_equ_handle;
+	opt_handle[OPT_NOT_EQU] = opt_not_equ_handle;
 	opt_handle[OPT_AND] = opt_and_handle;
 	opt_handle[OPT_OR] = opt_or_handle;
 	opt_handle[OPT_MINUS] = opt_minus_handle;
+	opt_handle[OPT_BIT_REVERT] = opt_bit_revert_handle;
 	opt_handle[OPT_MUL] = opt_mul_handle;
+	opt_handle[OPT_BIT_AND] = opt_bit_and_handle;
+	opt_handle[OPT_NOT] = opt_not_handle;
+	opt_handle[OPT_DIVIDE] = opt_divide_handle;
+	opt_handle[OPT_MOD] = opt_mod_handle;
 	opt_handle[OPT_PLUS] = opt_plus_handle;
+	opt_handle[OPT_BIG] = opt_big_handle;
 	opt_handle[OPT_SMALL] = opt_small_handle;
+	opt_handle[OPT_BIT_XOR] = opt_bit_xor_handle;
+	opt_handle[OPT_BIT_OR] = opt_bit_or_handle;
 	opt_handle[OPT_ASSIGN] = opt_assign_handle;
+	opt_handle[OPT_NEGATIVE] = opt_negative_handle;
+	opt_handle[OPT_POSITIVE] = opt_positive_handle;
 	opt_handle[OPT_PTR_CONTENT] = opt_ptr_content_handle;
 	opt_handle[OPT_ADDRESS_OF] = opt_address_of_handle;
 	opt_handle[OPT_INDEX] = opt_index_handle;
@@ -1387,7 +1616,7 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 	if(opt_handle[instruction_ptr->ret_operator])
 		ret = opt_handle[instruction_ptr->ret_operator](interpreter_ptr, opda_addr, opdb_addr, ret_addr);
 	else {
-		debug("no handle for operator %d\n", instruction_ptr->ret_operator);
+		error("no handle for operator %d\n", instruction_ptr->ret_operator);
 		ret = 0;
 	}
 	last_ret_abs_addr = ret_addr;
