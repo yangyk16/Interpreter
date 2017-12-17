@@ -136,7 +136,7 @@ protected:
 
 	virtual int call_func(char*, char*, uint) {return 0;};
 	virtual int pre_treat(void){return 0;};
-	virtual int sentence_analysis(char*, uint) = 0;
+	virtual int sentence_analysis(char*, int) = 0;
 public:
 	virtual int run_interpreter(void) = 0;
 };
@@ -198,7 +198,7 @@ class c_interpreter: public interpreter {
 	void print_code(void);
 	//////////////////////////////////////////////////////////////////////
 	virtual int call_func(char*, char*, uint);
-	virtual int sentence_analysis(char*, uint);
+	virtual int sentence_analysis(char*, int);
 	virtual int pre_treat(void);
 
 	int auto_inc_opt(char* str, uint* size_ptr);

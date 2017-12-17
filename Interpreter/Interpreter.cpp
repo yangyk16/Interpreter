@@ -1305,7 +1305,7 @@ bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int 
 	return false;
 }
 
-int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)
+int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//TODO:所有uint len统统改int，否则传个-1进来
 {
 	if(len == 0 || str[0] == '{' || str[0] == '}')return ERROR_NO;
 	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
@@ -1512,7 +1512,7 @@ int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 	return ERROR_NO;
 }
 
-int c_interpreter::sentence_analysis(char* str, uint len)
+int c_interpreter::sentence_analysis(char* str, int len)
 {
 	int ret1, ret2;
 	ret1 = struct_analysis(str, len);
