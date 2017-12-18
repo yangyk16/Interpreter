@@ -1442,6 +1442,10 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 	}
 	if(this->mid_varity_stack.get_count())
 		this->mid_varity_stack.pop();
+	/*if(((node_attribute_t*)root->value)->node_type == TOKEN_NAME && ((node_attribute_t*)root->value)->value.ptr_value[0] == LINK_VARITY_PREFIX) {
+		generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
+		return ERROR_NO;
+	}*/
 	debug("generate code.\n");
 	return ERROR_NO;
 }
@@ -1472,7 +1476,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 				instruction_ptr->opdb_addr = 8 * node_attribute->value.ptr_value[1];
 				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 			} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {//TODO:¼ì²éÒ»±éoperand_type
-				instruction_ptr->opdb_operand_type = node_attribute->value_type;
+				instruction_ptr->opdb_operand_type = OPERAND_LINK_VARITY;
 				instruction_ptr->opdb_addr = (int)((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
 				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 			} else {
