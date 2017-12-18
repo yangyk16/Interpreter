@@ -543,6 +543,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 			rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+			rvarity_ptr->set_type(instruction_ptr->ret_varity_type);
 			inc_varity_ref(rvarity_ptr);
 			this->mid_varity_stack.push();
 			this->call_func_info.function_depth--;
@@ -1110,7 +1111,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 			memcpy(function_name, str + symbol_begin_pos, i - symbol_begin_pos);
 			function_name[i - symbol_begin_pos] = 0;
 
-			varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);
+			varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);//TODO:去掉多申请的空间
 			arg_stack = (stack*)vmalloc(sizeof(stack));
 			arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
 			arg_node_ptr->arg_init("", ret_function_define, sizeof_type[ret_function_define], 0);//TODO:加上offset
@@ -1154,7 +1155,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 				if(!void_flag) {
 					arg_node_ptr->arg_init(varity_name, type, sizeof_type[type], (void*)make_align(offset, sizeof_type[type]));
 					arg_stack->push(arg_node_ptr++);
-					this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, type, sizeof_type[type], 0);
+					this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, type, sizeof_type[type], 0, 0);
 				} else {
 					if(varity_name[0] != 0) {
 						error("arg cannot use void type.\n");
@@ -1219,7 +1220,7 @@ int c_interpreter::call_func(char* name, char* arg_string, uint arg_len)
 	this->varity_declare->local_varity_stack->visible_depth = this->varity_declare->local_varity_stack->current_depth;
 	for(int i=arg_count-1; i>=0; i--) {
 		varity_attribute* arg_ptr = (varity_attribute*)called_function_ptr->arg_list->visit_element_by_index(i);
-		this->varity_declare->declare(VARITY_SCOPE_LOCAL, arg_ptr->get_name(), arg_ptr->get_type(), arg_ptr->get_size());
+		this->varity_declare->declare(VARITY_SCOPE_LOCAL, arg_ptr->get_name(), arg_ptr->get_type(), arg_ptr->get_size(),0, 0);
 		*(varity_info*)this->varity_declare->local_varity_stack->get_lastest_element() = arg_varity[i];
 		arg_varity[i].reset();
 	}
@@ -2032,10 +2033,10 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 						varity_basic_type = COMPLEX;
 					varity_size = get_varity_size(varity_basic_type, complex_info, node_count + 1);
 					if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
-						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_basic_type, varity_size);
+						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_basic_type, varity_size, node_count + 1, complex_info);
 						new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
 					} else {
-						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, varity_basic_type, varity_size);
+						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, varity_basic_type, varity_size, node_count + 1, complex_info);
 						new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
 					}
 					if(node_count) {

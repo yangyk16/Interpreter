@@ -38,6 +38,8 @@
 #define GET_COMPLEX_TYPE(x)		((x) >> COMPLEX_TYPE_BIT)
 #define GET_COMPLEX_DATA(x)		((x) & COMPLEX_DATA_BIT_MASK)
 
+#define BASIC_TYPE_SET(x)		((x) | COMPLEX_BASIC << COMPLEX_TYPE_BIT)
+
 #if PLATFORM_WORD_LEN == 4
 #define LONG 6
 #define U_INT 7
@@ -157,7 +159,7 @@ public:
 	indexed_stack* local_varity_stack;
 	varity_info* find(char*, int);
 	varity_info* vfind(char *name, int &scope);
-	int declare(int scope_flag, char* name, char type, uint size, char = 0);
+	int declare(int scope_flag, char* name, char type, uint size, int, void*);
 	int declare_analysis_varity(char type, uint size, char*, varity_info**, char = 0);
 	int destroy_analysis_varity(void);
 	int destroy_analysis_varity(int);

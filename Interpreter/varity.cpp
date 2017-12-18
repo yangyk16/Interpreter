@@ -12,7 +12,7 @@
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "long", "unsigned int", "unsigned long", "long long", "unsigned long long", "float", "double", "void", "struct"};
 const char sizeof_type[] = {0, 1, 1, 2, 2, 4, 4, 4, 4, 8, 8, 4, 8, 0, 0};
 const char type_len[] = {5, 4, 13, 5, 14, 3, 4, 12, 13, 9, 18, 5, 6, 4, 6};
-int basic_type_info[15][4] = {{1, COMPLEX}, {1, CHAR}, {1, U_CHAR}, {1, SHORT}, {1, U_SHORT}, {1, INT}, {1, LONG}, {1, U_INT}, {1, U_LONG}, {1, LONG_LONG}, {1, U_LONG_LONG}, {1, FLOAT}, {1, DOUBLE}, {1, VOID}, {1, 0, STRUCT}};
+int basic_type_info[15][4] = {{1, BASIC_TYPE_SET(COMPLEX)}, {1, BASIC_TYPE_SET(CHAR)}, {1, BASIC_TYPE_SET(U_CHAR)}, {1, BASIC_TYPE_SET(SHORT)}, {1, BASIC_TYPE_SET(U_SHORT)}, {1, BASIC_TYPE_SET(INT)}, {1, BASIC_TYPE_SET(LONG)}, {1, BASIC_TYPE_SET(U_INT)}, {1, BASIC_TYPE_SET(U_LONG)}, {1, BASIC_TYPE_SET(LONG_LONG)}, {1, BASIC_TYPE_SET(U_LONG_LONG)}, {1, BASIC_TYPE_SET(FLOAT)}, {1, BASIC_TYPE_SET(DOUBLE)}, {1, BASIC_TYPE_SET(VOID)}, {1, 0, BASIC_TYPE_SET(STRUCT)}};
 #elif PLATFORM_WORD_LEN == 8
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "unsigned int", "long", "long long", "unsigned long", "unsigned long long", "float", "double", "void", "struct"};
 const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};
@@ -51,7 +51,7 @@ void varity_info::config_varity(char attribute, void* info_ptr)
 int varity_attribute::get_type(void)
 {
 	if(this->complex_arg_count == 1)
-		return this->comlex_info_ptr[1];
+		return GET_COMPLEX_DATA(this->comlex_info_ptr[1]);
 	else if(this->complex_arg_count == 2 && this->comlex_info_ptr[2] == STRUCT)
 		return STRUCT;
 	else {
@@ -90,6 +90,15 @@ void varity_info::arg_init(char* name, char type, uint size, void* offset)
 	this->size = size;
 	this->content_ptr = offset;
 	this->attribute = 0;
+	if(type != COMPLEX) {
+		this->comlex_info_ptr = basic_type_info[type];
+		inc_varity_ref(this);
+		if(type != STRUCT) {
+			this->complex_arg_count = 1;
+		} else {
+			this->complex_arg_count = 2;
+		}
+	}
 }
 
 void varity_info::init_varity(void* addr, char* name, char type, uint size)
@@ -397,7 +406,7 @@ void varity_info::echo(void)
 	}
 }
 
-int varity::declare(int scope_flag, char* name, char type, uint size, char attribute)
+int varity::declare(int scope_flag, char *name, char type, uint size, int complex_arg_count, void *complex_info_ptr)
 {//scope_flag = 0:global; 1: local; 2:analysis_tmp
 	int ret;
 	varity_info* varity_ptr;
@@ -425,8 +434,9 @@ int varity::declare(int scope_flag, char* name, char type, uint size, char attri
 	}
 	varity_ptr = (varity_info*)varity_stack->get_current_ptr();
 	varity_info::init_varity(varity_ptr, name, type, size);
-	varity_ptr->config_varity(attribute);
-	if(attribute != ATTRIBUTE_LINK && scope_flag == VARITY_SCOPE_GLOBAL) {
+	if(complex_arg_count && complex_info_ptr)
+		varity_ptr->config_complex_info(complex_arg_count, complex_info_ptr);
+	if(scope_flag == VARITY_SCOPE_GLOBAL) {
 		ret = varity_ptr->apply_space();
 		if(ret) {
 			error("declare varity \"%s\" error: space is insufficient\n", name);
@@ -491,7 +501,7 @@ int varity::declare_analysis_varity(char type, uint size, char* ret_name, varity
 	sprintf(tmp_varity_name, "%c%c", TMP_VAIRTY_PREFIX, 128 + this->cur_analysis_varity_count++);
 	if(ret_name)
 		strcpy(ret_name, tmp_varity_name);
-	ret = this->declare(VARITY_SCOPE_ANALYSIS, tmp_varity_name, type, size, attribute);
+	ret = this->declare(VARITY_SCOPE_ANALYSIS, tmp_varity_name, type, size, 0, 0);
 	//if(ret_name)
 	//	*varity_ptr = (varity_info*)this->analysis_varity_stack->find(ret_name);
 	*varity_ptr = (varity_info*)this->analysis_varity_stack->get_lastest_element();
