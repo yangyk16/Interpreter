@@ -1542,6 +1542,8 @@ void handle_init(void)
 	opt_handle[CTL_BRANCH_FALSE] = ctl_branch_false_handle;
 	opt_handle[OPT_PASS_PARA] = opt_pass_para_handle;
 	opt_handle[CTL_RETURN] = ctl_return_handle;
+	opt_handle[CTL_BREAK] = ctl_branch_handle;
+	opt_handle[CTL_CONTINUE] = ctl_branch_handle;
 }
 
 int call_opt_handle(c_interpreter *interpreter_ptr)

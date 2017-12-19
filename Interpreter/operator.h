@@ -82,6 +82,8 @@
 #define CTL_BRANCH_FALSE		102
 #define OPT_PASS_PARA			103
 #define CTL_RETURN				104
+#define CTL_BREAK				105
+#define CTL_CONTINUE			106
 
 class c_interpreter;
 

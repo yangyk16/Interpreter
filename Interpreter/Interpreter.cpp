@@ -1326,6 +1326,36 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 		mid_code_ptr->ret_operator = CTL_RETURN;
 		this->cur_mid_code_stack_ptr->push();
 		return ret;
+	} else if(!strmcmp(str, "break;", 6)) {
+		if(this->nonseq_info->row_num > 0) {
+			int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num - 1].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num - 1].non_seq_depth;
+			for(int i=read_seq_depth; i>0; i--) {
+				if(this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_FOR || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_WHILE || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_DO) {
+					mid_code *mid_code_ptr;
+					mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+					mid_code_ptr->ret_operator = CTL_BREAK;
+					this->cur_mid_code_stack_ptr->push();
+					return ERROR_NO;
+				}
+			}
+		}
+		error("no nonseq struct for using break.\n");
+		return ERROR_NONSEQ_CTL;
+	} else if(!strmcmp(str, "continue;", 9)) {
+		if(this->nonseq_info->row_num > 0) {
+			int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num - 1].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num - 1].non_seq_depth;
+			for(int i=read_seq_depth; i>0; i--) {
+				if(this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_FOR || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_WHILE || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_DO) {
+					mid_code *mid_code_ptr;
+					mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+					mid_code_ptr->ret_operator = CTL_CONTINUE;
+					this->cur_mid_code_stack_ptr->push();
+					return ERROR_NO;
+				}
+			}
+		}
+		error("no nonseq struct for using continue.\n");
+		return ERROR_NONSEQ_CTL;
 	}
 	while(len > 0) {
 		node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
@@ -1442,10 +1472,10 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 	}
 	if(this->mid_varity_stack.get_count())
 		this->mid_varity_stack.pop();
-	/*if(((node_attribute_t*)root->value)->node_type == TOKEN_NAME && ((node_attribute_t*)root->value)->value.ptr_value[0] == LINK_VARITY_PREFIX) {
+	if(((node_attribute_t*)root->value)->node_type == TOKEN_NAME && ((node_attribute_t*)root->value)->value.ptr_value[0] == LINK_VARITY_PREFIX) {
 		generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
 		return ERROR_NO;
-	}*/
+	}
 	debug("generate code.\n");
 	return ERROR_NO;
 }
@@ -1628,11 +1658,21 @@ int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
 			case NONSEQ_KEY_FOR:
 			{
 				int len = find_ch_with_bracket_level(nonseq_info->row_info_node[i].row_ptr + nonseq_info->row_info_node[i].post_info_c + 1, ')', 0);
+				mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+				for(mid_code *j=(mid_code*)cur_mid_code_stack_ptr->get_base_addr()+nonseq_info->row_info_node[i].post_info_b+nonseq_info->row_info_node[i].post_info_a; j<=mid_code_ptr; j++) {
+					if(j->ret_operator == CTL_CONTINUE && j->opda_addr == 0)
+						j->opda_addr = mid_code_ptr - j;
+				}
 				this->generate_mid_code(nonseq_info->row_info_node[i].row_ptr + nonseq_info->row_info_node[i].post_info_c + 1, len, false);
 				mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 				mid_code_ptr->ret_operator = CTL_BRANCH;
 				mid_code_ptr->opda_addr = ((mid_code*)cur_mid_code_stack_ptr->get_base_addr() + nonseq_info->row_info_node[i].post_info_b) - mid_code_ptr;
 				this->cur_mid_code_stack_ptr->push();
+				mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+				for(mid_code *j=(mid_code*)cur_mid_code_stack_ptr->get_base_addr()+nonseq_info->row_info_node[i].post_info_b+nonseq_info->row_info_node[i].post_info_a; j<=mid_code_ptr; j++) {
+					if(j->ret_operator == CTL_BREAK && j->opda_addr == 0)
+						j->opda_addr = mid_code_ptr - j;
+				}
 				mid_code_ptr = (mid_code*)cur_mid_code_stack_ptr->get_base_addr() + nonseq_info->row_info_node[i].post_info_b + nonseq_info->row_info_node[i].post_info_a;
 				mid_code_ptr->opda_addr = (mid_code*)cur_mid_code_stack_ptr->get_current_ptr() - mid_code_ptr;
 				nonseq_info->row_info_node[i].finish_flag = 1;
@@ -1672,10 +1712,10 @@ int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_ty
 			return ERROR_NONSEQ_GRAMMER;
 		this->generate_mid_code(str + key_len + begin_pos, first_flag_pos - begin_pos, false);
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();//循环条件判断处中间代码地址
 		this->generate_mid_code(str + key_len + first_flag_pos + 1, second_flag_pos, false);
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_a = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr() - nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b;
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_a = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr() - nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b;//循环体处距循环条件中间代码处相对偏移
 		mid_code_ptr->ret_operator = CTL_BRANCH_FALSE;
 		this->cur_mid_code_stack_ptr->push();
 		break;
