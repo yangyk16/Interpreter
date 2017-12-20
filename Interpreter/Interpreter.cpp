@@ -1471,7 +1471,7 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 		return ERROR_TERNARY_UNMATCH;
 	}
 	if(this->mid_varity_stack.get_count())
-		this->mid_varity_stack.pop();
+		this->mid_varity_stack.pop();//TODO:扣除引用数，否则内存泄漏
 	if(((node_attribute_t*)root->value)->node_type == TOKEN_NAME && ((node_attribute_t*)root->value)->value.ptr_value[0] == LINK_VARITY_PREFIX) {
 		generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
 		return ERROR_NO;
@@ -1480,7 +1480,7 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 	return ERROR_NO;
 }
 
-int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribute_t *node_attribute)
+int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribute_t *node_attribute)//TODO:加参数，表示生成的赋值到哪个变量里。
 {
 		mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 		varity_info *new_varity_ptr;
@@ -2007,6 +2007,8 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 		int varity_basic_type = 0, varity_size, ret;
 		varity_info *new_varity_ptr;
 		list_stack *cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
+		this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
+		this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
 		while(v_len > 0) {
 			node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
 			analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
@@ -2044,7 +2046,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 						node_attribute->value_type = 1;
 						ptr_node_ptr = node_attribute;
 					}
-				} else if(node_attribute->value.int_value == OPT_COMMA || node_attribute->value.int_value == OPT_EDGE) {
+				} else if(node_attribute->value.int_value == OPT_COMMA || node_attribute->value.int_value == OPT_EDGE || node_attribute->value.int_value == OPT_ASSIGN) {
 					while(stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value) {
 						analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
 					}
@@ -2091,7 +2093,25 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 							((void**)new_varity_ptr->get_complex_ptr())[1] = (int*)struct_node_ptr;					
 					}
 					////////
-					break;
+					if(node_attribute->value.int_value == OPT_ASSIGN) {
+						int exp_len = find_ch_with_bracket_level(str + 1, ',', 0);
+						if(exp_len == -1)
+							exp_len = find_ch_with_bracket_level(str + 1, ';', 0);
+						generate_mid_code(str + 1, exp_len, false);
+						mid_code *code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - 1;
+						code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_content_ptr();//TODO:避免数组被赋值
+						code_ptr->ret_operand_type = code_ptr->opda_operand_type = this->varity_global_flag;
+						code_ptr->ret_varity_type = code_ptr->opda_varity_type = new_varity_ptr->get_type();
+						code_ptr->data = new_varity_ptr->get_element_size();
+						str += exp_len + 1;
+						v_len -= exp_len + 1;
+					}
+					node_index = 0;
+					this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
+					this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
+					v_len -= token_len;
+					str += token_len;
+					continue;
 				} else {
 #if !DYNAMIC_ARRAY_EN
 					error("Not allowed to use dynamic array.\n");
@@ -2103,6 +2123,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 				strcpy(varity_name, node_attribute->value.ptr_value);
 			}
 			this->sentence_analysis_data_struct.last_token = *node_attribute;
+			cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
 			v_len -= token_len;
 			str += token_len;
 			node_index++;
@@ -2211,10 +2232,11 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 	int key_word_ret = key_word_analysis(this->analysis_buf_ptr, len);
 	if(key_word_ret) {
 		str[source_len] = ch_last;
-		return key_word_ret;
+		//return key_word_ret;
+	} else {
+		ret = this->generate_mid_code(str, len, true);
+		if(ret) return ret;
 	}
-	ret = this->generate_mid_code(str, len, true);
-	if(ret) return ret;
 	if(this->exec_flag) {
 		int mid_code_count = this->cur_mid_code_stack_ptr->get_count();
 		this->print_code();

@@ -26,11 +26,11 @@ int tty::puts(char* str)
 
 void* vmalloc(unsigned int size)
 {
-	size = size&7?size+(8-(size&7)):size;
-	void* ret = malloc(size);
+	unsigned int a_size = size&7?size+(8-(size&7)):size;
+	void* ret = malloc(a_size);
 	if(ret) {
 		//size = size&7?size+(8-size&7):size;
-		debug("malloc %x\n",ret);
+		debug("malloc %x, %d\n", ret, size);
 		memset(ret, 0, size);
 		return ret;
 	} else {
