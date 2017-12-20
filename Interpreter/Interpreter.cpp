@@ -1060,7 +1060,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 }
 
 int c_interpreter::function_analysis(char* str, uint len)
-{
+{//TODO:非调试使能删除函数源代码
 	int ret_function_define;
 	if(this->function_flag_set.function_flag) {
 		this->function_declare->save_sentence(str, len);
@@ -1093,9 +1093,28 @@ int c_interpreter::function_analysis(char* str, uint len)
 	}
 	ret_function_define = optcmp(str);
 	if(ret_function_define >= 0) {
+		char *str_bak = str;
+		int v_len = len;
+		node_attribute_t node_ptr;
+		int function_declare_flag = 0;
+		while(v_len > 0) {
+			int token_len;
+			token_len = get_token(str_bak, &node_ptr);
+			v_len -= token_len;
+			str_bak += token_len;
+			if(node_ptr.node_type == TOKEN_NAME) {
+				get_token(str_bak, &node_ptr);
+				if(node_ptr.node_type == TOKEN_OPERATOR && node_ptr.value.int_value == OPT_L_SMALL_BRACKET) {
+					str = str_bak;
+					function_declare_flag = 1;
+					break;
+				}
+			}
+
+		}
 		int l_bracket_pos = str_find(str, '(');
 		int r_bracket_pos = str_find(str, ')');
-		if(l_bracket_pos > 0 && r_bracket_pos > l_bracket_pos) {
+		if(function_declare_flag) {
 			int symbol_begin_pos, ptr_level = 0;
 			int keylen = strlen(type_key[ret_function_define]);
 			stack* arg_stack;
