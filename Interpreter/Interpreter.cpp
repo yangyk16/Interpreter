@@ -905,6 +905,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 				}
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 1;
+				this->varity_declare->local_varity_stack->dedeep();
 				if(nonseq_info->non_seq_struct_depth == 0) {
 					if(nonseq_info->non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE) {
 						//save_sentence(str, len);
@@ -966,6 +967,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 		}
 	}
 	if(nonseq_info->non_seq_check_ret) {
+		this->varity_declare->local_varity_stack->endeep();
 		nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 0;
 		if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE) {
 			nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 2;
@@ -991,6 +993,8 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 		nonseq_info->brace_depth++;
 		if(nonseq_info->last_non_seq_check_ret) {
 			this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] = nonseq_info->brace_depth;
+		} else {
+			this->varity_declare->local_varity_stack->endeep();
 		}
 	} else if(str[0] == '}') {
 		if(nonseq_info->brace_depth > 0) {
@@ -1006,6 +1010,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 					}
 				} while(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == 0 && this->nonseq_info->non_seq_struct_depth > 0);
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 1;
+				this->varity_declare->local_varity_stack->dedeep();
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
 				if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
 					//nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth++;
@@ -1020,6 +1025,8 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 						nonseq_info->non_seq_exec = 1;
 						return OK_NONSEQ_FINISH;
 					}
+			} else {
+				this->varity_declare->local_varity_stack->dedeep();
 			}
 			//nonseq_info->brace_depth--;
 		} else {
@@ -1039,6 +1046,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 			}
 		} while(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == 0 && this->nonseq_info->non_seq_struct_depth > 0);
 		nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 1;
+		this->varity_declare->local_varity_stack->dedeep();
 		nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
 		if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
 			//nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth++;
@@ -1093,6 +1101,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 	}
 	ret_function_define = optcmp(str);
 	if(ret_function_define >= 0) {
+		char function_name[32];
 		char *str_bak = str;
 		int v_len = len;
 		node_attribute_t node_ptr;
@@ -1100,17 +1109,17 @@ int c_interpreter::function_analysis(char* str, uint len)
 		while(v_len > 0) {
 			int token_len;
 			token_len = get_token(str_bak, &node_ptr);
-			v_len -= token_len;
-			str_bak += token_len;
 			if(node_ptr.node_type == TOKEN_NAME) {
-				get_token(str_bak, &node_ptr);
+				strcpy(function_name, node_ptr.value.ptr_value);
+				get_token(str_bak + token_len, &node_ptr);
 				if(node_ptr.node_type == TOKEN_OPERATOR && node_ptr.value.int_value == OPT_L_SMALL_BRACKET) {
 					str = str_bak;
 					function_declare_flag = 1;
 					break;
 				}
 			}
-
+			v_len -= token_len;
+			str_bak += token_len;
 		}
 		int l_bracket_pos = str_find(str, '(');
 		int r_bracket_pos = str_find(str, ')');
@@ -1118,18 +1127,16 @@ int c_interpreter::function_analysis(char* str, uint len)
 			int symbol_begin_pos, ptr_level = 0;
 			int keylen = strlen(type_key[ret_function_define]);
 			stack* arg_stack;
-			char function_name[32];
 			this->function_flag_set.function_flag = 1;
 			this->function_flag_set.function_begin_flag = 1;
 			int i=keylen+1;
 			symbol_begin_pos=(str[keylen]==' '?i:i-1);
-			for(int j=symbol_begin_pos; str[j]=='*'; j++)
-				ptr_level++;
-			symbol_begin_pos += ptr_level;
-			for(i=symbol_begin_pos; str[i]!='('; i++);
-			memcpy(function_name, str + symbol_begin_pos, i - symbol_begin_pos);
-			function_name[i - symbol_begin_pos] = 0;
-
+			//for(int j=symbol_begin_pos; str[j]=='*'; j++)
+			//	ptr_level++;
+			//symbol_begin_pos += ptr_level;
+			//for(i=symbol_begin_pos; str[i]!='('; i++);
+			//memcpy(function_name, str + symbol_begin_pos, i - symbol_begin_pos);
+			//function_name[i - symbol_begin_pos] = 0;
 			varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);//TODO:去掉多申请的空间
 			arg_stack = (stack*)vmalloc(sizeof(stack));
 			arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
@@ -1489,8 +1496,10 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 		error("? && : unmatch.\n");
 		return ERROR_TERNARY_UNMATCH;
 	}
-	if(this->mid_varity_stack.get_count())
-		this->mid_varity_stack.pop();//TODO:扣除引用数，否则内存泄漏
+	if(this->mid_varity_stack.get_count()) {
+		dec_varity_ref((varity_info*)this->mid_varity_stack.get_base_addr(), true);
+		this->mid_varity_stack.pop();
+	}
 	if(((node_attribute_t*)root->value)->node_type == TOKEN_NAME && ((node_attribute_t*)root->value)->value.ptr_value[0] == LINK_VARITY_PREFIX) {
 		generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
 		return ERROR_NO;
@@ -1518,7 +1527,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 			instruction_ptr->opdb_varity_type = node_attribute->value_type;
 			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 			new_varity_ptr->set_type(node_attribute->value_type);
-			inc_varity_ref(new_varity_ptr);
+			//inc_varity_ref(new_varity_ptr);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
 			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
 				instruction_ptr->opdb_operand_type = OPERAND_T_VARITY;
@@ -1543,7 +1552,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 					instruction_ptr->opdb_addr = (int)varity_ptr->get_content_ptr();
 					instruction_ptr->opdb_varity_type = varity_ptr->get_type();
 					new_varity_ptr->set_type(instruction_ptr->opdb_varity_type);
-					inc_varity_ref(new_varity_ptr);
+					//inc_varity_ref(new_varity_ptr);
 			}
 		}
 		instruction_ptr->opda_varity_type = instruction_ptr->opdb_varity_type;
@@ -1603,7 +1612,7 @@ int c_interpreter::sentence_analysis(char* str, int len)
 		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack && ret2 == OK_NONSEQ_FINISH) {
 			this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 			this->nonseq_info->stack_frame_size = this->varity_declare->local_varity_stack->offset;
-			this->varity_declare->destroy_local_varity();
+			this->varity_declare->destroy_local_varity_cur_depth();
 		}
 	} else if(ret2 == ERROR_NONSEQ_GRAMMER)
 		return ret2;

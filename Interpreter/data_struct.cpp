@@ -73,7 +73,7 @@ indexed_stack::indexed_stack(int esize, void* base_addr, int capacity)
 	this->element_size = esize;
 	this->bottom_addr = base_addr;
 	this->length = capacity;
-	this->current_depth = -1;
+	this->current_depth = 0;
 	memset(this->bottom_addr, 0, this->length * this->element_size);
 }
 
