@@ -19,19 +19,22 @@ const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};
 const char type_len[] = {5, 6, 4, 6, 5, 18, 9, 13, 4, 12, 3, 14, 5, 13, 4};
 #endif
 
-inline void inc_varity_ref(varity_info *varity_ptr)
+bool varity_info::en_echo = 1;
+
+void inc_varity_ref(varity_info *varity_ptr)
 {
 	PTR_N_VALUE(varity_ptr->get_complex_ptr())++;
 	debug("inc %x\n", varity_ptr);
 }
 
-inline void dec_varity_ref(varity_info *varity_ptr)
+void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag)
 {
-	--PTR_N_VALUE(varity_ptr->get_complex_ptr());
+	int remain_count = --PTR_N_VALUE(varity_ptr->get_complex_ptr());
+	if(destroy_flag && !remain_count)
+		vfree(varity_ptr->get_complex_ptr());
 	debug("dec %x\n", varity_ptr);
 }
 
-bool varity_info::en_echo = 1;
 varity_info::varity_info()
 {
 	memset(this, 0, sizeof(*this));
@@ -539,9 +542,10 @@ int varity::destroy_local_varity_cur_depth(void)
 	while(this->local_varity_stack->get_count() > this->local_varity_stack->index_table[this->local_varity_stack->current_depth]) {
 		varity_ptr = (varity_info*)this->local_varity_stack->get_lastest_element();
 		this->local_varity_stack->pop();
-		if(varity_ptr)
-			varity_ptr->reset();
-		else {
+		if(varity_ptr) {
+			dec_varity_ref(varity_ptr, true);
+			vfree(varity_ptr->get_name());
+		} else {
 			error("data struct error,varity.cpp: %d\n", __LINE__);
 			return 1;
 		}
@@ -551,6 +555,11 @@ int varity::destroy_local_varity_cur_depth(void)
 
 int varity::destroy_local_varity(void)
 {
+	varity_info *local_varity_ptr = (varity_info*)this->local_varity_stack->get_base_addr();
+	for(int i=0; i<this->local_varity_stack->count; i++, local_varity_ptr++) {
+		dec_varity_ref(local_varity_ptr, true);
+		vfree(local_varity_ptr->get_name());
+	}
 	this->local_varity_stack->reset();
 	return 0;
 }

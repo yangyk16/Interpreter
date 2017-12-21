@@ -33,20 +33,6 @@ const char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
 char tmp_varity_name[MAX_A_VARITY_NODE][3];
 char link_varity_name[MAX_LK_VARITY_NODE][3];
 
-inline void inc_varity_ref(varity_info *varity_ptr)
-{
-	PTR_N_VALUE(varity_ptr->get_complex_ptr())++;
-	debug("inc %x\n", varity_ptr);
-}
-
-inline void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag)
-{
-	int remain_count = --PTR_N_VALUE(varity_ptr->get_complex_ptr());
-	if(destroy_flag && !remain_count)
-		vfree(varity_ptr->get_complex_ptr());
-	debug("dec %x\n", varity_ptr);
-}
-
 int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_stack)
 {
 	node *last_node;

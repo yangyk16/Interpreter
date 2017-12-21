@@ -172,6 +172,8 @@ void *vmalloc(unsigned int size);
 void vfree(void*);
 int get_varity_size(int basic_type, uint *complex_info = 0, int complex_arg_count = 0);
 int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count);
+void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag);
+void inc_varity_ref(varity_info *varity_ptr);
 
 extern const char type_key[15][19];
 extern const char sizeof_type[15];
