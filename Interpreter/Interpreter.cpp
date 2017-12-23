@@ -199,10 +199,10 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	switch(opt) {
 		int ret_type;
 	case OPT_MEMBER:
-	case OPT_REFERENCE://TODO：这种实现是错的，如果不是全局变量结构体，结果会错。还是要经由中间代码实现
+	case OPT_REFERENCE:
 	{
 		varity_info *member_varity_ptr, *struct_ptr = avarity_ptr;
-		struct_info *struct_info_ptr = (struct_info*)avarity_ptr->get_complex_ptr();
+		struct_info *struct_info_ptr = (struct_info*)(((int*)avarity_ptr->get_complex_ptr())[1]);
 		//ret_type = get_ret_type(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
@@ -210,14 +210,29 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		avarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 		avarity_ptr->set_type(member_varity_ptr->get_type());
 		inc_varity_ref(avarity_ptr);
-		if(opt == OPT_MEMBER)
-			avarity_ptr->set_content_ptr((void*)((int)struct_ptr->get_content_ptr() + (int)member_varity_ptr->get_content_ptr()));
-		else if(opt == OPT_REFERENCE)
-			avarity_ptr->set_content_ptr((void*)(INT_VALUE(avarity_ptr->get_content_ptr()) + (int)member_varity_ptr->get_content_ptr()));
+		if(opt == OPT_MEMBER) {
+			instruction_ptr->opda_varity_type = INT;
+			instruction_ptr->opdb_addr = (int)member_varity_ptr->get_content_ptr();
+			instruction_ptr->opdb_operand_type = OPERAND_CONST;
+			instruction_ptr->opdb_varity_type = INT;
+			instruction_ptr->ret_operator = opt;
+			instruction_ptr->ret_addr = varity_number * 8;
+			instruction_ptr->ret_varity_type = INT;
+			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+		} else if(opt == OPT_REFERENCE) {
+			instruction_ptr->opda_varity_type = INT;
+			instruction_ptr->opdb_addr = (int)member_varity_ptr->get_content_ptr();
+			instruction_ptr->opdb_operand_type = OPERAND_CONST;
+			instruction_ptr->opdb_varity_type = INT;
+			instruction_ptr->ret_operator = OPT_PLUS;
+			instruction_ptr->ret_addr = varity_number * 8;
+			instruction_ptr->ret_varity_type = INT;
+			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+		}
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
 		((node_attribute_t*)opt_node_ptr->value)->value_type = varity_scope;
-		return ERROR_NO;
+		break;
 	}
 	case OPT_INDEX:
 	{
@@ -859,6 +874,7 @@ int c_interpreter::save_sentence(char* str, uint len)
 
 int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 {
+	static int exec_flag_bak;
 	nonseq_info->last_non_seq_check_ret = nonseq_info->non_seq_check_ret;
 	if(len == 0) {
 		if(nonseq_info->non_seq_struct_depth && nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE) {
@@ -896,6 +912,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 					if(nonseq_info->non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE) {
 						//save_sentence(str, len);
 						nonseq_info->non_seq_exec = 1;
+						this->exec_flag = exec_flag_bak;
 						return OK_NONSEQ_FINISH;
 					} else {
 						//save_sentence(str, len);
@@ -945,6 +962,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 			if(nonseq_info->non_seq_struct_depth == 0 && nonseq_info->non_seq_type_stack[0] != NONSEQ_KEY_WAIT_WHILE && nonseq_info->non_seq_type_stack[0] != NONSEQ_KEY_WAIT_ELSE) {
 				//save_sentence(str, len);
 				nonseq_info->non_seq_exec = 1;
+				this->exec_flag = exec_flag_bak;
 				return OK_NONSEQ_FINISH;
 			} else {
 				//save_sentence(str, len);
@@ -953,6 +971,10 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 		}
 	}
 	if(nonseq_info->non_seq_check_ret) {
+		if(nonseq_info->row_num == 1) {
+			exec_flag_bak = this->exec_flag;
+			this->exec_flag = 0;
+		}
 		this->varity_declare->local_varity_stack->endeep();
 		nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 0;
 		if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE) {
@@ -1009,6 +1031,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 						return OK_NONSEQ_INPUTING;
 					} else {
 						nonseq_info->non_seq_exec = 1;
+						this->exec_flag = exec_flag_bak;
 						return OK_NONSEQ_FINISH;
 					}
 			} else {
@@ -1044,6 +1067,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 				return OK_NONSEQ_INPUTING;
 			} else {
 				nonseq_info->non_seq_exec = 1;
+				this->exec_flag = exec_flag_bak;
 				return OK_NONSEQ_FINISH;
 			}
 		}
@@ -1593,7 +1617,8 @@ int c_interpreter::sentence_analysis(char* str, int len)
 				break;
 			}
 		} else {
-			this->generate_mid_code(str, len, true);
+			//this->generate_mid_code(str, len, true);
+			this->sentence_exec(str, len, true, 0);
 		}
 		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack && ret2 == OK_NONSEQ_FINISH) {
 			this->varity_global_flag = VARITY_SCOPE_GLOBAL;
@@ -1992,7 +2017,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 	int is_varity_declare;
 	is_varity_declare = optcmp(str);
 	char struct_name[32];
-	struct_info* struct_node_ptr;
+	struct_info* struct_node_ptr = 0;
 	if(is_varity_declare >= 0) {
 		int key_len = strlen(type_key[is_varity_declare]);
 		if(is_varity_declare != STRUCT)
@@ -2066,11 +2091,14 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					}
 					int node_count = analysis_data_struct_ptr->expression_final_stack.get_count();
 					uint *complex_info = 0, *cur_complex_info_ptr;
+					int basic_info_node_count = 1;
+					if(is_varity_declare == STRUCT)
+						basic_info_node_count++;
 					if(node_count) {
 						if(ptr_level)
 							node_count++;
-						complex_info = (uint*)vmalloc((node_count + 2) * sizeof(int)); //+基本类型
-						cur_complex_info_ptr = complex_info + node_count + 1;
+						complex_info = (uint*)vmalloc((node_count + 1 + basic_info_node_count) * sizeof(int)); //+基本类型
+						cur_complex_info_ptr = complex_info + node_count + basic_info_node_count;
 						node *head = analysis_data_struct_ptr->expression_final_stack.get_head();
 						for(int n=0; n<node_count; n++) {
 							head = head->right;
@@ -2085,26 +2113,28 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 						if(ptr_level)
 							*cur_complex_info_ptr-- = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | ptr_level;
 						*cur_complex_info_ptr-- = (COMPLEX_BASIC << COMPLEX_TYPE_BIT) | is_varity_declare;
+						if(is_varity_declare == STRUCT) {
+							*cur_complex_info_ptr-- = struct_node_ptr->type_info_ptr[1];//TODO:或许有更好办法
+						}
 						analysis_data_struct_ptr->expression_final_stack.reset();//避免后续声明错误及影响生成后序表达式
 					}
 					////////
 					varity_basic_type = is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT;
 					if(node_count)
 						varity_basic_type = COMPLEX;
-					varity_size = get_varity_size(varity_basic_type, complex_info, node_count + 1);
+					else
+						complex_info = (uint*)get_basic_info(varity_basic_type, struct_node_ptr, this->struct_declare);
+					varity_size = get_varity_size(varity_basic_type, complex_info, node_count + basic_info_node_count);
 					if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
-						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_basic_type, varity_size, node_count + 1, complex_info);
+						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_basic_type, varity_size, node_count + basic_info_node_count, complex_info);
 						new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
 					} else {
-						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, varity_basic_type, varity_size, node_count + 1, complex_info);
+						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, varity_basic_type, varity_size, node_count + basic_info_node_count, complex_info);
 						new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
 					}
 					if(node_count) {
-						new_varity_ptr->config_complex_info(node_count + 1, complex_info);
+						//new_varity_ptr->config_complex_info(node_count + 1, complex_info);
 						complex_info[0] = 1;//起始引用次数1
-					} else {
-						if(is_varity_declare == STRUCT)
-							((void**)new_varity_ptr->get_complex_ptr())[1] = (int*)struct_node_ptr;					
 					}
 					////////
 					if(node_attribute->value.int_value == OPT_ASSIGN) {

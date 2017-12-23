@@ -47,7 +47,7 @@
 #define OPT_R_MID_BRACKET		22//no mid code
 #define OPT_L_SMALL_BRACKET		23//no mid code
 #define OPT_R_SMALL_BRACKET		24//no mid code
-#define OPT_MEMBER				25//no mid code
+#define OPT_MEMBER				25
 #define OPT_MINUS				26
 #define OPT_BIT_REVERT			27
 #define OPT_MUL					28

@@ -35,8 +35,8 @@
 #define COMPLEX_DATA_BIT_MASK	(~(0xFFFFFFFFu >> COMPLEX_TYPE_BIT << COMPLEX_TYPE_BIT))
 #define COMPLEX_TYPE_BIT_MASK	(~COMPLEX_DATA_BIT_MASK)
 
-#define GET_COMPLEX_TYPE(x)		((x) >> COMPLEX_TYPE_BIT)
-#define GET_COMPLEX_DATA(x)		((x) & COMPLEX_DATA_BIT_MASK)
+#define GET_COMPLEX_TYPE(x)		((uint)(x) >> COMPLEX_TYPE_BIT)
+#define GET_COMPLEX_DATA(x)		((uint)(x) & COMPLEX_DATA_BIT_MASK)
 
 #define BASIC_TYPE_SET(x)		((x) | COMPLEX_BASIC << COMPLEX_TYPE_BIT)
 
@@ -168,14 +168,18 @@ public:
 	int undeclare();
 };
 
+class struct_define;
+
 void *vmalloc(unsigned int size);
 void vfree(void*);
 int get_varity_size(int basic_type, uint *complex_info = 0, int complex_arg_count = 0);
 int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count);
 void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag);
 void inc_varity_ref(varity_info *varity_ptr);
+void *get_basic_info(int basic_type, void *info_ptr, struct_define *struct_define_ptr);
 
 extern const char type_key[15][19];
 extern const char sizeof_type[15];
 extern const char type_len[15];
+extern int basic_type_info[15][4];
 #endif

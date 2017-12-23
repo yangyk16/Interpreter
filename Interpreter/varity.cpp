@@ -55,7 +55,7 @@ int varity_attribute::get_type(void)
 {
 	if(this->complex_arg_count == 1)
 		return GET_COMPLEX_DATA(this->comlex_info_ptr[1]);
-	else if(this->complex_arg_count == 2 && this->comlex_info_ptr[2] == STRUCT)
+	else if(this->complex_arg_count == 2 && GET_COMPLEX_DATA(this->comlex_info_ptr[2]) == STRUCT && GET_COMPLEX_TYPE(this->comlex_info_ptr[2]) == COMPLEX_BASIC)
 		return STRUCT;
 	else {
 		if(GET_COMPLEX_TYPE(this->comlex_info_ptr[this->complex_arg_count]) == COMPLEX_PTR) {
@@ -584,13 +584,16 @@ int get_varity_size(int basic_type, uint *complex_info, int complex_arg_count)
 	int &n = complex_arg_count;
 	if(basic_type <= VOID && basic_type > CHAR)
 		return sizeof_type[basic_type];
+	else if(basic_type == STRUCT) {
+		return ((struct_info*)complex_info[1])->struct_size;
+	}
 	for(int i=1; i<n+1; i++) {
 		switch(GET_COMPLEX_TYPE(complex_info[i])) {
 		case COMPLEX_BASIC:
 			if(GET_COMPLEX_DATA(complex_info[i]) != STRUCT)
 				varity_size = sizeof_type[complex_info[i] & COMPLEX_DATA_BIT_MASK];
 			else
-				varity_size = ((struct_info*)complex_info[i - 1])->struct_size;
+				varity_size = ((struct_info*)complex_info[i - 1])->struct_size;//TODO:为严谨性应先避免struct信息地址正好命中case中的情况，改用自顶向下的递归可实现
 			break;
 		case COMPLEX_PTR:
 			varity_size = PLATFORM_WORD_LEN;
@@ -612,4 +615,18 @@ int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count)
 	new_complex_info[complex_arg_count] = COMPLEX_PTR << COMPLEX_TYPE_BIT;
 	complex_info = new_complex_info;
 	return 0;
+}
+
+void *get_basic_info(int basic_type, void *info_ptr, struct_define *struct_define_ptr)
+{
+	if(basic_type >= CHAR && basic_type <= VOID)
+		return basic_type_info[basic_type];
+	else if(basic_type == STRUCT) {
+		//struct类中加入info*，匹配info_ptr，找到struct的info
+		struct_info *struct_info_ptr = struct_define_ptr->find_info(info_ptr);
+		if(struct_info_ptr)
+			return struct_info_ptr->type_info_ptr;
+	} else {
+		return 0;
+	}
 }

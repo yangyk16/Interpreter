@@ -1093,6 +1093,14 @@ int opt_or_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr
 	if(ret)
 		return ERROR_TYPE_CONVERT;
 	INT_VALUE(ret_addr) = converted_varitya || converted_varityb;
+	return ERROR_NO;
+}
+
+int opt_member_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	INT_VALUE(ret_addr) = (int)opda_addr + INT_VALUE(opdb_addr);
+	return ERROR_NO;
 }
 
 int opt_minus_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
@@ -1517,6 +1525,7 @@ void handle_init(void)
 	opt_handle[OPT_NOT_EQU] = opt_not_equ_handle;
 	opt_handle[OPT_AND] = opt_and_handle;
 	opt_handle[OPT_OR] = opt_or_handle;
+	opt_handle[OPT_MEMBER] = opt_member_handle;
 	opt_handle[OPT_MINUS] = opt_minus_handle;
 	opt_handle[OPT_BIT_REVERT] = opt_bit_revert_handle;
 	opt_handle[OPT_MUL] = opt_mul_handle;

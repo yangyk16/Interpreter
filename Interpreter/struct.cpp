@@ -12,6 +12,8 @@ int struct_info::init(char* name, stack* varity_list)
 	this->name = (char*)vmalloc(name_len + 1);
 	strcpy(this->name, name);
 	this->varity_stack_ptr = varity_list;
+	memcpy(this->type_info_ptr, basic_type_info[STRUCT], sizeof(int) * 3);
+	this->type_info_ptr[1] = (uint)this;
 	return 0;
 }
 
@@ -43,11 +45,22 @@ int struct_define::save_sentence(char* str, uint len)
 	return 0;
 }
 
+struct_info *struct_define::find_info(void *info_ptr)
+{
+	struct_info *cur_struct_ptr = (struct_info*)struct_stack_ptr->get_base_addr();
+	int count = struct_stack_ptr->get_count();
+	for(int i=0; i<count; i++, cur_struct_ptr++) {
+		if(cur_struct_ptr == info_ptr)
+			return cur_struct_ptr;
+	}
+	return NULL;
+}
+
 int struct_define::declare(char* name, stack* arg_list)
 {
 	struct_info* struct_node_ptr;
 
-	if(this->struct_stack_ptr->find(name)) {
+	if(struct_stack_ptr->find(name)) {
 		error("declare struct \"%s\" error: struct name duplicated\n", name);
 		return ERROR_FUNC_DUPLICATE;
 	}
