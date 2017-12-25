@@ -171,7 +171,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				bvarity_use_flag = 1;
 				dec_varity_ref(bvarity_ptr, false);
 			} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {
-				instruction_ptr->opdb_operand_type = node_attribute->value_type;
+				instruction_ptr->opdb_operand_type = OPERAND_LINK_VARITY;
 				bvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]);
 				instruction_ptr->opdb_varity_type = bvarity_ptr->get_type();
 				instruction_ptr->opdb_addr = (int)bvarity_ptr->get_content_ptr();
@@ -235,17 +235,13 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		break;
 	}
 	case OPT_INDEX:
-	{
+	{//TODO:set_type也需要重写与声明统一
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
 		uint *complex_info_ptr = (uint*)avarity_ptr->get_complex_ptr();
 		int complex_arg_count = avarity_ptr->get_complex_arg_count();
 		if(GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count]) == COMPLEX_ARRAY || GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count]) == COMPLEX_PTR) {
 			rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-			if(complex_arg_count == 1)
-				rvarity_ptr->set_type(complex_info_ptr[0]);//TODO:set_type也需要重写与声明统一
-			else
-				rvarity_ptr->set_type(COMPLEX);
 			rvarity_ptr->set_size(get_varity_size(GET_COMPLEX_DATA(complex_info_ptr[0]), complex_info_ptr, complex_arg_count - 1));
 			rvarity_ptr->config_complex_info(complex_arg_count - 1, complex_info_ptr);
 			inc_varity_ref(rvarity_ptr);
@@ -512,16 +508,20 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		return ERROR_NO;
 	}
 	case OPT_CALL_FUNC:
-	case OPT_FUNC_COMMA:
+	case OPT_FUNC_COMMA://TODO：多参数不传参的bug源于函数声明时参数表没有对content_ptr赋值offset
 		if(opt_node_ptr->right) {
 			node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
 			if(node_attribute->node_type == TOKEN_NAME ||  node_attribute->node_type == TOKEN_CONST_VALUE) {
 				stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
 				instruction_ptr->ret_operator = OPT_PASS_PARA;
 				instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
-				instruction_ptr->opda_varity_type = ((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1])))->get_type();
-				instruction_ptr->opda_addr = (int)((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++)))->get_content_ptr();
-				if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+				varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
+				instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
+				instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
+				this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
+				instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth], 4);
+				this->call_func_info.offset[this->call_func_info.function_depth] += arg_varity_ptr->get_element_size();
+				if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY || instruction_ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
 					this->mid_varity_stack.pop();
 					dec_varity_ref(bvarity_ptr, true);//TODO:确认是否有需要
 				}
@@ -606,15 +606,20 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		}
 		this->call_func_info.arg_count[this->call_func_info.function_depth] = this->call_func_info.function_ptr[this->call_func_info.function_depth]->arg_list->get_count();
 		this->call_func_info.cur_arg_number[this->call_func_info.function_depth] = 0;
+		this->call_func_info.offset[this->call_func_info.function_depth] = 0;
 		this->call_func_info.function_depth++;
 		break;
 	case OPT_FUNC_COMMA:
 		if(((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_NAME ||  ((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_CONST_VALUE) {
 			stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
 			instruction_ptr->ret_operator = OPT_PASS_PARA;
-			instruction_ptr->ret_operand_type = OPERAND_L_S_VARITY;
-			instruction_ptr->ret_varity_type = ((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1])))->get_type();
-			instruction_ptr->ret_addr = (int)((varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++)))->get_content_ptr();
+			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
+			varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
+			instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
+			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
+			this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
+			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth], 4);
+			this->call_func_info.offset[this->call_func_info.function_depth] += arg_varity_ptr->get_element_size();
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
 			if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 				instruction_ptr->opdb_operand_type = OPERAND_CONST;
@@ -727,7 +732,7 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 			}
 		}
 		for(int j=0; j<sizeof(non_seq_key)/sizeof(non_seq_key[0]); j++) {
-			if(!strcmp(symbol_ptr, type_key[j])) {
+			if(!strcmp(symbol_ptr, non_seq_key[j])) {
 				info->value.int_value = j;
 				info->node_type = TOKEN_KEYWORD_NONSEQ;
 				return i;
@@ -1632,6 +1637,7 @@ int c_interpreter::sentence_analysis(char* str, int len)
 		debug("exec non seq struct\n");
 		nonseq_info->non_seq_exec = 0;
 		if(this->exec_flag) {
+			this->print_code();
 			this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
 			//ret = this->non_seq_section_exec(0, nonseq_info->row_num - 1);
 			this->cur_mid_code_stack_ptr->empty();
@@ -1669,13 +1675,13 @@ int c_interpreter::nonseq_mid_gen_mid_code(char *str, uint len)
 
 int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
 {
-	int i;
+	int i, key_len;
 	int cur_depth = nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth;
 	if(len == 0)return ERROR_NO;
 	mid_code *mid_code_ptr;
 	node_attribute_t cur_node;
-	get_token(str, &cur_node);
-	if(cur_node.node_type != TOKEN_KEYWORD_NONSEQ && str[0] != '}') {
+	key_len = get_token(str, &cur_node);
+	if(cur_node.node_type != TOKEN_KEYWORD_NONSEQ && str[0] != '}') {//TODO：do while 检测bug
 		int ret = this->generate_mid_code(str, len, true);
 		if(ret) return ret;
 	}
@@ -1717,6 +1723,22 @@ int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
 				nonseq_info->row_info_node[i].finish_flag = 1;
 				break;
 			}
+			case NONSEQ_KEY_WHILE:
+				mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+				mid_code_ptr->ret_operator = CTL_BRANCH;
+				mid_code_ptr->opda_addr = ((mid_code*)cur_mid_code_stack_ptr->get_base_addr() + nonseq_info->row_info_node[i].post_info_b) - mid_code_ptr;
+				this->cur_mid_code_stack_ptr->push();
+				mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + nonseq_info->row_info_node[i].post_info_a + (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+				mid_code_ptr->opda_addr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - mid_code_ptr;
+				nonseq_info->row_info_node[i].finish_flag = 1;
+				break;
+			case NONSEQ_KEY_DO:
+				this->generate_mid_code(str + key_len, len - key_len, true);
+				mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+				mid_code_ptr->ret_operator = CTL_BRANCH_TRUE;
+				mid_code_ptr->opda_addr = ((mid_code*)cur_mid_code_stack_ptr->get_base_addr() + nonseq_info->row_info_node[i].post_info_b) - mid_code_ptr;
+				this->cur_mid_code_stack_ptr->push();
+				break;
 			default:
 				break;
 			}
@@ -1731,7 +1753,7 @@ int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_ty
 	node_attribute_t token_node;
 	int key_len = get_token(str, &token_node), first_flag_pos, second_flag_pos;
 	int begin_pos = get_token(str + key_len, &token_node);
-	if(token_node.node_type != TOKEN_OPERATOR || token_node.value.int_value != OPT_L_SMALL_BRACKET) {
+	if((token_node.node_type != TOKEN_OPERATOR || token_node.value.int_value != OPT_L_SMALL_BRACKET) && token_node.value.int_value != NONSEQ_KEY_DO) {
 		error("Lack of bracket\n");
 		return ERROR_NONSEQ_GRAMMER;
 	}
@@ -1759,8 +1781,17 @@ int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_ty
 		this->cur_mid_code_stack_ptr->push();
 		break;
 	case NONSEQ_KEY_WHILE:
+		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+		this->generate_mid_code(str + key_len, len - key_len, false);
+		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_a = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr() - nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b;//循环体处距循环条件中间代码处相对偏移
+		mid_code_ptr->ret_operator = CTL_BRANCH_FALSE;
+		this->cur_mid_code_stack_ptr->push();
 		break;
 	case NONSEQ_KEY_DO:
+		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 		break;
 	}
 	return ERROR_NO;

@@ -103,6 +103,7 @@ typedef struct call_func_info_s {
 	int cur_arg_number[MAX_FUNCTION_DEPTH];
 	int arg_count[MAX_FUNCTION_DEPTH];
 	int cur_stack_frame_size[MAX_FUNCTION_DEPTH];
+	int offset[MAX_FUNCTION_DEPTH];
 	int function_depth;
 } call_func_info_t;
 
