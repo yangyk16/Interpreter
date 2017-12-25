@@ -528,7 +528,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			}
 		}
 		if(opt == OPT_CALL_FUNC) {
-			if(opt_node_ptr->right)
+			if(opt_node_ptr->right && !(node_attribute->value.int_value == OPT_FUNC_COMMA && node_attribute->node_type == TOKEN_OPERATOR))
 				code_stack_ptr->push();
 			function_info *function_ptr;
 			instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
@@ -565,7 +565,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr)
 {
 	register mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
-	node_attribute_t *&node_attribute = ((node_attribute_t*&)opt_node_ptr->value);
+	node_attribute_t *node_attribute = ((node_attribute_t*)opt_node_ptr->value);//避免滥用&，误修改了变量。
 	switch(node_attribute->value.int_value) {
 		int varity_number;
 		varity_info *varity_ptr;
