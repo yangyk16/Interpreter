@@ -1498,18 +1498,19 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 	this->sentence_analysis_data_struct.tree_root = root;
 	if(analysis_data_struct_ptr->expression_final_stack.get_count() == 0) {
 		generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
-		return ERROR_NO;
-	}
-	root->link_reset();
-	int ret;
-	ret = list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
-	if(ret)return ret;
-	//root->middle_visit();
-	ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
-	if(ret)return ret;
-	if(this->sentence_analysis_data_struct.short_depth) {
-		error("? && : unmatch.\n");
-		return ERROR_TERNARY_UNMATCH;
+		//return ERROR_NO;
+	} else {
+		root->link_reset();
+		int ret;
+		ret = list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
+		if(ret)return ret;
+		//root->middle_visit();
+		ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
+		if(ret)return ret;
+		if(this->sentence_analysis_data_struct.short_depth) {
+			error("? && : unmatch.\n");
+			return ERROR_TERNARY_UNMATCH;
+		}
 	}
 	if(this->mid_varity_stack.get_count()) {
 		dec_varity_ref((varity_info*)this->mid_varity_stack.get_base_addr(), true);
@@ -2344,7 +2345,7 @@ void c_interpreter::print_code(void)
 	int n = this->cur_mid_code_stack_ptr->get_count();
 	mid_code *ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 	for(int i=0; i<n; i++, ptr++) {
-		if(ptr->ret_operator > 100) {
+		if(ptr->ret_operator >= 100) {
 			debug("%d", ptr->ret_operator);
 		}
 		if(ptr->ret_operand_type == OPERAND_T_VARITY) {
