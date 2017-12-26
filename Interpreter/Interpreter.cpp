@@ -469,7 +469,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_TERNARY_C:
 	{
 		this->generate_expression_value(code_stack_ptr, (node_attribute_t*)opt_node_ptr->right->value);
-		varity_number = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value[1];
+		varity_number = ((node_attribute_t*)opt_node_ptr->left->right->value)->value.ptr_value[1];
 		instruction_ptr->ret_addr = instruction_ptr->opda_addr = varity_number * 8;
 		mid_code *&ternary_code_ptr = (mid_code*&)this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth];
 		ternary_code_ptr->opda_addr = instruction_ptr + 1 - ternary_code_ptr;
@@ -519,8 +519,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
 				instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
 				this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
-				instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth], 4);
-				this->call_func_info.offset[this->call_func_info.function_depth] += arg_varity_ptr->get_element_size();
+				instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+				this->call_func_info.offset[this->call_func_info.function_depth - 1] += arg_varity_ptr->get_element_size();
 				if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY || instruction_ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
 					this->mid_varity_stack.pop();
 					dec_varity_ref(bvarity_ptr, true);//TODO:确认是否有需要
@@ -588,8 +588,8 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		this->generate_expression_value(code_stack_ptr, (node_attribute_t*)opt_node_ptr->left->right->value);
 		varity_number = instruction_ptr->opda_addr / 8;
 		((varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number))->set_type(instruction_ptr->ret_varity_type);
-		((node_attribute_t*)opt_node_ptr->left->value)->node_type = TOKEN_NAME;
-		((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value = tmp_varity_name[varity_number];
+		//((node_attribute_t*)opt_node_ptr->left->value)->node_type = TOKEN_NAME;
+		//((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value = tmp_varity_name[varity_number];
 		instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 		instruction_ptr->ret_operator = CTL_BRANCH;
 		code_stack_ptr->push();
@@ -618,8 +618,8 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 			instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
 			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
 			this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
-			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth], 4);
-			this->call_func_info.offset[this->call_func_info.function_depth] += arg_varity_ptr->get_element_size();
+			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+			this->call_func_info.offset[this->call_func_info.function_depth - 1] += arg_varity_ptr->get_element_size();
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
 			if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 				instruction_ptr->opdb_operand_type = OPERAND_CONST;
@@ -1530,7 +1530,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 		if(node_attribute->node_type == TOKEN_NAME && (node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX || node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX)) {
 			instruction_ptr->opda_addr = 8 * node_attribute->value.ptr_value[1];
 		} else {
-			instruction_ptr->opda_addr = this->mid_varity_stack.get_count() * 8;//TODO：0只适合全表达式的值，&&和？等运算符会出问题
+			instruction_ptr->opda_addr = this->mid_varity_stack.get_count() * 8;
 			new_varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(this->mid_varity_stack.get_count());
 			this->mid_varity_stack.push();
 		}
@@ -1542,7 +1542,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 			instruction_ptr->opdb_varity_type = node_attribute->value_type;
 			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 			new_varity_ptr->set_type(node_attribute->value_type);
-			//inc_varity_ref(new_varity_ptr);
+			inc_varity_ref(new_varity_ptr);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
 			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
 				instruction_ptr->opdb_operand_type = OPERAND_T_VARITY;
@@ -1567,7 +1567,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 					instruction_ptr->opdb_addr = (int)varity_ptr->get_content_ptr();
 					instruction_ptr->opdb_varity_type = varity_ptr->get_type();
 					new_varity_ptr->set_type(instruction_ptr->opdb_varity_type);
-					//inc_varity_ref(new_varity_ptr);
+					inc_varity_ref(new_varity_ptr);
 			}
 		}
 		instruction_ptr->opda_varity_type = instruction_ptr->opdb_varity_type;
@@ -2344,6 +2344,67 @@ void c_interpreter::print_code(void)
 	int n = this->cur_mid_code_stack_ptr->get_count();
 	mid_code *ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 	for(int i=0; i<n; i++, ptr++) {
-		debug("opt=%d,radd=%x,rtype=%d,ropd=%d,aadd=%x,atype=%d,aopd=%d,badd=%x,byte=%d,bopd=%d\n",ptr->ret_operator,ptr->ret_addr,ptr->ret_varity_type,ptr->ret_operand_type,ptr->opda_addr,ptr->opda_varity_type,ptr->opda_operand_type,ptr->opdb_addr,ptr->opdb_varity_type,ptr->opdb_operand_type);
+		if(ptr->ret_operator > 100) {
+			debug("%d", ptr->ret_operator);
+		}
+		if(ptr->ret_operand_type == OPERAND_T_VARITY) {
+			debug("$%d=", ptr->ret_addr / 8);
+		} else if(ptr->ret_operand_type == OPERAND_LINK_VARITY) {
+			debug("#%d=", ptr->ret_addr / 8);
+		} else if(ptr->ret_operand_type == OPERAND_G_VARITY) {
+			for(int i=0; i<g_varity_list.get_count(); i++) {
+				if(g_varity_node[i].get_content_ptr() == (void*)ptr->ret_addr) {
+					debug("%s=",g_varity_node[i].get_name());
+					break;
+				}
+			}
+		} else if(ptr->ret_operand_type == OPERAND_L_VARITY) {
+			debug("SP+%d=", ptr->ret_addr);
+		}
+		if(ptr->opda_operand_type == OPERAND_T_VARITY) {
+			debug("$%d ", ptr->opda_addr / 8);
+		} else if(ptr->opda_operand_type == OPERAND_LINK_VARITY) {
+			debug("#%d ", ptr->opda_addr / 8);
+		} else if(ptr->opda_operand_type == OPERAND_G_VARITY) {
+			for(int i=0; i<g_varity_list.get_count(); i++) {
+				if(g_varity_node[i].get_content_ptr() == (void*)ptr->opda_addr) {
+					debug("%s ",g_varity_node[i].get_name());
+					break;
+				}
+			}
+		} else if(ptr->opda_operand_type == OPERAND_L_VARITY) {
+			debug("SP+%d ", ptr->opda_addr);
+		} else if(ptr->opda_operand_type == OPERAND_CONST) {
+			if(ptr->opda_varity_type == INT || ptr->opda_varity_type == SHORT || ptr->opda_varity_type == LONG || ptr->opda_varity_type == CHAR) {
+				debug("%d ", ptr->opda_addr);
+			} else if(ptr->opda_varity_type == U_INT || ptr->opda_varity_type == U_SHORT || ptr->opda_varity_type == U_LONG || ptr->opda_varity_type == U_CHAR) {
+				debug("%lu ", ptr->opda_addr);
+			}
+		}
+		if(ptr->ret_operator < 100) {
+			debug("%d ", ptr->ret_operator);
+		}
+		if(ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			debug("$%d", ptr->opdb_addr / 8);
+		} else if(ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
+			debug("#%d", ptr->opdb_addr / 8);
+		} else if(ptr->opdb_operand_type == OPERAND_G_VARITY) {
+			for(int i=0; i<g_varity_list.get_count(); i++) {
+				if(g_varity_node[i].get_content_ptr() == (void*)ptr->opdb_addr) {
+					debug("%s",g_varity_node[i].get_name());
+					break;
+				}
+			}
+		} else if(ptr->opdb_operand_type == OPERAND_L_VARITY) {
+			debug("SP+%d", ptr->opdb_addr);
+		} else if(ptr->opdb_operand_type == OPERAND_CONST) {
+			if(ptr->opdb_varity_type == INT || ptr->opdb_varity_type == SHORT || ptr->opdb_varity_type == LONG || ptr->opdb_varity_type == CHAR) {
+				debug("%d", ptr->opdb_addr);
+			} else if(ptr->opdb_varity_type == U_INT || ptr->opdb_varity_type == U_SHORT || ptr->opdb_varity_type == U_LONG || ptr->opdb_varity_type == U_CHAR) {
+				debug("%lu", ptr->opdb_addr);
+			}
+		}
+		debug("\n");
+		//debug("opt=%d,radd=%x,rtype=%d,ropd=%d,aadd=%x,atype=%d,aopd=%d,badd=%x,byte=%d,bopd=%d\n",ptr->ret_operator,ptr->ret_addr,ptr->ret_varity_type,ptr->ret_operand_type,ptr->opda_addr,ptr->opda_varity_type,ptr->opda_operand_type,ptr->opdb_addr,ptr->opdb_varity_type,ptr->opdb_operand_type);
 	}
 }
