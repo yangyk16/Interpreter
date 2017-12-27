@@ -8,6 +8,10 @@ class function_info: public element {
 	int wptr;
 	int rptr;
 public:
+	char variable_para_flag;
+	char compile_func_flag;
+	char compile_arg_count;
+	void* func_addr;
 	stack mid_code_stack;
 	int row_line;
 	char** row_begin_pos;
@@ -15,6 +19,7 @@ public:
 	int stack_frame_size;
 	stack* arg_list;
 	int init(char*, stack*);
+	int init(char *name, void* addr, stack *arg_list, char variable_arg_flag);
 	int reset(void);
 	int save_sentence(char* ,uint);
 };
@@ -29,6 +34,6 @@ public:
 	void current_node_abort(void);
 	int save_sentence(char* ,uint);
 	int declare(char*, stack*);
-
+	int add_compile_func(char *name, void *addr, stack *arg_list, char variable_arg_flag);
 };
 #endif

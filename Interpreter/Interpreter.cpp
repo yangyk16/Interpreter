@@ -6,6 +6,7 @@
 #include "string_lib.h"
 #include "error.h"
 #include "varity.h"
+#include "data_struct.h"
 
 tty stdio;
 varity_info g_varity_node[MAX_G_VARITY_NODE];
@@ -800,8 +801,21 @@ int c_interpreter::pre_treat(void)
 	return wptr;
 }
 
+static int generate_compile_func(c_interpreter *interpreter_ptr)
+{
+
+	return ERROR_NO;
+}
+
 int c_interpreter::run_interpreter(void)
 {
+	static stack arglist_printf;
+	static varity_info arg_node_printf[1];
+	arglist_printf.init(sizeof(varity_info), arg_node_printf, 1);
+	arglist_printf.push();
+	varity_info::init_varity(arg_node_printf, 0, COMPLEX, 4);
+	this->function_declare->add_compile_func("printf", printf, &arglist_printf, 1);
+	
 	while(1) {
 		uint len;
 		printf(">> ");
@@ -1194,7 +1208,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 				memcpy(varity_name, str + arg_name_begin_pos, arg_name_end_pos - arg_name_begin_pos + 1);
 				varity_name[arg_name_end_pos - arg_name_begin_pos + 1] = 0;
 				if(!void_flag) {
-					arg_node_ptr->arg_init(varity_name, type, sizeof_type[type], (void*)make_align(offset, sizeof_type[type]));
+					arg_node_ptr->arg_init(varity_name, type, sizeof_type[type], (void*)make_align(offset, PLATFORM_WORD_LEN));
 					arg_stack->push(arg_node_ptr++);
 					this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, type, sizeof_type[type], 0, 0);
 				} else {
@@ -1203,7 +1217,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 						return ERROR_FUNC_ARG_LIST;
 					}
 				}
-				offset = make_align(offset, sizeof_type[type]) + sizeof_type[type];
+				offset = make_align(offset, PLATFORM_WORD_LEN) + sizeof_type[type];
 			}
 			//TODO: 释放申请的多余空间
 			this->function_declare->declare(function_name, arg_stack);

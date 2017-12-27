@@ -107,9 +107,11 @@ void varity_info::arg_init(char* name, char type, uint size, void* offset)
 void varity_info::init_varity(void* addr, char* name, char type, uint size)
 {
 	varity_info* varity_ptr = (varity_info*)addr;
-	int name_len = strlen(name);
-	varity_ptr->name = (char*)vmalloc(name_len+1);
-	strcpy(varity_ptr->name, name);
+	if(name) {
+		int name_len = strlen(name);
+		varity_ptr->name = (char*)vmalloc(name_len+1);
+		strcpy(varity_ptr->name, name);
+	}
 	varity_ptr->type = type;
 	varity_ptr->size = size;
 	varity_ptr->content_ptr = 0;
@@ -460,8 +462,10 @@ void varity_attribute::init(void* addr, char* name, char type, char attribute, u
 	ptr->type = type;
 	ptr->attribute = attribute;
 	ptr->size = size;
-	ptr->name = (char*)vmalloc(name_len + 1);
-	strcpy(ptr->name, name);
+	if(name) {
+		ptr->name = (char*)vmalloc(name_len + 1);
+		strcpy(ptr->name, name);
+	}
 }
 
 varity_info* varity::vfind(char *name, int &scope)

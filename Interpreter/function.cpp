@@ -17,7 +17,21 @@ int function_info::init(char* name, stack* arg_list)
 	this->row_begin_pos = (char**)vmalloc(MAX_FUNCTION_LINE * sizeof(char*));
 	this->row_len = (int*)vmalloc(MAX_FUNCTION_LINE * sizeof(int));
 	this->arg_list = arg_list;
+	this->compile_func_flag = 0;
+	this->variable_para_flag = 0;
 	return 0;
+}
+
+int function_info::init(char *name, void* addr, stack *arg_list, char variable_arg_flag)
+{
+	int name_len = strlen(name);
+	this->name = (char*)vmalloc(name_len + 1);
+	strcpy(this->name, name);
+	this->func_addr = addr;
+	this->compile_func_flag = 1;
+	this->variable_para_flag = variable_arg_flag;
+	this->arg_list = arg_list;
+	return ERROR_NO;
 }
 
 int function_info::reset(void)
@@ -70,6 +84,23 @@ int function::declare(char* name, stack* arg_list)
 	this->current_node = function_node_ptr;
 	function_stack_ptr->push();
 	return 0;
+}
+
+int function::add_compile_func(char *name, void *addr, stack *arg_list, char variable_arg_flag)
+{
+	function_info* function_node_ptr;
+	if(this->function_stack_ptr->find(name)) {
+		error("Add function \"%s\" error: function name duplicated\n", name);
+		return ERROR_FUNC_DUPLICATE;
+	}
+	if(function_stack_ptr->is_full()) {
+		error("Add function \"%s\" error: varity count reach max\n", name);
+		return ERROR_FUNC_COUNT_MAX;
+	}
+	function_node_ptr = (function_info*)function_stack_ptr->get_current_ptr();
+	function_node_ptr->init(name, addr, arg_list, variable_arg_flag);
+	function_stack_ptr->push();
+	return ERROR_NO;
 }
 
 int function::save_sentence(char* str, uint len)
