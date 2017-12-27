@@ -85,6 +85,8 @@
 #define CTL_BREAK				105
 #define CTL_CONTINUE			106
 
+#define SYS_STACK_STEP			150
+
 class c_interpreter;
 
 int get_ret_type(int a, int b);

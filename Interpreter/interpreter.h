@@ -112,7 +112,7 @@ public:
 	char break_flag;
 	char opda_varity_type;//操作数1变量类型
 	char opdb_varity_type;//操作数2变量类型
-	char ret_operator;    //执行的操作
+	unsigned char ret_operator;    //执行的操作
 	int ret_addr;         //结果地址
 	int opda_addr;        //操作数1地址
 	int double_space1;    //操作数1为double立即数时使用的空间
@@ -195,6 +195,7 @@ class c_interpreter: public interpreter {
 	int generate_expression_value(stack *code_stack_ptr, node_attribute_t *opt_node_ptr);
 	friend int call_opt_handle(c_interpreter *interpreter_ptr);
 	friend int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr);
+	friend int sys_stack_step_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr);
 	int test(char *str, uint len);
 	void print_code(void);
 	//////////////////////////////////////////////////////////////////////

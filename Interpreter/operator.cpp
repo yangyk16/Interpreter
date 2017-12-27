@@ -1452,9 +1452,11 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 	interpreter_ptr->tmp_varity_stack_pointer += 24;//一句产生的中间代码可能最多用三个临时变量吧…TODO:考虑link变量后在CALL_FUNC生成代码时附加当前使用get_count()值？
 	interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth] = function_ptr->stack_frame_size;
 	interpreter_ptr->call_func_info.function_depth++;
-
-	interpreter_ptr->exec_mid_code((mid_code*)function_ptr->mid_code_stack.get_base_addr(), code_count);
-	
+	if(!function_ptr->compile_func_flag)
+		interpreter_ptr->exec_mid_code((mid_code*)function_ptr->mid_code_stack.get_base_addr(), code_count);
+	else {
+		
+	}
 	interpreter_ptr->pc = pc_backup;
 	varity_convert(ret_addr, instruction_ptr->ret_varity_type, interpreter_ptr->tmp_varity_stack_pointer, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
 	interpreter_ptr->call_func_info.function_depth--;
@@ -1513,6 +1515,12 @@ int ctl_return_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 	return ERROR_NO;
 }
 
+int sys_stack_step_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	interpreter_ptr->stack_pointer += (int)opda_addr;
+	return ERROR_NO;
+}
+
 void handle_init(void)
 {
 	for(int i=0; i<OPERATOR_TYPE_NUM;i++)
@@ -1553,6 +1561,7 @@ void handle_init(void)
 	opt_handle[CTL_RETURN] = ctl_return_handle;
 	opt_handle[CTL_BREAK] = ctl_branch_handle;
 	opt_handle[CTL_CONTINUE] = ctl_branch_handle;
+	opt_handle[SYS_STACK_STEP] = sys_stack_step_handle;
 }
 
 int call_opt_handle(c_interpreter *interpreter_ptr)

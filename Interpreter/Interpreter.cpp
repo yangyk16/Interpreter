@@ -549,6 +549,10 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			inc_varity_ref(rvarity_ptr);
 			this->mid_varity_stack.push();
 			this->call_func_info.function_depth--;
+			if(this->call_func_info.function_depth) {
+				instruction_ptr->ret_operator = SYS_STACK_STEP;
+				instruction_ptr->opda_addr = - make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+			}
 		}
 		break;
 	case OPT_EDGE:
@@ -608,6 +612,11 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		this->call_func_info.arg_count[this->call_func_info.function_depth] = this->call_func_info.function_ptr[this->call_func_info.function_depth]->arg_list->get_count();
 		this->call_func_info.cur_arg_number[this->call_func_info.function_depth] = 0;
 		this->call_func_info.offset[this->call_func_info.function_depth] = 0;
+		if(this->call_func_info.function_depth) {
+			instruction_ptr->ret_operator = SYS_STACK_STEP;
+			instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+			code_stack_ptr->push();
+		}
 		this->call_func_info.function_depth++;
 		break;
 	case OPT_FUNC_COMMA:
@@ -810,10 +819,14 @@ static int generate_compile_func(c_interpreter *interpreter_ptr)
 int c_interpreter::run_interpreter(void)
 {
 	static stack arglist_printf;
-	static varity_info arg_node_printf[1];
-	arglist_printf.init(sizeof(varity_info), arg_node_printf, 1);
+	static varity_info arg_node_printf[2];
+	static uint printf_type_info[3] = {1, BASIC_TYPE_SET(CHAR), COMPLEX_PTR << COMPLEX_TYPE_BIT};
+	arglist_printf.init(sizeof(varity_info), arg_node_printf, 2);
 	arglist_printf.push();
-	varity_info::init_varity(arg_node_printf, 0, COMPLEX, 4);
+	arglist_printf.push();
+	varity_info::init_varity(arg_node_printf, 0, INT, 4);
+	varity_info::init_varity(arg_node_printf + 1, 0, COMPLEX, 4);
+	(arg_node_printf + 1)->config_complex_info(2, printf_type_info);
 	this->function_declare->add_compile_func("printf", printf, &arglist_printf, 1);
 	
 	while(1) {
@@ -1096,6 +1109,11 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 	return ERROR_NO;
 }
 
+int generate_arg_list(char *str, int len, stack *&arg_list_ptr, char &variable_arg_flag)
+{
+	return ERROR_NO;
+}
+
 int c_interpreter::function_analysis(char* str, uint len)
 {//TODO:非调试使能删除函数源代码
 	int ret_function_define;
@@ -1209,8 +1227,8 @@ int c_interpreter::function_analysis(char* str, uint len)
 				varity_name[arg_name_end_pos - arg_name_begin_pos + 1] = 0;
 				if(!void_flag) {
 					arg_node_ptr->arg_init(varity_name, type, sizeof_type[type], (void*)make_align(offset, PLATFORM_WORD_LEN));
-					arg_stack->push(arg_node_ptr++);
 					this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, type, sizeof_type[type], 0, 0);
+					arg_stack->push(arg_node_ptr++);
 				} else {
 					if(varity_name[0] != 0) {
 						error("arg cannot use void type.\n");
@@ -1496,11 +1514,6 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 		}
 	}
 	//后序表达式构造完成，下面构造二叉树
-	node *root = analysis_data_struct_ptr->expression_final_stack.pop();
-	if(!root) {
-		error("No token found.\n");
-		return 0;//TODO:找个合适的返回值
-	}
 	//while(analysis_data_struct_ptr->expression_final_stack.get_count()) {
 	//	node_attribute_t *tmp = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.pop()->value;
 	//	printf("%d ",tmp->node_type);
@@ -1509,6 +1522,11 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 	//	else
 	//		printf("%d %d\n",tmp->value.int_value,tmp->value_type);
 	//}
+	node *root = analysis_data_struct_ptr->expression_final_stack.pop();
+	if(!root) {
+		error("No token found.\n");
+		return 0;//TODO:找个合适的返回值
+	}
 	this->sentence_analysis_data_struct.tree_root = root;
 	if(analysis_data_struct_ptr->expression_final_stack.get_count() == 0) {
 		generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
