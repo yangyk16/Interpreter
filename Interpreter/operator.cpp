@@ -1449,7 +1449,7 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 		interpreter_ptr->stack_pointer += interpreter_ptr->nonseq_info->stack_frame_size;
 	else
 		interpreter_ptr->stack_pointer += interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1];
-	interpreter_ptr->tmp_varity_stack_pointer += 24;//一句产生的中间代码可能最多用三个临时变量吧…TODO:考虑link变量后在CALL_FUNC生成代码时附加当前使用get_count()值？
+	interpreter_ptr->tmp_varity_stack_pointer += (int)opdb_addr;//24;//一句产生的中间代码可能最多用三个临时变量吧…TODO:考虑link变量后在CALL_FUNC生成代码时附加当前使用get_count()值？
 	interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth] = function_ptr->stack_frame_size;
 	interpreter_ptr->call_func_info.function_depth++;
 	if(!function_ptr->compile_func_flag)
@@ -1460,7 +1460,7 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 	interpreter_ptr->pc = pc_backup;
 	varity_convert(ret_addr, instruction_ptr->ret_varity_type, interpreter_ptr->tmp_varity_stack_pointer, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
 	interpreter_ptr->call_func_info.function_depth--;
-	interpreter_ptr->tmp_varity_stack_pointer -= 24;
+	interpreter_ptr->tmp_varity_stack_pointer -= (int)opdb_addr;//24;
 	if(interpreter_ptr->call_func_info.function_depth == 0)
 		interpreter_ptr->stack_pointer -= interpreter_ptr->nonseq_info->stack_frame_size;
 	else

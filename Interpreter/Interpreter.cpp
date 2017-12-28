@@ -514,6 +514,12 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
 			if(node_attribute->node_type == TOKEN_NAME ||  node_attribute->node_type == TOKEN_CONST_VALUE) {
 				stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
+				if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
+					if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
+						error("Too many parameters\n");
+						return ERROR_FUNC_ARGS;
+					}
+				}
 				instruction_ptr->ret_operator = OPT_PASS_PARA;
 				instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
 				varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
@@ -540,6 +546,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			instruction_ptr->ret_varity_type = ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type();
 			varity_number = this->mid_varity_stack.get_count();
 			instruction_ptr->ret_addr = varity_number * 8;
+			instruction_ptr->opdb_addr = varity_number * 8;
 			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 			instruction_ptr->data = varity_number; //确认再确认，此处和中间代码函数调用运算符时栈的申请的联动处理。
 			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
@@ -550,6 +557,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			this->mid_varity_stack.push();
 			this->call_func_info.function_depth--;
 			if(this->call_func_info.function_depth) {
+				code_stack_ptr->push();
+				instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 				instruction_ptr->ret_operator = SYS_STACK_STEP;
 				instruction_ptr->opda_addr = - make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
 			}
@@ -622,12 +631,21 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 	case OPT_FUNC_COMMA:
 		if(((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_NAME ||  ((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_CONST_VALUE) {
 			stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
+			varity_info *arg_varity_ptr;
+			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
+				if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
+					error("Too many parameters\n");
+					return ERROR_FUNC_ARGS;
+				} else {
+					//arg_varity_ptr = 
+				}
+			} else {
+				arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
+			}
+			this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
 			instruction_ptr->ret_operator = OPT_PASS_PARA;
 			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
-			varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
 			instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
-			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
-			this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
 			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
 			this->call_func_info.offset[this->call_func_info.function_depth - 1] += arg_varity_ptr->get_element_size();
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
@@ -707,14 +725,21 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 {
 	register int ret;
-	if(tree->left && ((node_attribute_t*)tree->left->value)->node_type == TOKEN_OPERATOR)
-		this->tree_to_code(tree->left, code_stack);
-	//需要中序处理的几个运算符：CALL_FUNC，&&，||，FUNC_COMMA等
-	if(((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR) {
-		ret = this->operator_mid_handle(code_stack, tree);
+	if(tree->left && ((node_attribute_t*)tree->left->value)->node_type == TOKEN_OPERATOR) {
+		ret = this->tree_to_code(tree->left, code_stack);
+		if(ret)
+			return ret;
 	}
-	if(tree->right && ((node_attribute_t*)tree->right->value)->node_type == TOKEN_OPERATOR)
-		this->tree_to_code(tree->right, code_stack);
+	if(((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR) {	//需要中序处理的几个运算符：CALL_FUNC，&&，||，FUNC_COMMA等
+		ret = this->operator_mid_handle(code_stack, tree);
+		if(ret)
+			return ret;
+	}
+	if(tree->right && ((node_attribute_t*)tree->right->value)->node_type == TOKEN_OPERATOR) {
+		ret = this->tree_to_code(tree->right, code_stack);
+		if(ret)
+			return ret;
+	}
 	if(((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR) {
 		ret = this->operator_post_handle(code_stack, tree);
 		if(ret)
