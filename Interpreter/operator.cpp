@@ -1455,7 +1455,12 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 	if(!function_ptr->compile_func_flag)
 		interpreter_ptr->exec_mid_code((mid_code*)function_ptr->mid_code_stack.get_base_addr(), code_count);
 	else {
-		
+		switch(instruction_ptr->data) {
+		case 1:
+		case 2:
+		case 16:
+			break;
+		}
 	}
 	interpreter_ptr->pc = pc_backup;
 	varity_convert(ret_addr, instruction_ptr->ret_varity_type, interpreter_ptr->tmp_varity_stack_pointer, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());

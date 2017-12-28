@@ -546,9 +546,13 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			instruction_ptr->ret_varity_type = ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type();
 			varity_number = this->mid_varity_stack.get_count();
 			instruction_ptr->ret_addr = varity_number * 8;
-			instruction_ptr->opdb_addr = varity_number * 8;
+			if(!function_ptr->variable_para_flag) {
+				instruction_ptr->opdb_addr = varity_number * 8;//确认再确认，此处和中间代码函数调用运算符时栈的申请的联动处理。
+			} else {
+				instruction_ptr->opdb_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+			}
+			instruction_ptr->data = instruction_ptr->opdb_addr / PLATFORM_WORD_LEN;
 			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
-			instruction_ptr->data = varity_number; //确认再确认，此处和中间代码函数调用运算符时栈的申请的联动处理。
 			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 			rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
@@ -631,23 +635,6 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 	case OPT_FUNC_COMMA:
 		if(((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_NAME ||  ((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_CONST_VALUE) {
 			stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
-			varity_info *arg_varity_ptr;
-			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
-				if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
-					error("Too many parameters\n");
-					return ERROR_FUNC_ARGS;
-				} else {
-					//arg_varity_ptr = 
-				}
-			} else {
-				arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
-			}
-			this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
-			instruction_ptr->ret_operator = OPT_PASS_PARA;
-			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
-			instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
-			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
-			this->call_func_info.offset[this->call_func_info.function_depth - 1] += arg_varity_ptr->get_element_size();
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
 			if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 				instruction_ptr->opdb_operand_type = OPERAND_CONST;
@@ -673,6 +660,38 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					instruction_ptr->opdb_varity_type = varity_ptr->get_type();
 				}
 			}
+			varity_info *arg_varity_ptr;
+			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
+				if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
+					error("Too many parameters\n");
+					return ERROR_FUNC_ARGS;
+				} else {
+					if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] == this->call_func_info.arg_count[this->call_func_info.function_depth - 1]) {
+						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+					}
+					if(instruction_ptr->opdb_varity_type <= U_LONG && instruction_ptr->opdb_varity_type >= CHAR) {//TODO:平台相关，应该换掉
+						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = INT;
+						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 4;
+					} else if(instruction_ptr->opdb_varity_type == FLOAT || instruction_ptr->opdb_varity_type == DOUBLE) {
+						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = DOUBLE;
+						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
+					} else if(instruction_ptr->opdb_varity_type == PTR) {
+						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = PLATFORM_TYPE;
+						this->call_func_info.offset[this->call_func_info.function_depth - 1] += PLATFORM_WORD_LEN;
+					} else {
+						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = LONG_LONG;
+						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
+					}
+				}
+			} else {
+				arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
+				instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
+				this->call_func_info.offset[this->call_func_info.function_depth - 1] += arg_varity_ptr->get_size();
+			}
+			instruction_ptr->ret_operator = OPT_PASS_PARA;
+			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
+			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+			this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
 			code_stack_ptr->push();
 		}
 		break;
