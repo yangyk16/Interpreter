@@ -32,7 +32,7 @@ const char opt_str_len[] = {3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,
 const char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,1,1,17,1,4,2,3,8,2,3,3,4,6,6,9,10,13,13,14,15,16};
 const char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1};
 char tmp_varity_name[MAX_A_VARITY_NODE][3];
-char link_varity_name[MAX_LK_VARITY_NODE][3];
+char link_varity_name[MAX_A_VARITY_NODE][3];
 
 int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_stack)
 {
@@ -52,7 +52,7 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 			ret = list_stack_to_tree(last_node, post_order_stack);
 			if(ret)
 				return ret;
-		} else if(last_node_attribute->node_type == TOKEN_NAME || last_node_attribute->node_type == TOKEN_CONST_VALUE) {
+		} else if(last_node_attribute->node_type == TOKEN_NAME || last_node_attribute->node_type == TOKEN_CONST_VALUE || last_node_attribute->node_type == TOKEN_STRING) {
 		} else {
 			error("Invalid key word.\n");
 			return ERROR_INVALID_KEYWORD;
@@ -87,7 +87,7 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 			ret = list_stack_to_tree(last_node, post_order_stack);
 			if(ret)
 				return ret;
-		} else if(last_node_attribute->node_type == TOKEN_NAME || last_node_attribute->node_type == TOKEN_CONST_VALUE) {
+		} else if(last_node_attribute->node_type == TOKEN_NAME || last_node_attribute->node_type == TOKEN_CONST_VALUE || last_node_attribute->node_type == TOKEN_STRING) {
 		} else {
 			error("Invalid key word.\n");
 			return ERROR_INVALID_KEYWORD;
@@ -120,6 +120,10 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 			instruction_ptr->opda_operand_type = OPERAND_CONST;
 			instruction_ptr->opda_varity_type = node_attribute->value_type;
+			memcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
+		} else if(node_attribute->node_type == TOKEN_STRING) {
+			instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
+			instruction_ptr->opda_varity_type = PTR;
 			memcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
 			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
@@ -161,6 +165,10 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 			instruction_ptr->opdb_operand_type = OPERAND_CONST;
 			instruction_ptr->opdb_varity_type = node_attribute->value_type;
+			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
+		} else if(node_attribute->node_type == TOKEN_STRING) {
+			instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
+			instruction_ptr->opdb_varity_type = PTR;
 			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
 			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
@@ -509,25 +517,44 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		return ERROR_NO;
 	}
 	case OPT_CALL_FUNC:
-	case OPT_FUNC_COMMA://TODO：多参数不传参的bug源于函数声明时参数表没有对content_ptr赋值offset
+	case OPT_FUNC_COMMA:
 		if(opt_node_ptr->right) {
 			node_attribute = (node_attribute_t*)opt_node_ptr->right->value;
-			if(node_attribute->node_type == TOKEN_NAME ||  node_attribute->node_type == TOKEN_CONST_VALUE) {
+			if(node_attribute->node_type == TOKEN_NAME || node_attribute->node_type == TOKEN_CONST_VALUE || node_attribute->node_type == TOKEN_STRING) {
 				stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
+				instruction_ptr->ret_operator = OPT_PASS_PARA;
+				instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
+				instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
 				if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
 					if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
 						error("Too many parameters\n");
 						return ERROR_FUNC_ARGS;
+					} else {
+						if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] == this->call_func_info.arg_count[this->call_func_info.function_depth - 1]) {
+							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+						}
+						if(instruction_ptr->opdb_varity_type <= U_LONG && instruction_ptr->opdb_varity_type >= CHAR) {//TODO:平台相关，应该换掉
+							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = INT;
+							this->call_func_info.offset[this->call_func_info.function_depth - 1] += 4;
+						} else if(instruction_ptr->opdb_varity_type == FLOAT || instruction_ptr->opdb_varity_type == DOUBLE) {
+							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = DOUBLE;
+							this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
+						} else if(instruction_ptr->opdb_varity_type == PTR) {
+							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = PLATFORM_TYPE;
+							this->call_func_info.offset[this->call_func_info.function_depth - 1] += PLATFORM_WORD_LEN;
+						} else {
+							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = LONG_LONG;
+							this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
+						}
 					}
+				} else {
+					varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
+					instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
+					this->call_func_info.offset[this->call_func_info.function_depth - 1] += arg_varity_ptr->get_size();
 				}
-				instruction_ptr->ret_operator = OPT_PASS_PARA;
-				instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
-				varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
-				instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
-				instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
+
 				this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
-				instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
-				this->call_func_info.offset[this->call_func_info.function_depth - 1] += arg_varity_ptr->get_element_size();
+
 				if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY || instruction_ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
 					this->mid_varity_stack.pop();
 					dec_varity_ref(bvarity_ptr, true);//TODO:确认是否有需要
@@ -661,6 +688,9 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 				}
 			}
 			varity_info *arg_varity_ptr;
+			instruction_ptr->ret_operator = OPT_PASS_PARA;
+			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
+			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
 			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
 				if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
 					error("Too many parameters\n");
@@ -688,9 +718,6 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 				instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
 				this->call_func_info.offset[this->call_func_info.function_depth - 1] += arg_varity_ptr->get_size();
 			}
-			instruction_ptr->ret_operator = OPT_PASS_PARA;
-			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
-			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
 			this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
 			code_stack_ptr->push();
 		}
@@ -802,6 +829,36 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 		info->value.int_value = y_atoi(str, i);
 		info->node_type = TOKEN_CONST_VALUE;
 		return i;
+	} else if(str[i] == '"') {
+		int count = 0;
+		int pos = ++i;
+		while(str[i]) {
+			if(str[i] == '\\') {//TODO:处理\ddd\xhh
+				i++;
+			} else if(str[i] == '"') {
+				char *p = (char*)vmalloc(count + 1);
+				for(int j=0; j<count; j++) {
+					if(str[pos] == '\\') {
+						char ch = str[pos + 1];
+						switch(ch) {
+						case 'n':
+							p[j] = '\n';
+						}
+						pos += 2;
+					} else {
+						p[j] = str[pos++]; 
+					}
+				}
+				p[count] = 0;
+				info->node_type = TOKEN_STRING;
+				info->value.ptr_value = p;
+				return i + 1;
+			}
+			i++;
+			count++;
+		}
+	} else if(str[i] == '\'') {
+
 	} else {
 		for(int j=0; j<sizeof(opt_str)/sizeof(opt_str[0]); j++) {
 			if(!strmcmp(str + i, opt_str[j], opt_str_len[j])) {
@@ -1539,7 +1596,7 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 					analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
 				}
 			}
-		} else if(node_attribute->node_type == TOKEN_NAME || node_attribute->node_type == TOKEN_CONST_VALUE) {
+		} else if(node_attribute->node_type == TOKEN_NAME || node_attribute->node_type == TOKEN_CONST_VALUE || node_attribute->node_type == TOKEN_STRING) {
 			this->sentence_analysis_data_struct.expression_final_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
 		}
 		this->sentence_analysis_data_struct.last_token = *node_attribute;
@@ -1563,6 +1620,8 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 	//	printf("%d ",tmp->node_type);
 	//	if(tmp->node_type == TOKEN_NAME)
 	//		printf("%s\n",tmp->value.ptr_value);
+	//	else if(tmp->node_type == TOKEN_STRING)
+	//		printf("%s\n", tmp->value.ptr_value);
 	//	else
 	//		printf("%d %d\n",tmp->value.int_value,tmp->value_type);
 	//}
@@ -2422,7 +2481,7 @@ void c_interpreter::print_code(void)
 	mid_code *ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 	for(int i=0; i<n; i++, ptr++) {
 		if(ptr->ret_operator >= 100) {
-			debug("%d", ptr->ret_operator);
+			debug("%d ", ptr->ret_operator);
 		}
 		if(ptr->ret_operand_type == OPERAND_T_VARITY) {
 			debug("$%d=", ptr->ret_addr / 8);

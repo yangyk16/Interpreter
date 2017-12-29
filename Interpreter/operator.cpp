@@ -9,7 +9,19 @@
 #include <stdio.h>
 
 #define OPERATOR_TYPE_NUM	128
-//从右向左的运算符统统压栈，集中出栈处理。
+
+typedef int (*func0)(void);
+typedef int (*func1)(int);
+typedef int (*func2)(int, int);
+typedef int (*func3)(int, int, int);
+typedef int (*func4)(int, int, int, int);
+typedef int (*func5)(int, int, int, int, int);
+typedef int (*func6)(int, int, int, int, int, int);
+typedef int (*func7)(int, int, int, int, int, int, int);
+typedef int (*func8)(int, int, int, int, int, int, int, int);
+func0 func0_ptr;
+func1 func1_ptr;
+func2 func2_ptr;
 static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_len_ptr)
 {
 	if(*opt_type_ptr == OPT_PLUS || *opt_type_ptr == OPT_MINUS) {
@@ -1452,18 +1464,27 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 	interpreter_ptr->tmp_varity_stack_pointer += (int)opdb_addr;//24;//一句产生的中间代码可能最多用三个临时变量吧…TODO:考虑link变量后在CALL_FUNC生成代码时附加当前使用get_count()值？
 	interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth] = function_ptr->stack_frame_size;
 	interpreter_ptr->call_func_info.function_depth++;
-	if(!function_ptr->compile_func_flag)
+	if(!function_ptr->compile_func_flag) {
 		interpreter_ptr->exec_mid_code((mid_code*)function_ptr->mid_code_stack.get_base_addr(), code_count);
-	else {
+		varity_convert(ret_addr, instruction_ptr->ret_varity_type, interpreter_ptr->tmp_varity_stack_pointer, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
+	} else {
+		int ret;
+		PLATFORM_WORD *arg_ptr = (PLATFORM_WORD*)interpreter_ptr->stack_pointer;
 		switch(instruction_ptr->data) {
 		case 1:
+			func1_ptr = (func1)function_ptr->func_addr;
+			ret = func1_ptr(*arg_ptr);
+			break;
 		case 2:
+			func2_ptr = (func2)function_ptr->func_addr;
+			ret = func2_ptr(*arg_ptr, *(arg_ptr + 1));
+			break;
 		case 16:
 			break;
 		}
 	}
 	interpreter_ptr->pc = pc_backup;
-	varity_convert(ret_addr, instruction_ptr->ret_varity_type, interpreter_ptr->tmp_varity_stack_pointer, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
+	
 	interpreter_ptr->call_func_info.function_depth--;
 	interpreter_ptr->tmp_varity_stack_pointer -= (int)opdb_addr;//24;
 	if(interpreter_ptr->call_func_info.function_depth == 0)

@@ -12,7 +12,7 @@
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "long", "unsigned int", "unsigned long", "long long", "unsigned long long", "float", "double", "void", "struct"};
 const char sizeof_type[] = {0, 1, 1, 2, 2, 4, 4, 4, 4, 8, 8, 4, 8, 0, 0};
 const char type_len[] = {5, 4, 13, 5, 14, 3, 4, 12, 13, 9, 18, 5, 6, 4, 6};
-int basic_type_info[15][4] = {{1, BASIC_TYPE_SET(COMPLEX)}, {1, BASIC_TYPE_SET(CHAR)}, {1, BASIC_TYPE_SET(U_CHAR)}, {1, BASIC_TYPE_SET(SHORT)}, {1, BASIC_TYPE_SET(U_SHORT)}, {1, BASIC_TYPE_SET(INT)}, {1, BASIC_TYPE_SET(LONG)}, {1, BASIC_TYPE_SET(U_INT)}, {1, BASIC_TYPE_SET(U_LONG)}, {1, BASIC_TYPE_SET(LONG_LONG)}, {1, BASIC_TYPE_SET(U_LONG_LONG)}, {1, BASIC_TYPE_SET(FLOAT)}, {1, BASIC_TYPE_SET(DOUBLE)}, {1, BASIC_TYPE_SET(VOID)}, {1, 0, BASIC_TYPE_SET(STRUCT)}};
+int basic_type_info[15][4] = {{1, BASIC_TYPE_SET(COMPLEX)}, {1, BASIC_TYPE_SET(CHAR), COMPLEX_PTR << COMPLEX_TYPE_BIT}, {1, BASIC_TYPE_SET(U_CHAR)}, {1, BASIC_TYPE_SET(SHORT)}, {1, BASIC_TYPE_SET(U_SHORT)}, {1, BASIC_TYPE_SET(INT)}, {1, BASIC_TYPE_SET(LONG)}, {1, BASIC_TYPE_SET(U_INT)}, {1, BASIC_TYPE_SET(U_LONG)}, {1, BASIC_TYPE_SET(LONG_LONG)}, {1, BASIC_TYPE_SET(U_LONG_LONG)}, {1, BASIC_TYPE_SET(FLOAT)}, {1, BASIC_TYPE_SET(DOUBLE)}, {1, BASIC_TYPE_SET(VOID)}, {1, 0, BASIC_TYPE_SET(STRUCT)}};
 #elif PLATFORM_WORD_LEN == 8
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "unsigned int", "long", "long long", "unsigned long", "unsigned long long", "float", "double", "void", "struct"};
 const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};

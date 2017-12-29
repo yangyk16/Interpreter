@@ -11,7 +11,8 @@
 #define TOKEN_OPERATOR			5
 #define TOKEN_NAME				6
 #define TOKEN_CONST_VALUE		7
-#define TOKEN_ERROR				8
+#define TOKEN_STRING			8
+#define TOKEN_ERROR				9
 
 inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
 //need a bracket stack save outer bracket
