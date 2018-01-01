@@ -22,6 +22,7 @@ typedef int (*func8)(int, int, int, int, int, int, int, int);
 func0 func0_ptr;
 func1 func1_ptr;
 func2 func2_ptr;
+func3 func3_ptr;
 static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_len_ptr)
 {
 	if(*opt_type_ptr == OPT_PLUS || *opt_type_ptr == OPT_MINUS) {
@@ -1332,7 +1333,9 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 	//varity_convert(opda_addr, instruction_ptr->opda_varity_type, opdb_addr, instruction_ptr->opdb_varity_type);
 	int type = instruction_ptr->opdb_varity_type;
 	if(instruction_ptr->opda_varity_type == PTR) {
-		if(type == INT || type == U_INT || type == LONG || type == U_LONG) {
+		if(type == ARRAY) {
+			INT_VALUE(opda_addr) = (int)opdb_addr;
+		} else if(type == INT || type == U_INT || type == LONG || type == U_LONG) {
 			INT_VALUE(opda_addr) = INT_VALUE(opdb_addr);
 		} else if(type == CHAR || type == U_CHAR) {
 			INT_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
@@ -1368,7 +1371,15 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 			}
 		}
 	} else if(instruction_ptr->opda_varity_type < type) {
-		if(type == DOUBLE) {
+		if(type == PTR) {
+			if(instruction_ptr->opda_varity_type == INT) {
+				INT_VALUE(opda_addr) = INT_VALUE(opdb_addr);
+			}
+		} else if(type == ARRAY) {
+			if(instruction_ptr->opda_varity_type == INT) {
+				INT_VALUE(opda_addr) = int(opdb_addr);
+			}
+		} else if(type == DOUBLE) {
 			INT_VALUE(opda_addr) = (int)DOUBLE_VALUE(opdb_addr);
 		} else if(type == FLOAT) {
 			INT_VALUE(opda_addr) = (int)FLOAT_VALUE(opdb_addr);
@@ -1448,7 +1459,10 @@ int opt_address_of_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *o
 int opt_index_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
-	INT_VALUE(ret_addr) = (int)opda_addr + INT_VALUE(opdb_addr) * instruction_ptr->data;
+	if(instruction_ptr->opda_varity_type == ARRAY)
+		INT_VALUE(ret_addr) = (int)opda_addr + INT_VALUE(opdb_addr) * instruction_ptr->data;
+	else if(instruction_ptr->opda_varity_type == PTR)
+		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) + INT_VALUE(opdb_addr) * instruction_ptr->data;
 	return ERROR_NO;
 }
 
@@ -1479,6 +1493,9 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 			func2_ptr = (func2)function_ptr->func_addr;
 			ret = func2_ptr(*arg_ptr, *(arg_ptr + 1));
 			break;
+		case 3:
+			func3_ptr = (func3)function_ptr->func_addr;
+			ret = func3_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2));
 		case 16:
 			break;
 		}

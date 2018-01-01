@@ -123,7 +123,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			memcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_STRING) {
 			instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
-			instruction_ptr->opda_varity_type = PTR;
+			instruction_ptr->opda_varity_type = ARRAY;
 			memcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
 			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
@@ -168,7 +168,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_STRING) {
 			instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
-			instruction_ptr->opdb_varity_type = PTR;
+			instruction_ptr->opdb_varity_type = ARRAY;
 			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
 			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
@@ -660,13 +660,17 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		this->call_func_info.function_depth++;
 		break;
 	case OPT_FUNC_COMMA:
-		if(((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_NAME ||  ((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_CONST_VALUE) {
+		if(((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_NAME ||  ((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_CONST_VALUE || ((node_attribute_t*)opt_node_ptr->left->value)->node_type == TOKEN_STRING) {
 			stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
 			if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 				instruction_ptr->opdb_operand_type = OPERAND_CONST;
 				instruction_ptr->opdb_varity_type = node_attribute->value_type;
 				memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
+			} else if(node_attribute->node_type == TOKEN_STRING) {
+				instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
+				instruction_ptr->opdb_varity_type = ARRAY;
+				instruction_ptr->opdb_addr = (int)node_attribute->value.ptr_value;
 			} else if(node_attribute->node_type == TOKEN_NAME) {
 				if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
 					instruction_ptr->opdb_operand_type = OPERAND_T_VARITY;
