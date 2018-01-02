@@ -183,7 +183,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				instruction_ptr->opdb_operand_type = OPERAND_LINK_VARITY;
 				bvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]);
 				instruction_ptr->opdb_varity_type = bvarity_ptr->get_type();
-				instruction_ptr->opdb_addr = (int)bvarity_ptr->get_content_ptr();
+				instruction_ptr->opdb_addr = 8 * node_attribute->value.ptr_value[1];
 				this->mid_varity_stack.pop();
 				bvarity_use_flag = 1;
 				dec_varity_ref(bvarity_ptr, false);
@@ -557,7 +557,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 
 				if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY || instruction_ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
 					this->mid_varity_stack.pop();
-					dec_varity_ref(bvarity_ptr, true);//TODO:确认是否有需要
+					//dec_varity_ref(bvarity_ptr, true);//TODO:确认是否有需要，不注释掉出bug了，释放了全局变量类型信息
 				}
 			}
 		}
