@@ -1753,7 +1753,7 @@ int c_interpreter::sentence_analysis(char* str, int len)
 				this->nonseq_start_gen_mid_code(str, len, nonseq_info->row_info_node[nonseq_info->row_num - 1].nonseq_type);
 				break;
 			case 1:
-				this->nonseq_end_gen_mid_code(str, len);
+				this->nonseq_end_gen_mid_code(nonseq_info->row_info_node[nonseq_info->row_num - 1].row_ptr, nonseq_info->row_info_node[nonseq_info->row_num - 1].row_len);
 				break;
 			case 2:
 				this->nonseq_mid_gen_mid_code(str, len);
@@ -1822,8 +1822,11 @@ int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
 	node_attribute_t cur_node;
 	key_len = get_token(str, &cur_node);
 	if(cur_node.node_type != TOKEN_KEYWORD_NONSEQ && str[0] != '}') {//TODO£ºdo while ¼ì²âbug
-		int ret = this->generate_mid_code(str, len, true);
-		if(ret) return ret;
+		if(!nonseq_info->row_info_node[nonseq_info->row_num - 1].finish_flag) {
+			nonseq_info->row_info_node[nonseq_info->row_num - 1].finish_flag = 1;
+			int ret = this->generate_mid_code(str, len, true);
+			if(ret) return ret;
+		}
 	}
 	for(i=nonseq_info->row_num-1; i>=0; i--) {
 		if(nonseq_info->row_info_node[i].non_seq_depth >= cur_depth 
