@@ -1635,12 +1635,13 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 		return 0;//TODO:找个合适的返回值
 	}
 	this->sentence_analysis_data_struct.tree_root = root;
+	int ret;
 	if(analysis_data_struct_ptr->expression_final_stack.get_count() == 0) {
-		generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
+		ret = generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
+		if(ret)return ret;
 		//return ERROR_NO;
 	} else {
 		root->link_reset();
-		int ret;
 		ret = list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
 		if(ret)return ret;
 		//root->middle_visit();
