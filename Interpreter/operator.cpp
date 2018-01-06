@@ -1604,6 +1604,7 @@ void handle_init(void)
 	opt_handle[CTL_RETURN] = ctl_return_handle;
 	opt_handle[CTL_BREAK] = ctl_branch_handle;
 	opt_handle[CTL_CONTINUE] = ctl_branch_handle;
+	opt_handle[CTL_GOTO] = ctl_branch_handle;
 	opt_handle[SYS_STACK_STEP] = sys_stack_step_handle;
 }
 

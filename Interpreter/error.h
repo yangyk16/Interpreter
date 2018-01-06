@@ -35,6 +35,9 @@
 #define ERROR_TERNARY_UNMATCH	-30
 #define ERROR_NO_SUB_STRUCT		-31
 #define ERROR_NONSEQ_CTL		-32
+#define ERROR_GOTO_POSITION		-33
+#define ERROR_GOTO_COUNT_MAX	-34
+#define ERROR_GOTO_LABEL		-35
 #define OK_FUNC_RETURN			-99
 
 #define OK_NONSEQ_FINISH		1
@@ -49,4 +52,5 @@
 #define OK_STRUCT_FINISH		10
 #define OK_NONSEQ_DEFINE		11
 #define OK_FUNC_DEFINE			12
+#define OK_LABEL_DEFINE			13
 #endif

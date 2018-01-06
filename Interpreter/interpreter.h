@@ -96,6 +96,9 @@ typedef struct sentence_analysis_data_struct_s {
 	node *tree_root;
 	int short_calc_stack[MAX_LOGIC_DEPTH];//TODO:保存地址的变量换成平台相关宏
 	char short_depth;
+	void* label_addr[MAX_LABEL_COUNT];
+	char label_name[MAX_LABEL_COUNT][MAX_LABEL_NAME_LEN];
+	int label_count;
 } sentence_analysis_data_struct_t;
 
 typedef struct call_func_info_s {
@@ -163,6 +166,7 @@ class c_interpreter: public interpreter {
 	int non_seq_struct_analysis(char*, uint);
 	int sub_sentence_analysis(char*, uint* size);
 	int key_word_analysis(char*, uint);
+	int label_analysis(char*, int);
 	int sentence_exec(char*, uint, bool, varity_info*);
 	int non_seq_section_exec(int, int);
 	int nesting_nonseq_section_exec(int, int);

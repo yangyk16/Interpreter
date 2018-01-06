@@ -3,6 +3,8 @@
 #define CONFIG_H
 
 #define DYNAMIC_ARRAY_EN		0
+#define MAX_LABEL_COUNT			3
+#define MAX_LABEL_NAME_LEN		16
 #define MAX_STACK_INDEX			16
 #define MAX_FUNCTION_DEPTH		16
 #define MAX_G_VARITY_NODE		128
