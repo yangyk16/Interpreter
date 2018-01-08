@@ -84,6 +84,7 @@
     <ClInclude Include="config.h" />
     <ClInclude Include="data_struct.h" />
     <ClInclude Include="hal.h" />
+    <ClInclude Include="kmalloc.h" />
     <ClInclude Include="operator.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="string_lib.h" />
@@ -97,6 +98,7 @@
     <ClCompile Include="interpreter.cpp" />
     <ClCompile Include="data_struct.cpp" />
     <ClCompile Include="hal.cpp" />
+    <ClCompile Include="kmalloc.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="operator.cpp" />
     <ClCompile Include="operator_overloading.cpp" />

@@ -78,7 +78,7 @@
  1.4  修复for/while嵌套不带else的if时循环结构中间代码不完整bug
  1.5  修复无运算符的表达式生成中间代码返回值bug
  1.6  支持后向goto
- 1.8  支持前向goto；增加vrealloc
+ 1.8  支持前向goto；增加vrealloc；准备移植内存池
 
 
 变量命名：
