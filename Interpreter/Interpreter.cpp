@@ -1240,10 +1240,24 @@ int c_interpreter::function_analysis(char* str, uint len)
 				while(--mid_code_ptr >= (mid_code*)this->function_declare->get_current_node()->mid_code_stack.get_base_addr()) {
 					if(mid_code_ptr->ret_operator == CTL_RETURN)
 						mid_code_ptr->opda_addr = code_end_ptr - mid_code_ptr;
+					else if(mid_code_ptr->ret_operator == CTL_GOTO) {
+						int i;
+						for(i=0; i<this->sentence_analysis_data_struct.label_count; i++) {
+							if(!strcmp(this->sentence_analysis_data_struct.label_name[i], (char*)&mid_code_ptr->ret_addr)) {
+								mid_code_ptr->opda_addr = (mid_code*)this->sentence_analysis_data_struct.label_addr[i] - mid_code_ptr;
+								break;
+							}
+						}
+						if(i == this->sentence_analysis_data_struct.label_count) {
+							error("No label called \"%s\"\n", (char*)&mid_code_ptr->ret_addr);
+							return ERROR_GOTO_LABEL;
+						}
+					}
 				}
 				this->function_flag_set.function_flag = 0;
 				this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 				this->function_declare->get_current_node()->stack_frame_size = this->varity_declare->local_varity_stack->offset;
+				this->function_declare->get_current_node()->size_adapt();
 				this->exec_flag = true;
 				this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 				this->varity_declare->destroy_local_varity();
@@ -1573,13 +1587,9 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 		}
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 		mid_code_ptr->ret_operator = CTL_GOTO;
-		for(int i=0; i<this->sentence_analysis_data_struct.label_count; i++) {//TODO:转移到函数结束中去处理，方便前向和后向goto均支持
-			if(!strcmp(this->sentence_analysis_data_struct.label_name[i], analysis_data_struct_ptr->node_attribute->value.ptr_value)) {
-				mid_code_ptr->opda_addr = (mid_code*)this->sentence_analysis_data_struct.label_addr[i] - mid_code_ptr;
-				this->cur_mid_code_stack_ptr->push();
-				return ERROR_NO;
-			}
-		}
+		strcpy((char*)&mid_code_ptr->ret_addr, analysis_data_struct_ptr->node_attribute->value.ptr_value);
+		this->cur_mid_code_stack_ptr->push();
+		return ERROR_NO;
 	}
 	while(len > 0) {
 		node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];

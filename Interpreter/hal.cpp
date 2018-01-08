@@ -43,3 +43,9 @@ void vfree(void *ptr)
 	free(ptr);
 	debug("free %x\n", ptr);
 }
+
+void* vrealloc(void* addr, unsigned int size)
+{
+	debug("realloc %x, %d\n", addr, size);
+	return realloc(addr, size);
+}

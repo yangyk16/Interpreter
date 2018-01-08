@@ -22,6 +22,7 @@ public:
 	int init(char *name, void* addr, stack *arg_list, char variable_arg_flag);
 	int reset(void);
 	int save_sentence(char* ,uint);
+	int size_adapt(void);
 };
 
 class function {

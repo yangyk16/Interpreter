@@ -51,6 +51,15 @@ int function_info::reset(void)
 	return 0;
 }
 
+int function_info::size_adapt(void)
+{
+	vrealloc(this->mid_code_stack.get_base_addr(), this->mid_code_stack.get_count() * sizeof(mid_code));
+	vrealloc(this->buffer, this->wptr);
+	vfree(this->row_len);
+	vrealloc(this->row_begin_pos, this->row_line);
+	return ERROR_NO;
+}
+
 int function_info::save_sentence(char* str, uint len)
 {
 	this->row_len[row_line] = len;

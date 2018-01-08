@@ -172,6 +172,7 @@ class struct_define;
 
 void *vmalloc(unsigned int size);
 void vfree(void*);
+void* vrealloc(void* addr, unsigned int size);
 int get_varity_size(int basic_type, uint *complex_info = 0, int complex_arg_count = 0);
 int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count);
 void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag);
