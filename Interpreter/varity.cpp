@@ -181,173 +181,6 @@ void varity_info::set_to_single(int index)
 	this->content_ptr = this->get_element_ptr(index);
 }
 
-void varity_info::convert(void* addr, int type)
-{
-	if(this->type == VOID) {
-		this->type = type;
-		this->size = sizeof_type[type];
-		this->apply_space();
-		memcpy(this->content_ptr, addr, size);
-		return;
-	} else if(this->type > CHAR) {
-		if(type == INT || type == U_INT || type == LONG || type == U_LONG) {
-			INT_VALUE(this->content_ptr) = INT_VALUE(addr);
-		} else if(type == CHAR || type == U_CHAR) {
-			INT_VALUE(this->content_ptr) = CHAR_VALUE(addr);
-		} else if(type == SHORT || type == U_SHORT) {
-			INT_VALUE(this->content_ptr) = SHORT_VALUE(addr);
-		} else if(type > CHAR) {
-			INT_VALUE(this->content_ptr) = INT_VALUE(addr);
-		} else {
-			error("There is no method for coverting ptr type from float\n");
-		}
-		return;
-	}
-	if(this->type == type) {
-		memcpy(this->content_ptr, addr, this->size);
-	} else if(this->type < type) {
-		if(this->type == INT || this->type == U_INT || this->type == LONG || this->type == U_LONG)
-			*(int*)(this->content_ptr) = *(int*)(addr);
-		else if(this->type == U_SHORT || this->type == SHORT)
-			*(short*)(this->content_ptr) = *(short*)(addr);
-		else if(this->type == U_CHAR)
-			*(char*)(this->content_ptr) = *(char*)(addr);
-		else if(this->type == DOUBLE) {
-			if(type == U_CHAR || type == U_INT || type == U_SHORT || type == U_LONG) {
-				*(double*)(this->content_ptr) = *(uint*)(addr);
-			} else if(type == CHAR || type == INT || type == SHORT || type == LONG) {
-				*(double*)(this->content_ptr) = *(int*)(addr);
-			} else if(type == FLOAT) {
-				*(double*)(this->content_ptr) = *(float*)(addr);
-			}
-		} else if(this->type == FLOAT) {
-			if(type == U_CHAR || type == U_INT || type == U_SHORT || type == U_LONG) {
-				*(float*)(this->content_ptr) = (float)*(uint*)(addr);
-			} else if(type == CHAR || type == INT || type == SHORT || type == LONG) {
-				*(float*)(this->content_ptr) = (float)*(int*)(addr);
-			}
-		}
-	} else if(this->type > type) {
-		if(type == DOUBLE) {
-			*(int*)(this->content_ptr) = (int)*(double*)(addr);
-		} else if(type == FLOAT) {
-			*(int*)(this->content_ptr) = (int)*(float*)(addr);
-		} else if(type == INT || type == U_INT){
-			*(int*)(this->content_ptr) = *(int*)(addr);
-		} else if(this->type == U_SHORT || this->type == SHORT) {
-			if(type == DOUBLE) {
-				*(short*)(this->content_ptr) = (short)*(double*)(addr);
-			} else if(type == FLOAT) {
-				*(short*)(this->content_ptr) = (short)*(float*)(addr);
-			} else {
-				*(short*)(this->content_ptr) = *(short*)(addr);
-			}
-		} else if(this->type == U_CHAR || this->type == CHAR) {
-			if(type == DOUBLE) {
-				*(char*)(this->content_ptr) = (char)*(double*)(addr);
-			} else if(type == FLOAT) {
-				*(char*)(this->content_ptr) = (char)*(float*)(addr);
-			} else {
-				*(char*)(this->content_ptr) = *(char*)(addr);
-			}
-		}
-	}
-	return;
-}
-
-void varity_info::create_from_c_varity(void* addr, int type)
-{
-	if(!this->size) {
-		this->type = type;
-		this->size = sizeof_type[type];
-		this->apply_space();
-		memcpy(this->content_ptr, addr, size);
-	} else {
-		if(this->attribute & ATTRIBUTE_TYPE_UNFIXED) {
-			this->type = type;
-			this->size = sizeof_type[type];
-		}
-		this->convert(addr, type);
-	}
-}
-
-varity_info& varity_info::operator=(const varity_info& source)
-{
-	this->comlex_info_ptr = source.comlex_info_ptr;
-	if(this->attribute & ATTRIBUTE_REFERENCE) {
-		this->type = source.type;
-		this->size = source.size;
-		this->content_ptr = source.content_ptr;
-	} else {
-		if(!this->size) {
-			type = source.type;
-			size = source.size;
-			attribute = source.attribute;
-			comlex_info_ptr = source.comlex_info_ptr;
-			this->apply_space();
-			memcpy(this->content_ptr, source.content_ptr, size);
-		} else {
-			if(this->attribute & ATTRIBUTE_TYPE_UNFIXED) {
-				this->type = source.type;
-				this->size = sizeof_type[this->type];
-			}
-			this->convert(source.content_ptr, source.type);
-		}
-	}
-	return *this;
-}
-
-varity_info& varity_info::operator=(char source) 
-{
-	create_from_c_varity(&source, CHAR);
-	return *this;
-}
-varity_info& varity_info::operator=(unsigned char source) 
-{
-	create_from_c_varity(&source, U_CHAR);
-	return *this;
-}
-varity_info& varity_info::operator=(short source) 
-{
-	create_from_c_varity(&source, SHORT);
-	return *this;
-}
-varity_info& varity_info::operator=(unsigned short source) 
-{
-	create_from_c_varity(&source, U_SHORT);
-	return *this;
-}
-varity_info& varity_info::operator=(const int& source) 
-{
-	create_from_c_varity((void*)&source, INT);
-	return *this;
-}
-varity_info& varity_info::operator=(unsigned int source) 
-{
-	create_from_c_varity(&source, U_INT);
-	return *this;
-}
-varity_info& varity_info::operator=(long long source) 
-{
-	create_from_c_varity(&source, LONG_LONG);
-	return *this;
-}
-varity_info& varity_info::operator=(unsigned long long source)
-{
-	create_from_c_varity(&source, U_LONG_LONG);
-	return *this;
-}
-varity_info& varity_info::operator=(float source)
-{
-	create_from_c_varity(&source, FLOAT);
-	return *this;
-}
-varity_info& varity_info::operator=(double source)
-{
-	create_from_c_varity(&source, DOUBLE);
-	return *this;
-}
-
 int varity_info::apply_space(void)
 {
 	if(this->content_ptr && !(this->attribute & ATTRIBUTE_LINK)) {
@@ -431,8 +264,6 @@ int varity::declare(int scope_flag, char *name, char type, uint size, int comple
 		varity_stack = global_varity_stack;
 	else if(scope_flag == VARITY_SCOPE_LOCAL)
 		varity_stack = local_varity_stack;
-	else
-		varity_stack = analysis_varity_stack;
 	if(varity_stack->is_full()) {
 		error("declare varity \"%s\" error: varity count reach max\n", name);
 		return ERROR_VARITY_COUNT_MAX;
@@ -484,11 +315,6 @@ varity_info* varity::vfind(char *name, int &scope)
 varity_info* varity::find(char* name, int scope)
 {
 	varity_info* ret = NULL;
-	if(scope & PRODUCED_ANALIES) {
-		ret = (varity_info*)this->analysis_varity_stack->find(name);
-		if(ret)
-			return ret;
-	}
 	if(scope & PRODUCED_DECLARE) {
 		ret = (varity_info*)this->local_varity_stack->find(name);
 		if(ret)
@@ -499,43 +325,6 @@ varity_info* varity::find(char* name, int scope)
 			return ret;
 	}
 	return ret;
-}
-
-int varity::declare_analysis_varity(char type, uint size, char* ret_name, varity_info** varity_ptr, char attribute)
-{
-	int ret;
-	char tmp_varity_name[3];
-	sprintf(tmp_varity_name, "%c%c", TMP_VAIRTY_PREFIX, 128 + this->cur_analysis_varity_count++);
-	if(ret_name)
-		strcpy(ret_name, tmp_varity_name);
-	ret = this->declare(VARITY_SCOPE_ANALYSIS, tmp_varity_name, type, size, 0, 0);
-	//if(ret_name)
-	//	*varity_ptr = (varity_info*)this->analysis_varity_stack->find(ret_name);
-	*varity_ptr = (varity_info*)this->analysis_varity_stack->get_lastest_element();
-	return ret;
-}
-
-int varity::destroy_analysis_varity(int count)
-{
-	varity_info* varity_ptr;
-	for(int i=0; i<count; i++) {
-		varity_ptr = (varity_info*)this->analysis_varity_stack->pop();
-		varity_ptr->reset();
-	}
-	this->cur_analysis_varity_count -= count;
-	return 0;
-}
-
-int varity::destroy_analysis_varity(void)
-{
-	int count = this->analysis_varity_stack->get_count();
-	varity_info* varity_ptr;
-	for(int i=0; i<count; i++) {
-		varity_ptr = (varity_info*)this->analysis_varity_stack->pop();
-		varity_ptr->reset();
-	}
-	this->cur_analysis_varity_count = 0;
-	return 0;
 }
 
 int varity::destroy_local_varity_cur_depth(void)
@@ -577,7 +366,6 @@ varity::varity(stack* g_stack, indexed_stack* l_stack, stack* a_stack)
 {
 	this->global_varity_stack = g_stack;
 	this->local_varity_stack = l_stack;
-	this->analysis_varity_stack = a_stack;
 	this->cur_analysis_varity_count = 0;
 	this->current_stack_depth = 0;
 }

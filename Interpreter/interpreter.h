@@ -138,7 +138,6 @@ protected:
 	terminal* tty_used;
 	bool print_ret;
 
-	virtual int call_func(char*, char*, uint) {return 0;};
 	virtual int pre_treat(void){return 0;};
 	virtual int sentence_analysis(char*, int) = 0;
 public:
@@ -168,8 +167,6 @@ class c_interpreter: public interpreter {
 	int key_word_analysis(char*, uint);
 	int label_analysis(char*, int);
 	int sentence_exec(char*, uint, bool, varity_info*);
-	int non_seq_section_exec(int, int);
-	int nesting_nonseq_section_exec(int, int);
 	//////////////////////////////////////////////////////////////////////
 	round_queue token_fifo;
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;
@@ -203,24 +200,13 @@ class c_interpreter: public interpreter {
 	int test(char *str, uint len);
 	void print_code(void);
 	//////////////////////////////////////////////////////////////////////
-	virtual int call_func(char*, char*, uint);
 	virtual int sentence_analysis(char*, int);
 	virtual int pre_treat(void);
 
-	int auto_inc_opt(char* str, uint* size_ptr);
-	int assign_opt(char* str, uint* len);
-	int plus_opt(char* str, uint* size_ptr);
-	int multiply_opt(char* str, uint* size_ptr);
-	int relational_opt(char* str, uint* size_ptr);
-	int equal_opt(char* str, uint* size_ptr);
-	int member_opt(char* str, uint* size_ptr);
-	//int bracket_opt(char*, char*, char*, uint*);
-	opt_calc c_opt_caculate_func_list[C_OPT_PRIO_COUNT];
 public:
 	mid_code *pc;
 	c_interpreter(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
 	virtual int run_interpreter(void);
 };
 
-int remove_substring(char* str, int index1, int index2);
 #endif

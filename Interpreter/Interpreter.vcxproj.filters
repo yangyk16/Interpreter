@@ -83,9 +83,6 @@
     <ClCompile Include="operator.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="operator_overloading.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="string_lib.cpp">
       <Filter>源文件</Filter>
     </ClCompile>

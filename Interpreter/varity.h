@@ -10,7 +10,6 @@
 #define LINK_VARITY_PREFIX	0x03
 
 #define PRODUCED_DECLARE	1
-#define PRODUCED_ANALIES	2
 #define PRODUCED_ALL		3
 
 #define VARITY_SCOPE_GLOBAL  	0
@@ -92,40 +91,7 @@ public:
 	void clear_attribute(char);
 	varity_info();
 	varity_info(char*, int, uint);
-	varity_info& operator=(const varity_info&);
-	varity_info& operator=(char);
-	varity_info& operator=(unsigned char);
-	varity_info& operator=(short);
-	varity_info& operator=(unsigned short);
-	varity_info& operator=(const int&);
-	varity_info& operator=(unsigned int);
-	varity_info& operator=(long long);
-	varity_info& operator=(unsigned long long);
-	varity_info& operator=(float);
-	varity_info& operator=(double);
-	varity_info& operator++(void);//Ç°ÖÃ++
-	varity_info& operator++(int);//ºóÖÃ++
-	varity_info& operator--(void);
-	varity_info& operator--(int);
-	friend varity_info& operator~(varity_info&);
-	friend varity_info& operator!(varity_info&);
-	friend varity_info& operator+(varity_info&);
-	friend varity_info& operator-(varity_info&);
-	friend varity_info& operator*(varity_info&, varity_info&);
-	friend varity_info& operator/(varity_info&, varity_info&);
-	friend varity_info& operator%(varity_info&, varity_info&);
-	friend varity_info& operator+(varity_info&, varity_info&);
-	friend varity_info& operator-(varity_info&, varity_info&);
-	friend varity_info& operator>>(varity_info&, varity_info&);
-	friend varity_info& operator<<(varity_info&, varity_info&);
-	friend varity_info& operator>(varity_info&, varity_info&);
-	friend varity_info& operator<(varity_info&, varity_info&);
-	friend varity_info& operator>=(varity_info&, varity_info&);
-	friend varity_info& operator<=(varity_info&, varity_info&);
-	friend varity_info& operator==(varity_info&, varity_info&);
-	friend varity_info& operator!=(varity_info&, varity_info&);
 	operator varity_info();
-	void create_from_c_varity(void*, int);
 	int apply_space(void);
 	int struct_apply(void);
 	int get_element_size(void);
@@ -155,14 +121,10 @@ class varity {
 public:
 	varity(stack*, indexed_stack*, stack*);
 	stack* global_varity_stack;
-	stack* analysis_varity_stack;
 	indexed_stack* local_varity_stack;
 	varity_info* find(char*, int);
 	varity_info* vfind(char *name, int &scope);
 	int declare(int scope_flag, char* name, char type, uint size, int, void*);
-	int declare_analysis_varity(char type, uint size, char*, varity_info**, char = 0);
-	int destroy_analysis_varity(void);
-	int destroy_analysis_varity(int);
 	int destroy_local_varity_cur_depth(void);
 	int destroy_local_varity(void);
 	int undeclare();
