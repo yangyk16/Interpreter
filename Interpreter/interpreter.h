@@ -134,7 +134,6 @@ protected:
 	varity* temp_varity_analysis;//sentence_analysis produce mid-varity;
 	function* function_declare;
 	char sentence_buf[MAX_SENTENCE_LENGTH];
-	char analysis_buf[MAX_ANALYSIS_BUFLEN];
 	terminal* tty_used;
 	bool print_ret;
 
@@ -152,10 +151,8 @@ class c_interpreter: public interpreter {
 	function_flag_struct function_flag_set;
 	struct_define* struct_declare;
 	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
-	char* analysis_buf_ptr;
 	round_queue non_seq_code_fifo;
 	int varity_global_flag;
-	varity_info* function_return_value;
 	//int function_depth;
 	unsigned int analysis_buf_inc_stack[MAX_FUNCTION_DEPTH];
 	int save_sentence(char*, uint);
@@ -176,10 +173,8 @@ class c_interpreter: public interpreter {
 	stack *cur_mid_code_stack_ptr;
 	char *stack_pointer;
 	char *tmp_varity_stack_pointer;
-	char *link_varity_satck_pointer;
 	char simulation_stack[STACK_SIZE];
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
-	char link_varity_stack_space[LINK_VARITY_STACK_SIZE];
 	bool exec_flag;
 	call_func_info_t call_func_info;
 	int get_token(char *str, node_attribute_t *info);

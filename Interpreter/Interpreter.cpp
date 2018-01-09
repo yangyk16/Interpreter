@@ -11,11 +11,9 @@
 tty stdio;
 varity_info g_varity_node[MAX_G_VARITY_NODE];
 varity_info l_varity_node[MAX_L_VARITY_NODE];
-varity_info a_varity_node[MAX_A_VARITY_NODE];
-stack a_varity_list(sizeof(varity_info), a_varity_node, MAX_A_VARITY_NODE);
 indexed_stack l_varity_list(sizeof(varity_info), l_varity_node, MAX_L_VARITY_NODE);
 stack g_varity_list(sizeof(varity_info), g_varity_node, MAX_G_VARITY_NODE);
-varity c_varity(&g_varity_list, &l_varity_list, &a_varity_list);
+varity c_varity(&g_varity_list, &l_varity_list);
 nonseq_info_struct nonseq_info_s;
 function_info function_node[MAX_FUNCTION_NODE];
 stack function_list(sizeof(function_info), function_node, MAX_FUNCTION_NODE);
@@ -955,14 +953,12 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	this->nonseq_info = nonseq_info;
 	this->function_declare = function_declare;
 	this->struct_declare = struct_declare;
-	this->function_return_value = (varity_info*)vmalloc(sizeof(varity_info));
 	this->row_pretreat_fifo.set_base(this->pretreat_buf);
 	this->row_pretreat_fifo.set_length(sizeof(this->pretreat_buf));
 	this->non_seq_code_fifo.set_base(this->non_seq_tmp_buf);
 	this->non_seq_code_fifo.set_length(sizeof(this->non_seq_tmp_buf));
 	this->non_seq_code_fifo.set_element_size(1);
 	this->token_fifo.init(MAX_ANALYSIS_BUFLEN);
-	this->analysis_buf_ptr = this->analysis_buf;
 	this->nonseq_info->nonseq_begin_stack_ptr = 0;
 	this->call_func_info.function_depth = 0;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
@@ -970,12 +966,8 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 	handle_init();
 	this->stack_pointer = this->simulation_stack;
 	this->tmp_varity_stack_pointer = this->tmp_varity_stack;
-	this->link_varity_satck_pointer = this->link_varity_stack_space;
 	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
-	this->mid_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);//TODO: 设置node最大count
-	this->mid_varity_stack.init(sizeof(varity_info), MAX_MID_CODE_COUNT);
-	this->mid_varity_stack.set_base(this->tmp_varity_stack_pointer);
-	this->link_varity_stack.set_base(this->link_varity_satck_pointer);
+	this->mid_varity_stack.init(sizeof(varity_info), this->tmp_varity_stack_pointer, MAX_A_VARITY_NODE);//TODO: 设置node最大count
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 	this->exec_flag = true;
 	this->sentence_analysis_data_struct.short_depth = 0;
@@ -2303,11 +2295,10 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 		str[source_len] = ch_last;
 		return ERROR_SEMICOLON;
 	}
-	total_bracket_depth = get_bracket_depth(analysis_buf_ptr);
+	total_bracket_depth = get_bracket_depth(str);
 	if(total_bracket_depth < 0)
 		return ERROR_BRACKET_UNMATCH;
-	strcpy(this->analysis_buf_ptr, str);
-	int key_word_ret = key_word_analysis(this->analysis_buf_ptr, len);
+	int key_word_ret = key_word_analysis(str, len);
 	if(key_word_ret) {
 		str[source_len] = ch_last;
 		//return key_word_ret;
