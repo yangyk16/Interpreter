@@ -1,9 +1,8 @@
 #include <stdio.h>
+#include <string.h>
 #include "config.h"
 
-static char heap[HEAPSIZE];
-char* heapbase = heap;
-
+#define ALIGN_BYTE 16
 typedef unsigned int uint;
 typedef struct head_head_s{
 	uint size;
@@ -11,6 +10,14 @@ typedef struct head_head_s{
 	head_head_s* last;
 	uint isused;
 }head_t;
+
+static char heap[HEAPSIZE];
+char* heapbase = heap;
+
+uint align_size(uint size)
+{
+	return size + (size % ALIGN_BYTE == 0 ? 0 : (ALIGN_BYTE - size % ALIGN_BYTE));
+}
 
 void* kmalloc(uint size) {
 	head_t* head, *lasthead, *nexthead;
@@ -23,7 +30,7 @@ void* kmalloc(uint size) {
 		if(head == NULL)
 			return 0;
 	}
-	tsize = size + (size%16==0?0:(16 - size % 16));
+	tsize = align_size(size);
 	debug("tsize=%d\n", tsize + sizeof(head_t));
 	nexthead = head->next;
 	head->isused = 1;
@@ -41,8 +48,8 @@ void* kmalloc(uint size) {
 	return (void*)head;
 }
 
-int kfree(void* ptr) {
-	head_t* headptr = (head_t*)ptr;
+int kfree(void *ptr) {
+	head_t *headptr = (head_t*)ptr;
 	if(headptr->isused == 0)
 		return -1;
 	if(headptr->next != 0) {
@@ -60,8 +67,70 @@ int kfree(void* ptr) {
 	return 0;
 }
 
+void* krealloc(void *ptr, uint size)
+{
+	head_t *headptr = (head_t*)ptr;
+	head_t *next_headptr = headptr->next;
+	head_t *new_next_ptr;
+	if(headptr->isused == 0)
+		return 0;
+	if(size < headptr->size) {
+		if(next_headptr && !next_headptr->isused) {
+			new_next_ptr = (head_t*)((uint)headptr + sizeof(head_t) + align_size(size));
+			new_next_ptr->size = next_headptr->size + (uint)next_headptr - (uint)headptr;
+			new_next_ptr->next = next_headptr->next;
+			new_next_ptr->last = headptr;
+			new_next_ptr->isused = 0;
+			headptr->next = new_next_ptr;
+			headptr->size = align_size(size);
+		} else {
+			if(!next_headptr)
+				next_headptr = (head_t*)&heap[HEAPSIZE];
+			if((uint)next_headptr - (uint)headptr - sizeof(head_t) - align_size(size) > sizeof(head_t)) {
+				new_next_ptr = (head_t*)((uint)headptr + sizeof(head_t) + align_size(size));
+				new_next_ptr->size = (uint)next_headptr - (uint)new_next_ptr - sizeof(head_t);//操作顺序严格按结构体定义顺序
+				new_next_ptr->last = headptr;
+				new_next_ptr->next = headptr->next;
+				new_next_ptr->isused = 0;
+				headptr->next = new_next_ptr;
+				headptr->size = align_size(size);
+			} else {
+			}
+		}
+		return ptr;
+	} else {
+		if(headptr->next != 0) {
+			if(next_headptr->isused == 0 && next_headptr->size + sizeof(head_t) >= size - headptr->size) {//剩余空间放下
+				new_next_ptr = (head_t*)((uint)headptr + sizeof(head_t) + align_size(size));
+				if((uint)next_headptr->next - (uint)new_next_ptr > sizeof(head_t)) {//放得下header
+					new_next_ptr->isused = 0;//操作顺序严格按结构体定义顺序倒序
+					new_next_ptr->last = headptr;
+					new_next_ptr->next = next_headptr->next;
+					new_next_ptr->size = (uint)new_next_ptr->next - (uint)new_next_ptr - sizeof(head_t);
+					headptr->next = new_next_ptr;
+					headptr->size = align_size(size);
+				} else {
+					headptr->next = headptr->next->next;
+					headptr->next->last = headptr;
+					headptr->size = (uint)headptr->next - (uint)headptr - sizeof(head_t);
+				}
+				return headptr;
+			} else {//开新的搬走数据;TODO:判断加上上一个空块大小是否够，够的话直接搬
+				void *new_ptr = kmalloc(size);
+				if(new_ptr) {
+					memcpy(new_ptr, ptr, size);
+					kfree(ptr);
+				}
+				return new_ptr;
+			}
+		} else {
+			return 0;
+		}
+	}
+}
+
 void heapinit(void) {
-	head_t* head;
+	head_t *head;
 	head = (head_t*)heapbase;
 	head->size = HEAPSIZE - sizeof(head_t);
 	head->isused = 0;

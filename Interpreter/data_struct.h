@@ -15,8 +15,8 @@ public:
 
 class data_struct {
 protected:
-	uint count;
-	uint element_size;
+	ushort count;
+	ushort element_size;
 	uint length;
 	void* bottom_addr;
 public:

@@ -33,4 +33,5 @@
 
 #define debug	printf
 #define error	printf
+#define warning printf
 #endif
