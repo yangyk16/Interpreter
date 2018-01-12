@@ -178,6 +178,8 @@ class c_interpreter: public interpreter {
 	bool exec_flag;
 	call_func_info_t call_func_info;
 	int get_token(char *str, node_attribute_t *info);
+	int generate_arg_list(char *str, int count, stack &arg_list_ptr, char variable_arg_flag);
+	int generate_compile_func(void);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int generate_mid_code(char *str, uint len, bool need_semicolon);
 	int list_stack_to_tree(node* tree_node, list_stack* post_order_stack);
@@ -186,6 +188,7 @@ class c_interpreter: public interpreter {
 	int nonseq_mid_gen_mid_code(char *str, uint len);
 	int nonseq_end_gen_mid_code(char *str, uint len);
 	int tree_to_code(node *tree, stack *code_stack);
+	int operator_pre_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int generate_expression_value(stack *code_stack_ptr, node_attribute_t *opt_node_ptr);

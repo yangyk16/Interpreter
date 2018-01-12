@@ -36,6 +36,7 @@
 
 #define GET_COMPLEX_TYPE(x)		((uint)(x) >> COMPLEX_TYPE_BIT)
 #define GET_COMPLEX_DATA(x)		((uint)(x) & COMPLEX_DATA_BIT_MASK)
+#define SET_COMPLEX_TYPE(x)		((uint)(x) << COMPLEX_TYPE_BIT)
 
 #define BASIC_TYPE_SET(x)		((x) | COMPLEX_BASIC << COMPLEX_TYPE_BIT)
 
