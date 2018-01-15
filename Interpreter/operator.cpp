@@ -23,6 +23,7 @@ func0 func0_ptr;
 func1 func1_ptr;
 func2 func2_ptr;
 func3 func3_ptr;
+func4 func4_ptr;
 static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_len_ptr)
 {
 	if(*opt_type_ptr == OPT_PLUS || *opt_type_ptr == OPT_MINUS) {
@@ -656,6 +657,8 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 			INT_VALUE(opda_addr) = SHORT_VALUE(opdb_addr);
 		} else if(type > CHAR) {
 			INT_VALUE(opda_addr) = INT_VALUE(opdb_addr);
+		} else if(type == PTR) {
+			PTR_VALUE(opda_addr) = PTR_VALUE(opdb_addr);
 		}
 		return 0;
 	}
@@ -809,6 +812,9 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 		case 3:
 			func3_ptr = (func3)function_ptr->func_addr;
 			ret = func3_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2));
+		case 4:
+			func4_ptr = (func4)function_ptr->func_addr;
+			ret = func4_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3));
 		case 16:
 			break;
 		}

@@ -600,7 +600,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			varity_number = this->mid_varity_stack.get_count();
 			instruction_ptr->ret_addr = varity_number * 8;
 			if(!function_ptr->variable_para_flag) {
-				instruction_ptr->opdb_addr = varity_number * 8;//确认再确认，此处和中间代码函数调用运算符时栈的申请的联动处理。
+				instruction_ptr->opdb_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);//确认再确认，此处和中间代码函数调用运算符时栈的申请的联动处理。
 			} else {
 				instruction_ptr->opdb_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
 			}
