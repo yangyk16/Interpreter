@@ -1226,15 +1226,21 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 int c_interpreter::generate_compile_func(void)
 {
 	static stack memcpy_stack;
-	this->generate_arg_list("void*,void*,void*,unsigned int;", 4, memcpy_stack, 0);
+	this->generate_arg_list("void*,void*,void*,unsigned int;", 4, memcpy_stack);
 	this->function_declare->add_compile_func("memcpy", memcpy, &memcpy_stack, 0);
+	static stack memset_stack;
+	this->generate_arg_list("void*,void*,int,unsigned int;", 4, memset_stack);
+	this->function_declare->add_compile_func("memset", memset, &memset_stack, 0);
 	static stack printf_stack;
-	this->generate_arg_list("int,char*;", 2, printf_stack, 1);
+	this->generate_arg_list("int,char*;", 2, printf_stack);
 	this->function_declare->add_compile_func("printf", printf, &printf_stack, 1);
+	static stack sprintf_stack;
+	this->generate_arg_list("int,char*,char*;", 3, sprintf_stack);
+	this->function_declare->add_compile_func("sprintf", sprintf, &sprintf_stack, 1);
 	return ERROR_NO;
 }
 
-int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr, char variable_arg_flag)//没有容错，不开放给终端输入，仅用于链接标准库函数
+int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)//没有容错，不开放给终端输入，仅用于链接标准库函数
 {
 	int len = strlen(str);
 	void *arg_stack = vmalloc(sizeof(varity_info) * count);

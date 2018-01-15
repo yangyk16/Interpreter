@@ -178,7 +178,7 @@ class c_interpreter: public interpreter {
 	bool exec_flag;
 	call_func_info_t call_func_info;
 	int get_token(char *str, node_attribute_t *info);
-	int generate_arg_list(char *str, int count, stack &arg_list_ptr, char variable_arg_flag);
+	int generate_arg_list(char *str, int count, stack &arg_list_ptr);
 	int generate_compile_func(void);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
 	int generate_mid_code(char *str, uint len, bool need_semicolon);

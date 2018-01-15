@@ -999,3 +999,97 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 	last_ret_abs_addr = ret_addr;
 	return ret;
 }
+
+int try_assign_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
+{
+	if(opda_type == PTR) {
+		if(opdb_type != PTR && opdb_type != ARRAY)
+			goto wrong;
+		else {
+			if(opda_complex_count == 2 && opda_type_info[1] == BASIC_TYPE_SET(VOID) && GET_COMPLEX_TYPE(opda_type_info[2]) == COMPLEX_PTR)
+				return ERROR_NO;
+			else {
+				if(opda_complex_count != opdb_complex_count)
+					goto wrong;
+				else {
+					for(int i=1; i<=opda_complex_count-1; i++) {
+						if(opda_type_info[i] != opdb_type_info[i])
+							goto wrong;
+					}
+				}
+			}
+		}
+	} else {
+		if(opdb_type < CHAR && opdb_type > DOUBLE)
+			goto wrong;
+	}
+	return ERROR_NO;
+wrong:
+	error("Can't assign.\n");
+	return ERROR_ILLEGAL_OPERAND;
+}
+
+int try_plus_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
+{
+	if(opda_type == PTR || opda_type == ARRAY) {
+		if(opdb_type < CHAR || opdb_type > U_LONG_LONG)
+			goto wrong;
+	} else if(opda_type == STRUCT) {
+		goto wrong;
+	} else {
+		if(opdb_type > DOUBLE)
+			goto wrong;
+	}
+	return ERROR_NO;
+wrong:
+	error("Can't plus.\n");
+	return ERROR_ILLEGAL_OPERAND;
+}
+
+int try_mul_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
+{
+	if(opda_type > DOUBLE || opdb_type > DOUBLE)
+		goto wrong;
+	return ERROR_NO;
+wrong:
+	error("Can't multiply.\n");
+	return ERROR_ILLEGAL_OPERAND;
+}
+
+int try_compare_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
+{
+	if(opda_type > STRUCT) {
+		if(opdb_type <= STRUCT)
+			goto wrong;
+		else {
+			if(opda_complex_count != opdb_complex_count)
+				goto wrong;
+			else {
+				for(int i=1; i<=opda_complex_count-1; i++) {
+					if(opda_type_info[i] != opdb_type_info[i])
+						goto wrong;
+				}
+			}
+		}
+	} else if(opda_type == STRUCT || opdb_type == STRUCT)
+		goto wrong;
+	return ERROR_NO;
+wrong:
+	error("Can't multiply.\n");
+	return ERROR_ILLEGAL_OPERAND;
+}
+
+int try_mod_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
+{
+	if(opda_type > U_LONG_LONG || opdb_type > U_LONG_LONG)
+		goto wrong;
+	return ERROR_NO;
+wrong:
+	error("Can't multiply.\n");
+	return ERROR_ILLEGAL_OPERAND;
+}
+
+int try_call_opt_handle(int opt, int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
+{
+	return ERROR_NO;
+}
