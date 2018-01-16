@@ -21,7 +21,7 @@ function c_function(&function_list);
 struct_info struct_node[MAX_STRUCT_NODE];
 stack struct_list(sizeof(struct_info), struct_node, MAX_STRUCT_NODE);
 struct_define c_struct(&struct_list);
-c_interpreter myinterpreter(&stdio, &c_varity, &nonseq_info_s, &c_function, &c_struct);
+c_interpreter myinterpreter;
 
 char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
 const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
@@ -270,7 +270,10 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_MINUS:
 	case OPT_MUL:
 	case OPT_DIVIDE:
-		ret_type = get_ret_type(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+		if(opt == OPT_PLUS || opt == OPT_MINUS)//TODO:减法可用两个指针减，改用cmp的try_handle
+			ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		else
+			ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
 		if(ret_type < 0)
 			return ret_type;
 		varity_number = this->mid_varity_stack.get_count();
@@ -284,10 +287,10 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			} else if(instruction_ptr->opda_varity_type <= VOID && instruction_ptr->opdb_varity_type >= PTR) {
 				rvarity_ptr->config_complex_info(bvarity_ptr->get_complex_arg_count(), bvarity_ptr->get_complex_ptr());
 				instruction_ptr->data = bvarity_ptr->get_first_order_sub_struct_size();
-			} else {
+			}/* else {
 				error("Wrong varities type for operator. Interpreter.cpp Line:%d\n", __LINE__);
 				return ERROR_ILLEGAL_OPERAND;
-			}
+			}*/
 			array_to_ptr((PLATFORM_WORD*&)rvarity_ptr->get_complex_ptr(), rvarity_ptr->get_complex_arg_count());
 		}
 		inc_varity_ref(rvarity_ptr);
@@ -304,6 +307,9 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_SMALL_EQU:
 	case OPT_BIG:
 	case OPT_SMALL:
+		ret_type = try_call_opt_handle(OPT_EQU, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		if(ret_type < 0)
+			return ret_type;
 		ret_type = INT;
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
@@ -396,22 +402,6 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		(instruction_ptr + 1)->opdb_operand_type = OPERAND_CONST;
 		(instruction_ptr + 1)->opdb_varity_type = INT;
 		break;
-	case OPT_NOT:
-	case OPT_BIT_REVERT:
-	case OPT_POSITIVE:
-	case OPT_NEGATIVE:
-		varity_number = this->mid_varity_stack.get_count();
-		this->mid_varity_stack.push();
-		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		rvarity_ptr->set_type(INT);
-		inc_varity_ref(rvarity_ptr);
-		instruction_ptr->ret_addr = varity_number * 8;
-		instruction_ptr->ret_operator = opt;
-		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
-		instruction_ptr->ret_varity_type = INT;
-		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
-		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
-		break;
 	case OPT_ADDRESS_OF://TODO:变量声明时，基本变量也设置complex_info，增加complex_info最大容限，避免无限取地址出错，在声明时可预留1次取地址扩展，取址时先验证扩展位是否为0再扩展，否则覆盖其他变量类型。
 	{
 		varity_number = this->mid_varity_stack.get_count();
@@ -458,7 +448,14 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_BIT_XOR:
 	case OPT_MOD:
 	case OPT_ASL:
-	case OPT_ASR://TODO：可能可以和NOT BIT_REVERT合并
+	case OPT_ASR:
+		ret_type = try_call_opt_handle(OPT_MOD, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		if(ret_type < 0)
+			return ret_type;
+	case OPT_NOT:
+	case OPT_BIT_REVERT:
+	case OPT_POSITIVE:
+	case OPT_NEGATIVE:
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
 		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
@@ -466,8 +463,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		inc_varity_ref(rvarity_ptr);
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
-		instruction_ptr->ret_varity_type = INT;
 		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->ret_varity_type = INT;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
@@ -944,16 +941,7 @@ int c_interpreter::pre_treat(void)
 
 int c_interpreter::run_interpreter(void)
 {
-	//static stack arglist_printf;
-	//static varity_info arg_node_printf[2];
-	//static uint printf_type_info[3] = {1, BASIC_TYPE_SET(CHAR), COMPLEX_PTR << COMPLEX_TYPE_BIT};
-	//arglist_printf.init(sizeof(varity_info), arg_node_printf, 2);
-	//arglist_printf.push();
-	//arglist_printf.push();
-	//varity_info::init_varity(arg_node_printf, 0, INT, 4);
-	//varity_info::init_varity(arg_node_printf + 1, 0, COMPLEX, 4);
-	//(arg_node_printf + 1)->config_complex_info(2, printf_type_info);
-	//this->function_declare->add_compile_func("printf", printf, &arglist_printf, 1);
+	this->init(&stdio, &c_varity, &nonseq_info_s, &c_function, &c_struct);
 	this->generate_compile_func();
 	while(1) {
 		uint len;
@@ -969,7 +957,7 @@ int c_interpreter::run_interpreter(void)
 	}
 }
 
-c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_info_struct* nonseq_info, function* function_declare, struct_define* struct_declare)
+int c_interpreter::init(terminal* tty_used, varity* varity_declare, nonseq_info_struct* nonseq_info, function* function_declare, struct_define* struct_declare)
 {
 	this->tty_used = tty_used;
 	this->varity_declare = varity_declare;
@@ -1001,6 +989,7 @@ c_interpreter::c_interpreter(terminal* tty_used, varity* varity_declare, nonseq_
 		tmp_varity_name[i][1] = link_varity_name[i][1] = i;
 		tmp_varity_name[i][2] = link_varity_name[i][2] = 0;
 	}
+	return 0;
 	///////////
 }
 

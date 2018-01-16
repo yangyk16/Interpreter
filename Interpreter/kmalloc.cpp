@@ -20,36 +20,36 @@ inline uint align_size(uint size)
 }
 
 void* kmalloc(uint size) {
-	head_t* head, *lasthead, *nexthead;
+	head_t *head_ptr, *next_head_ptr, *new_next_ptr;
 	uint tsize;
-	head = (head_t*)heapbase;
-	lasthead = head;
-	for(;head->isused==1 || head->size < size;) {
-		lasthead = head;
-		head = head->next;
-		if(head == NULL)
+	head_ptr = (head_t*)heapbase;
+	for(;head_ptr->isused==1 || head_ptr->size < size;) {
+		head_ptr = head_ptr->next;
+		if(head_ptr == NULL)
 			return 0;
 	}
 	tsize = align_size(size);
-	debug("tsize=%d\n", tsize + sizeof(head_t));
-	nexthead = head->next;
-	head->isused = 1;
-	head->next = (head_t*)((uint)head + sizeof(head_t) + tsize);
-	if(head->next) {
-		head->next->size = head->size - tsize - sizeof(head_t);
-		head->next->isused = 0;
-		head->next->next = nexthead;
-		head->next->last = head;
+	//debug("tsize=%d\n", tsize + sizeof(head_t));
+	next_head_ptr = head_ptr->next;
+	if(!next_head_ptr)
+		next_head_ptr = (head_t*)&heap[HEAPSIZE];
+	if((long)next_head_ptr - (long)head_ptr - sizeof(head_t) - tsize > 0) {
+		new_next_ptr = (head_t*)((long)head_ptr + sizeof(head_t) + tsize);
+		new_next_ptr->size = (uint)next_head_ptr - (uint)new_next_ptr - sizeof(head_t);
+		new_next_ptr->last = head_ptr;
+		new_next_ptr->next = head_ptr->next;
+		new_next_ptr->isused = 0;
+		head_ptr->next = new_next_ptr;
+		head_ptr->size = tsize;
 	}
-	head->size = tsize;
-	head->last = lasthead;
-	if(head->last != head)
-		head->last->next = head;
-	return (void*)head;
+	
+	head_ptr->isused = 1;
+	////////////////////////////////////////
+	return (void*)((char*)head_ptr + sizeof(head_t));
 }
 
 int kfree(void *ptr) {
-	head_t *headptr = (head_t*)ptr;
+	head_t *headptr = (head_t*)ptr - 1;
 	if(headptr->isused == 0)
 		return -1;
 	if(headptr->next != 0) {
@@ -69,7 +69,7 @@ int kfree(void *ptr) {
 
 void* krealloc(void *ptr, uint size)
 {
-	head_t *headptr = (head_t*)ptr;
+	head_t *headptr = (head_t*)ptr - 1;
 	head_t *next_headptr = headptr->next;
 	head_t *new_next_ptr;
 	if(headptr->isused == 0)

@@ -203,7 +203,8 @@ class c_interpreter: public interpreter {
 
 public:
 	mid_code *pc;
-	c_interpreter(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
+	int init(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
+	//c_interpreter(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
 	virtual int run_interpreter(void);
 };
 

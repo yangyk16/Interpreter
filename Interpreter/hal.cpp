@@ -1,6 +1,7 @@
 #include "hal.h"
 #include "config.h"
 #include <iostream>
+#include "kmalloc.h"
 using namespace std;
 
 int tty::readline(char* str)//×îºó±ØÐë²¹0
@@ -27,7 +28,7 @@ int tty::puts(char* str)
 void* vmalloc(unsigned int size)
 {
 	unsigned int a_size = size&7?size+(8-(size&7)):size;
-	void* ret = malloc(a_size);
+	void* ret = kmalloc(a_size);
 	if(ret) {
 		//size = size&7?size+(8-size&7):size;
 		debug("malloc %x, %d\n", ret, size);
@@ -40,12 +41,12 @@ void* vmalloc(unsigned int size)
 
 void vfree(void *ptr)
 {
-	free(ptr);
+	kfree(ptr);
 	debug("free %x\n", ptr);
 }
 
 void* vrealloc(void* addr, unsigned int size)
 {
 	debug("realloc %x, %d\n", addr, size);
-	return realloc(addr, size);
+	return krealloc(addr, size);
 }

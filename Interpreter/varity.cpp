@@ -24,7 +24,7 @@ bool varity_info::en_echo = 1;
 void inc_varity_ref(varity_info *varity_ptr)
 {
 	PTR_N_VALUE(varity_ptr->get_complex_ptr())++;
-	debug("inc %x\n", varity_ptr);
+	//debug("inc %x\n", varity_ptr);
 }
 
 void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag)
@@ -32,7 +32,7 @@ void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag)
 	int remain_count = --PTR_N_VALUE(varity_ptr->get_complex_ptr());
 	if(destroy_flag && !remain_count)
 		vfree(varity_ptr->get_complex_ptr());
-	debug("dec %x\n", varity_ptr);
+	//debug("dec %x\n", varity_ptr);
 }
 
 varity_info::varity_info()

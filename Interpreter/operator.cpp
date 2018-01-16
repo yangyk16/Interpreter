@@ -784,7 +784,7 @@ int opt_index_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_a
 
 int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
-	mid_code *&instruction_ptr = interpreter_ptr->pc, *pc_backup = interpreter_ptr->pc;
+	mid_code *instruction_ptr = interpreter_ptr->pc, *pc_backup = interpreter_ptr->pc;
 	function_info *function_ptr = (function_info*)opda_addr;
 	int code_count = function_ptr->mid_code_stack.get_count();
 	if(interpreter_ptr->call_func_info.function_depth == 0)
@@ -1037,29 +1037,22 @@ wrong:
 
 int try_plus_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
 {
-	if(opda_type == PTR || opda_type == ARRAY) {
-		if(opdb_type < CHAR || opdb_type > U_LONG_LONG)
-			goto wrong;
-	} else if(opda_type == STRUCT) {
-		goto wrong;
-	} else {
-		if(opdb_type > DOUBLE)
-			goto wrong;
+	if(opda_type < VOID && opdb_type < VOID) {
+		return opda_type<opdb_type?opdb_type:opda_type;
+	} else if(opda_type == STRUCT || opdb_type == STRUCT || opda_type == VOID || opdb_type == VOID) {
+		return ERROR_ILLEGAL_OPERAND;
+	} else if(opda_type >= PTR && opdb_type < VOID || opda_type < VOID && opdb_type >= PTR) {
+		return PTR;
+	} else if(opda_type >= PTR && opdb_type >= PTR) {
+		return ERROR_ILLEGAL_OPERAND;
 	}
-	return ERROR_NO;
-wrong:
-	error("Can't plus.\n");
-	return ERROR_ILLEGAL_OPERAND;
 }
 
 int try_mul_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
 {
 	if(opda_type > DOUBLE || opdb_type > DOUBLE)
-		goto wrong;
-	return ERROR_NO;
-wrong:
-	error("Can't multiply.\n");
-	return ERROR_ILLEGAL_OPERAND;
+		return ERROR_ILLEGAL_OPERAND;
+	return opda_type<opdb_type?opdb_type:opda_type;
 }
 
 int try_compare_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
@@ -1081,7 +1074,7 @@ int try_compare_handle(int opda_type, int opdb_type, int opda_complex_count, int
 		goto wrong;
 	return ERROR_NO;
 wrong:
-	error("Can't multiply.\n");
+	error("Can't compare.\n");
 	return ERROR_ILLEGAL_OPERAND;
 }
 
@@ -1091,11 +1084,21 @@ int try_mod_handle(int opda_type, int opdb_type, int opda_complex_count, int *op
 		goto wrong;
 	return ERROR_NO;
 wrong:
-	error("Can't multiply.\n");
+	error("Can't mod.\n");
 	return ERROR_ILLEGAL_OPERAND;
 }
 
 int try_call_opt_handle(int opt, int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
 {
+	if(opt == OPT_ASSIGN)
+		return try_assign_handle(opda_type, opdb_type, opda_complex_count, opda_type_info, opdb_complex_count, opdb_type_info);
+	else if(opt == OPT_PLUS)
+		return try_plus_handle(opda_type, opdb_type, opda_complex_count, opda_type_info, opdb_complex_count, opdb_type_info);
+	else if(opt == OPT_MUL)
+		return try_mul_handle(opda_type, opdb_type, opda_complex_count, opda_type_info, opdb_complex_count, opdb_type_info);
+	else if(opt == OPT_EQU)
+		return try_compare_handle(opda_type, opdb_type, opda_complex_count, opda_type_info, opdb_complex_count, opdb_type_info);
+	else if(opt == OPT_MOD)
+		return try_mod_handle(opda_type, opdb_type, opda_complex_count, opda_type_info, opdb_complex_count, opdb_type_info);
 	return ERROR_NO;
 }

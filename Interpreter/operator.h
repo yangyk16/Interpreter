@@ -93,5 +93,6 @@ class c_interpreter;
 int get_ret_type(int a, int b);
 void handle_init(void);
 int call_opt_handle(c_interpreter *interpreter_ptr);
+int try_call_opt_handle(int opt, int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info);
 
 #endif
