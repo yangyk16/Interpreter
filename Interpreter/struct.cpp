@@ -5,6 +5,7 @@
 #include <string.h>
 #include "varity.h"
 #include <stdlib.h>
+#include "cstdlib.h"
 
 int struct_info::init(char* name, stack* varity_list)
 {//TODO: malloc ß∞‹

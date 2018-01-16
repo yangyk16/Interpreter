@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include "config.h"
 #include "interpreter.h"
+#include "cstdlib.h"
 
 int function_info::init(char* name, stack* arg_list)
 {//TODO: add malloc fail action.

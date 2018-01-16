@@ -7,6 +7,7 @@
 #include "struct.h"
 #include "operator.h"
 #include "string_lib.h"
+#include "cstdlib.h"
 
 #if PLATFORM_WORD_LEN == 4
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "long", "unsigned int", "unsigned long", "long long", "unsigned long long", "float", "double", "void", "struct"};

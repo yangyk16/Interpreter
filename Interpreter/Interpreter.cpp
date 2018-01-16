@@ -7,6 +7,7 @@
 #include "error.h"
 #include "varity.h"
 #include "data_struct.h"
+#include "cstdlib.h"
 
 tty stdio;
 varity_info g_varity_node[MAX_G_VARITY_NODE];
@@ -105,7 +106,7 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 	return x
 int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr)
 {
-	register varity_info *avarity_ptr, *bvarity_ptr, *rvarity_ptr;
+	register varity_info *avarity_ptr = 0, *bvarity_ptr = 0, *rvarity_ptr;
 	register int opt = ((node_attribute_t*)opt_node_ptr->value)->value.int_value;
 	register int varity_scope;
 	register node_attribute_t *node_attribute;
@@ -945,7 +946,7 @@ int c_interpreter::run_interpreter(void)
 	this->generate_compile_func();
 	while(1) {
 		uint len;
-		printf(">> ");
+		kprintf(">> ");
 		len = this->row_pretreat_fifo.readline(sentence_buf);
 		if(len > 0) {
 
@@ -1216,16 +1217,16 @@ int c_interpreter::generate_compile_func(void)
 {
 	static stack memcpy_stack;
 	this->generate_arg_list("void*,void*,void*,unsigned int;", 4, memcpy_stack);
-	this->function_declare->add_compile_func("memcpy", memcpy, &memcpy_stack, 0);
+	this->function_declare->add_compile_func("memcpy", kmemcpy, &memcpy_stack, 0);
 	static stack memset_stack;
 	this->generate_arg_list("void*,void*,int,unsigned int;", 4, memset_stack);
-	this->function_declare->add_compile_func("memset", memset, &memset_stack, 0);
+	this->function_declare->add_compile_func("memset", kmemset, &memset_stack, 0);
 	static stack printf_stack;
 	this->generate_arg_list("int,char*;", 2, printf_stack);
-	this->function_declare->add_compile_func("printf", printf, &printf_stack, 1);
+	this->function_declare->add_compile_func("printf", kprintf, &printf_stack, 1);
 	static stack sprintf_stack;
 	this->generate_arg_list("int,char*,char*;", 3, sprintf_stack);
-	this->function_declare->add_compile_func("sprintf", sprintf, &sprintf_stack, 1);
+	this->function_declare->add_compile_func("sprintf", vsprintf, &sprintf_stack, 1);
 	return ERROR_NO;
 }
 

@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <stdio.h>
 
 #define ZEROPAD 1               /* pad with zero */
 #define SIGN    2               /* unsigned/signed long */
@@ -344,6 +345,67 @@ int kprintf(const char *fmt, ...)
     vsprintf(string,fmt,ap);
     va_end(ap);
     //uart_sendstring(string);
-
+	printf("%s",string);
 	return 0;
+}
+
+void* kmemcpy(void *d, void *s, unsigned int size)
+{//TODO：加入空指针检查？可能不需要
+	int i, j, remain;
+	if(size < 64 || (long)d & 1 || (long)s & 1) {
+		for(i=0; i<size; i++) {
+			*(char*)((long)d + i) = *(char*)((long)s + i);
+		}
+	} else {
+		if(!((long)s & 3) && !((long)d & 3)) {
+			remain = size & 3;
+			for(i=0; i<size; i+=4) {
+				*(int*)((unsigned long)d + i) = *(int*)((unsigned long)s + i);
+			}
+			for(j=size-remain; j<size; j++)
+				*(char*)((long)d + j) = *(char*)((long)s + j);
+		} else if(!((long)s & 1) && !((long)d & 1)) {
+			remain = size & 1;
+			for(i=0; i<size; i+=2) {
+				*(short*)((unsigned long)d + i) = *(short*)((unsigned long)s + i);
+			}
+			for(j=size-remain; j<size; j++)
+				*(char*)((long)d + j) = *(char*)((long)s + j);
+		}
+	}
+	return d;
+}
+
+void* kmemset(register void *d, int ch, register unsigned int size)
+{
+	register int i, j;
+	int block, remain;
+	if(size < 64 || (long)d & 1) {
+		for(i=0; i<size; i++) {
+			*(char*)((long)d + i) = ch;
+		}
+	} else {
+		if(!((long)d & 3)) {
+			remain = size & 3;
+			*(char*)block = ch;
+			*(char*)((unsigned long)block + 1) = ch;
+			*(char*)((unsigned long)block + 2) = ch;
+			*(char*)((unsigned long)block + 3) = ch;
+			for(i=0; i<size; i+=4) {
+				*(int*)((unsigned long)d + i) = block;
+			}
+			for(j=size-remain; j<size; j++)
+				*(char*)((long)d + j) = ch;
+		} else if(!((long)d & 1)) {
+			remain = size & 3;
+			*(char*)block = ch;
+			*(char*)((unsigned long)block + 1) = ch;
+			for(i=0; i<size; i+=2) {
+				*(short*)((unsigned long)d + i) = (short)block;
+			}
+			for(j=size-remain; j<size; j++)
+				*(char*)((long)d + j) = ch;
+		}
+	}
+	return d;
 }

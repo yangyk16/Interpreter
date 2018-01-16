@@ -5,6 +5,7 @@
 #include "error.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "cstdlib.h"
 
 extern char non_seq_key[7][7];
 extern const char non_seq_key_len[7];

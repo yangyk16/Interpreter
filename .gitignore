@@ -17,3 +17,4 @@ Interpreter/Debug/Interpreter.exe.embed.manifest.res
 *.out
 *.swp
 *.unsuccessfulbuild
+*.lib

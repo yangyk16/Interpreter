@@ -83,7 +83,7 @@
  1.11 内存池增加realloc
  1.12 修复三目运算符引用次数增加减少失配bug；增加链接标准库的简单接口；修复传参bug
  1.15 准备增加try_handle用于运算符错误检测
- 1.16 修复内存池bug，使用try_handle检测运算符是否正确使用
+ 1.16 修复内存池bug，使用try_handle检测运算符是否正确使用；增加标准库函数memcpy,memset,printf,sprintf源代码
 
 
 变量命名：

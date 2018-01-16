@@ -31,7 +31,7 @@
 #define STACK_SIZE				131072//128k
 #define TMP_VARITY_STACK_SIZE	(8 * MAX_A_VARITY_NODE)
 
-#define debug	printf
-#define error	printf
-#define warning printf
+#define debug	kprintf
+#define error	kprintf
+#define warning kprintf
 #endif

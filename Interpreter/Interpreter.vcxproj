@@ -78,6 +78,7 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cstdlib.h" />
     <ClInclude Include="error.h" />
     <ClInclude Include="function.h" />
     <ClInclude Include="interpreter.h" />

@@ -2,6 +2,7 @@
 #include "config.h"
 #include <iostream>
 #include "kmalloc.h"
+#include "cstdlib.h"
 using namespace std;
 
 int tty::readline(char* str)//×îºó±ØÐë²¹0
