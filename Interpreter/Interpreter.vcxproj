@@ -102,6 +102,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="operator.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="stdlib.cpp" />
     <ClCompile Include="string_lib.cpp" />
     <ClCompile Include="struct.cpp" />
     <ClCompile Include="varity.cpp" />
