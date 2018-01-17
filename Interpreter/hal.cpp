@@ -5,6 +5,7 @@
 #include "cstdlib.h"
 using namespace std;
 
+#if TTY_TYPE == 0
 int tty::readline(char* str)//×îºó±ØÐë²¹0
 {
 	char ch;
@@ -25,6 +26,21 @@ int tty::puts(char* str)
 	cout << str;
 	return 0;
 }
+#elif TTY_TYPE == 1
+void uart_getstring(char *str);
+void uart_sendstring(char *str);
+int uart::readline(char* str)
+{
+	uart_getstring(str);
+	return 0;
+};
+
+int uart::puts(char* str)
+{
+	uart_sendstring(str);
+	return 0;
+}
+#endif
 
 void* vmalloc(unsigned int size)
 {
@@ -33,7 +49,7 @@ void* vmalloc(unsigned int size)
 	if(ret) {
 		//size = size&7?size+(8-size&7):size;
 		debug("malloc %x, %d\n", ret, size);
-		memset(ret, 0, size);
+		kmemset(ret, 0, size);
 		return ret;
 	} else {
 		return NULL;

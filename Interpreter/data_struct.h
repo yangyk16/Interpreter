@@ -5,6 +5,7 @@
 #include "type.h"
 #include "config.h"
 #include <string.h>
+#include "cstdlib.h"
 
 class element {
 protected:
@@ -36,7 +37,7 @@ public:
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	inline void set_length(uint len) {this->length = len;}
 	inline void set_element_size(uint len) {this->element_size = len;}
-	int write(void*, uint);
+	int write(const void*, uint);
 	int read(void*, uint);
 	int readline(char*);
 	char* readline(int&);
@@ -52,7 +53,7 @@ public:
 	virtual void* find(char*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	//inline void set_length(uint len) {this->length = len;}
-	void empty(void) {memset(this->bottom_addr, 0, this->count * this->element_size); this->top = 0; this->count = 0;}
+	void empty(void) {kmemset(this->bottom_addr, 0, this->count * this->element_size); this->top = 0; this->count = 0;}
 	stack();
 	stack(int esize, void* base_addr, int capacity);
 	void init(int esize, int capacity);
@@ -73,7 +74,7 @@ public:
 	friend class varity;
 	virtual void* find(char*);
 	indexed_stack(int esize, void* base_addr, int capacity);
-	inline void reset(void) {memset(this->bottom_addr, 0 , this->top); this->count = 0; this->top = 0; this->offset = 0;}
+	inline void reset(void) {kmemset(this->bottom_addr, 0 , this->top); this->count = 0; this->top = 0; this->offset = 0;}
 	inline void endeep(void) {index_table[++current_depth] = this->count; offset_table[current_depth] = offset;}
 	inline void dedeep(void) {offset = offset_table[current_depth]; index_table[current_depth--] = 0;}
 };

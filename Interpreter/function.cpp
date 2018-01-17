@@ -66,7 +66,7 @@ int function_info::save_sentence(char* str, uint len)
 	this->row_len[row_line] = len;
 	this->row_begin_pos[row_line] = this->buffer + wptr;
 	this->row_line++;
-	memcpy(this->buffer + wptr, str, len);
+	kmemcpy(this->buffer + wptr, str, len);
 	this->buffer[wptr + len] = '\0';//\n
 	wptr += len + 1;
 	return 0;

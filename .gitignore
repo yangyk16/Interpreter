@@ -18,3 +18,4 @@ Interpreter/Debug/Interpreter.exe.embed.manifest.res
 *.swp
 *.unsuccessfulbuild
 *.lib
+Debug/Interpreter.exp

@@ -256,7 +256,7 @@ int sub_replace(char* str, int indexl, int indexr, char* sub_str)
 {
 	int sub_str_len = strlen(sub_str);
 	if(sub_str_len <= indexr - indexl + 1) {
-		memcpy(str + indexl, sub_str, sub_str_len);
+		kmemcpy(str + indexl, sub_str, sub_str_len);
 		strcpy(str + indexl + sub_str_len, str + indexr + 1);
 	} else {
 		debug("complete code,string_lib.cpp, %d" ,__LINE__);

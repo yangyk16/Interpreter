@@ -13,7 +13,7 @@ int struct_info::init(char* name, stack* varity_list)
 	this->name = (char*)vmalloc(name_len + 1);
 	strcpy(this->name, name);
 	this->varity_stack_ptr = varity_list;
-	memcpy(this->type_info_ptr, basic_type_info[STRUCT], sizeof(int) * 3);
+	kmemcpy(this->type_info_ptr, basic_type_info[STRUCT], sizeof(int) * 3);
 	this->type_info_ptr[1] = (uint)this;
 	return 0;
 }
@@ -32,7 +32,7 @@ int struct_info::reset(void)
 varity_info& struct_info::visit_struct_member(void* struct_content_ptr, varity_info* member_varity_ptr)
 {
 	static varity_info ret;
-	memcpy(&ret, member_varity_ptr, sizeof(varity_info));
+	kmemcpy(&ret, member_varity_ptr, sizeof(varity_info));
 	if(ret.get_type() == STRUCT) {
 		//TODO: struct as member in other struct.
 	}

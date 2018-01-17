@@ -38,7 +38,7 @@ void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag)
 
 varity_info::varity_info()
 {
-	memset(this, 0, sizeof(*this));
+	kmemset(this, 0, sizeof(*this));
 	//this->content_ptr = 0;
 	//this->type = 0;
 	//this->size = 0;
@@ -404,7 +404,7 @@ int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count)
 	if(GET_COMPLEX_TYPE(complex_info[complex_arg_count]) != COMPLEX_ARRAY)
 		return -1;//TODO:找一个返回值
 	PLATFORM_WORD *new_complex_info = (PLATFORM_WORD*)vmalloc((complex_arg_count + 1) * sizeof(PLATFORM_WORD));
-	memcpy(new_complex_info + 1, complex_info + 1, (complex_arg_count - 1) * sizeof(PLATFORM_WORD));
+	kmemcpy(new_complex_info + 1, complex_info + 1, (complex_arg_count - 1) * sizeof(PLATFORM_WORD));
 	new_complex_info[complex_arg_count] = COMPLEX_PTR << COMPLEX_TYPE_BIT;
 	complex_info = new_complex_info;
 	return 0;

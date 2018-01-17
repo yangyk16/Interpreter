@@ -169,7 +169,7 @@ unsigned int strnlen(const char * s, unsigned int count)
         return sc - s;
 }
 
-int vsprintf(char *buf, const char *fmt, va_list args)
+int ksprintf(char *buf, const char *fmt, va_list args)
 {
         int len;
         unsigned long num;
@@ -342,14 +342,14 @@ int kprintf(const char *fmt, ...)
     va_list ap; 
     char string[0x400]; 
     va_start(ap,fmt);
-    vsprintf(string,fmt,ap);
+    ksprintf(string,fmt,ap);
     va_end(ap);
     //uart_sendstring(string);
 	printf("%s",string);
 	return 0;
 }
 
-void* kmemcpy(void *d, void *s, unsigned int size)
+void* kmemcpy(void *d, const void *s, unsigned int size)
 {//TODO：加入空指针检查？可能不需要
 	int i, j, remain;
 	if(size < 64 || (long)d & 1 || (long)s & 1) {
@@ -387,10 +387,10 @@ void* kmemset(register void *d, int ch, register unsigned int size)
 	} else {
 		if(!((long)d & 3)) {
 			remain = size & 3;
-			*(char*)block = ch;
-			*(char*)((unsigned long)block + 1) = ch;
-			*(char*)((unsigned long)block + 2) = ch;
-			*(char*)((unsigned long)block + 3) = ch;
+			*(char*)&block = ch;
+			*(char*)((unsigned long)&block + 1) = ch;
+			*(char*)((unsigned long)&block + 2) = ch;
+			*(char*)((unsigned long)&block + 3) = ch;
 			for(i=0; i<size; i+=4) {
 				*(int*)((unsigned long)d + i) = block;
 			}

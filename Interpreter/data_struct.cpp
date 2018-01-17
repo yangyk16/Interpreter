@@ -1,6 +1,7 @@
 #include "data_struct.h"
 #include "varity.h"
 #include <string>
+#include "cstdlib.h"
 using namespace std;
 
 stack::stack()
@@ -25,7 +26,7 @@ void stack::init(int esize, void* base_addr, int capacity)
 	this->element_size = esize;
 	this->bottom_addr = base_addr;
 	this->length = capacity;
-	memset(this->bottom_addr, 0, this->length * this->element_size);
+	kmemset(this->bottom_addr, 0, this->length * this->element_size);
 }
 
 stack::stack(int esize, void* base_addr, int capacity)
@@ -37,7 +38,7 @@ void stack::push(void* eptr)
 {
 	if(this->is_full())
 		return;
-	memcpy((char*)this->bottom_addr + this->top, eptr, this->element_size);
+	kmemcpy((char*)this->bottom_addr + this->top, eptr, this->element_size);
 	this->top += this->element_size;
 	this->count++;
 }
@@ -74,7 +75,7 @@ indexed_stack::indexed_stack(int esize, void* base_addr, int capacity)
 	this->bottom_addr = base_addr;
 	this->length = capacity;
 	this->current_depth = 0;
-	memset(this->bottom_addr, 0, this->length * this->element_size);
+	kmemset(this->bottom_addr, 0, this->length * this->element_size);
 }
 
 void* indexed_stack::find(char* name)
@@ -108,15 +109,15 @@ round_queue::round_queue(uint length, void* base_addr)
 	this->bottom_addr = base_addr;
 }
 
-int round_queue::write(void* buf, uint size)
+int round_queue::write(const void* buf, uint size)
 {
 	if(size > length - count)
 		size = length - count;
 	if(size + wptr > this->length) {
-		memcpy((char*)this->bottom_addr + wptr * this->element_size, buf, this->element_size * (this->length - this->wptr));
-		memcpy((char*)this->bottom_addr, (char*)buf + wptr * this->element_size, this->element_size * (size + wptr - this->length));
+		kmemcpy((char*)this->bottom_addr + wptr * this->element_size, buf, this->element_size * (this->length - this->wptr));
+		kmemcpy((char*)this->bottom_addr, (char*)buf + wptr * this->element_size, this->element_size * (size + wptr - this->length));
 	} else {
-		memcpy((char*)this->bottom_addr + wptr * this->element_size, buf, this->element_size * size);
+		kmemcpy((char*)this->bottom_addr + wptr * this->element_size, buf, this->element_size * size);
 	}
 	wptr = (wptr + size) % this->length;
 	count += size;
@@ -128,10 +129,10 @@ int round_queue::read(void* buf, uint size)
 	if(size > count)
 		size = count;
 	if(rptr + size > this->length) {
-		memcpy(buf, (char*)this->bottom_addr + this->element_size * rptr, this->element_size * (length - rptr));
-		memcpy((char*)buf + (length - rptr) * this->element_size, this->bottom_addr, (size + rptr - this->length) * this->element_size);
+		kmemcpy(buf, (char*)this->bottom_addr + this->element_size * rptr, this->element_size * (length - rptr));
+		kmemcpy((char*)buf + (length - rptr) * this->element_size, this->bottom_addr, (size + rptr - this->length) * this->element_size);
 	} else {
-		memcpy(buf, (char*)this->bottom_addr + this->element_size * rptr, this->element_size * size);
+		kmemcpy(buf, (char*)this->bottom_addr + this->element_size * rptr, this->element_size * size);
 	}
 	rptr = (rptr + size) % this->length;
 	count -= size;
@@ -182,11 +183,11 @@ void node::middle_visit(void)
 	if(this->left)
 		this->left->middle_visit();
 	node_attribute_t *tmp = (node_attribute_t*)this->value;
-	printf("%d ",tmp->node_type);
+	kprintf("%d ",tmp->node_type);
 	if(tmp->node_type == TOKEN_NAME)
-		printf("%s\n",tmp->value.ptr_value);
+		kprintf("%s\n",tmp->value.ptr_value);
 	else
-		printf("%d\n",tmp->value.int_value);
+		kprintf("%d\n",tmp->value.int_value);
 	if(this->right)
 		this->right->middle_visit();
 }

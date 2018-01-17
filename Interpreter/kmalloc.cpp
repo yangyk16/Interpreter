@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "config.h"
+#include "cstdlib.h"
 
 #define ALIGN_BYTE 16
 typedef unsigned int uint;
@@ -118,7 +119,7 @@ void* krealloc(void *ptr, uint size)
 			} else {//开新的搬走数据;TODO:判断加上上一个空块大小是否够，够的话直接搬
 				void *new_ptr = kmalloc(size);
 				if(new_ptr) {
-					memcpy(new_ptr, ptr, size);
+					kmemcpy(new_ptr, ptr, size);
 					kfree(ptr);
 				}
 				return new_ptr;

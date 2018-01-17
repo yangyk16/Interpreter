@@ -193,7 +193,7 @@ inline int varity_convert(void *converted_ptr, int converted_type, void *convert
 		return ERROR_NO;
 	}
 	if(converted_type == converting_type) {
-		memcpy(converted_ptr, converting_ptr, get_varity_size(converting_type, 0, 0));//TODO:删除get_varity_size的简单重载
+		kmemcpy(converted_ptr, converting_ptr, get_varity_size(converting_type, 0, 0));//TODO:删除get_varity_size的简单重载
 	} else if(converted_type > converting_type) {
 		if(converted_type == INT || converted_type == U_INT || converted_type == LONG || converted_type == U_LONG) {
 			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG || converting_type == LONG_LONG || converting_type == U_LONG_LONG)
@@ -664,7 +664,7 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 		return 0;
 	}
 	if(instruction_ptr->opda_varity_type == type) {
-		memcpy((void*)opda_addr, (void*)opdb_addr, sizeof_type[type]);
+		kmemcpy((void*)opda_addr, (void*)opdb_addr, sizeof_type[type]);
 	} else if(instruction_ptr->opda_varity_type > type) {
 		if(instruction_ptr->opda_varity_type == INT || instruction_ptr->opda_varity_type == U_INT || instruction_ptr->opda_varity_type == LONG || instruction_ptr->opda_varity_type == U_LONG)
 			INT_VALUE(opda_addr) = INT_VALUE(opdb_addr);
@@ -937,7 +937,7 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 	switch(instruction_ptr->opda_operand_type) {
 	case OPERAND_CONST:
 		opda_addr = (int*)&opda_value;
-		memcpy(opda_addr, &instruction_ptr->opda_addr, 8);
+		kmemcpy(opda_addr, &instruction_ptr->opda_addr, 8);
 		break;
 	case OPERAND_L_VARITY:
 		opda_addr = (int*)(sp + instruction_ptr->opda_addr);
@@ -962,7 +962,7 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 	switch(instruction_ptr->opdb_operand_type) {
 	case OPERAND_CONST:
 		opdb_addr = (int*)&opdb_value;
-		memcpy(opdb_addr, &instruction_ptr->opdb_addr, 8);
+		kmemcpy(opdb_addr, &instruction_ptr->opdb_addr, 8);
 		break;
 	case OPERAND_L_VARITY:
 		opdb_addr = (int*)(sp + instruction_ptr->opdb_addr);

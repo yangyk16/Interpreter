@@ -9,7 +9,11 @@
 #include "data_struct.h"
 #include "cstdlib.h"
 
+#if TTY_TYPE == 0
 tty stdio;
+#elif TTY_TYPE == 1
+uart stdio;
+#endif
 varity_info g_varity_node[MAX_G_VARITY_NODE];
 varity_info l_varity_node[MAX_L_VARITY_NODE];
 indexed_stack l_varity_list(sizeof(varity_info), l_varity_node, MAX_L_VARITY_NODE);
@@ -119,11 +123,11 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 			instruction_ptr->opda_operand_type = OPERAND_CONST;
 			instruction_ptr->opda_varity_type = node_attribute->value_type;
-			memcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
+			kmemcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_STRING) {
 			instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
 			instruction_ptr->opda_varity_type = ARRAY;
-			memcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
+			kmemcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
 			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
 				instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
@@ -164,11 +168,11 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 			instruction_ptr->opdb_operand_type = OPERAND_CONST;
 			instruction_ptr->opdb_varity_type = node_attribute->value_type;
-			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
+			kmemcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_STRING) {
 			instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
 			instruction_ptr->opdb_varity_type = ARRAY;
-			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
+			kmemcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
 			if(node_attribute->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
 				instruction_ptr->opdb_operand_type = OPERAND_T_VARITY;
@@ -418,7 +422,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			rvarity_ptr->config_complex_info(complex_arg_count + 1, old_complex_info);
 		} else {
 			PLATFORM_WORD* new_complex_info = (PLATFORM_WORD*)vmalloc((complex_arg_count + 2) * sizeof(PLATFORM_WORD_LEN));
-			memcpy(new_complex_info + 1, old_complex_info + 1, complex_arg_count * sizeof(PLATFORM_WORD_LEN));
+			kmemcpy(new_complex_info + 1, old_complex_info + 1, complex_arg_count * sizeof(PLATFORM_WORD_LEN));
 			new_complex_info[complex_arg_count + 1] = COMPLEX_PTR << COMPLEX_TYPE_BIT;
 			rvarity_ptr->config_complex_info(complex_arg_count + 1, new_complex_info);
 		}
@@ -672,7 +676,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 			if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 				instruction_ptr->opdb_operand_type = OPERAND_CONST;
 				instruction_ptr->opdb_varity_type = node_attribute->value_type;
-				memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
+				kmemcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 			} else if(node_attribute->node_type == TOKEN_STRING) {
 				instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
 				instruction_ptr->opdb_varity_type = ARRAY;
@@ -996,7 +1000,7 @@ int c_interpreter::init(terminal* tty_used, varity* varity_declare, nonseq_info_
 
 void nonseq_info_struct::reset(void)
 {
-	memset(this, 0, sizeof(nonseq_info_struct));
+	kmemset(this, 0, sizeof(nonseq_info_struct));
 }
 
 int c_interpreter::save_sentence(char* str, uint len)
@@ -1217,16 +1221,16 @@ int c_interpreter::generate_compile_func(void)
 {
 	static stack memcpy_stack;
 	this->generate_arg_list("void*,void*,void*,unsigned int;", 4, memcpy_stack);
-	this->function_declare->add_compile_func("memcpy", kmemcpy, &memcpy_stack, 0);
+	this->function_declare->add_compile_func("memcpy", (void*)kmemcpy, &memcpy_stack, 0);
 	static stack memset_stack;
 	this->generate_arg_list("void*,void*,int,unsigned int;", 4, memset_stack);
-	this->function_declare->add_compile_func("memset", kmemset, &memset_stack, 0);
+	this->function_declare->add_compile_func("kmemset", (void*)kmemset, &memset_stack, 0);
 	static stack printf_stack;
 	this->generate_arg_list("int,char*;", 2, printf_stack);
-	this->function_declare->add_compile_func("printf", kprintf, &printf_stack, 1);
+	this->function_declare->add_compile_func("printf", (void*)kprintf, &printf_stack, 1);
 	static stack sprintf_stack;
 	this->generate_arg_list("int,char*,char*;", 3, sprintf_stack);
-	this->function_declare->add_compile_func("sprintf", vsprintf, &sprintf_stack, 1);
+	this->function_declare->add_compile_func("sprintf", (void*)ksprintf, &sprintf_stack, 1);
 	return ERROR_NO;
 }
 
@@ -1343,7 +1347,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 			//	ptr_level++;
 			//symbol_begin_pos += ptr_level;
 			//for(i=symbol_begin_pos; str[i]!='('; i++);
-			//memcpy(function_name, str + symbol_begin_pos, i - symbol_begin_pos);
+			//kmemcpy(function_name, str + symbol_begin_pos, i - symbol_begin_pos);
 			//function_name[i - symbol_begin_pos] = 0;
 			varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);//TODO:去掉多申请的空间
 			arg_stack = (stack*)vmalloc(sizeof(stack));
@@ -1384,7 +1388,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 						i = j;
 						break;
 					}
-				memcpy(varity_name, str + arg_name_begin_pos, arg_name_end_pos - arg_name_begin_pos + 1);
+				kmemcpy(varity_name, str + arg_name_begin_pos, arg_name_end_pos - arg_name_begin_pos + 1);
 				varity_name[arg_name_end_pos - arg_name_begin_pos + 1] = 0;
 				if(!void_flag) {
 					arg_node_ptr->arg_init(varity_name, type, sizeof_type[type], (void*)make_align(offset, PLATFORM_WORD_LEN));
@@ -1715,7 +1719,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
 			instruction_ptr->opdb_operand_type = OPERAND_CONST;
 			instruction_ptr->opdb_varity_type = node_attribute->value_type;
-			memcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
+			kmemcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 			new_varity_ptr->set_type(node_attribute->value_type);
 			inc_varity_ref(new_varity_ptr);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
@@ -2020,7 +2024,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 							error("Wrong operator exist in struct definition\n");
 							return -1;
 						} else if(opt_type == OPT_L_MID_BRACKET) {
-							memcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
+							kmemcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
 							varity_name[symbol_pos_once] = 0;
 							array_flag = 1;
 						} else if(opt_type == OPT_R_MID_BRACKET) {
@@ -2028,7 +2032,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 							element_count = y_atoi(str + symbol_pos_last, symbol_pos_once);
 						} else {
 							if(array_flag == 0) {
-								memcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
+								kmemcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
 								varity_name[symbol_pos_once] = 0;
 							} else if(array_flag == 2) {
 
@@ -2058,7 +2062,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 					ptr_level++;
 				varity_name_begin_pos += ptr_level;
 
-				memcpy(varity_name, str + varity_name_begin_pos, len - varity_name_begin_pos + 1);
+				kmemcpy(varity_name, str + varity_name_begin_pos, len - varity_name_begin_pos + 1);
 				varity_name[len - varity_name_begin_pos - 1] = 0;
 				new_node_ptr->arg_init(varity_name, varity_type, sizeof_type[varity_type], (void*)this->struct_info_set.current_offset);
 				this->struct_info_set.current_offset = make_align(this->struct_info_set.current_offset, sizeof_type[varity_type]) + sizeof_type[varity_type];
@@ -2083,11 +2087,12 @@ int c_interpreter::struct_analysis(char* str, uint len)
 			for(int j=symbol_begin_pos; str[j]=='*'; j++)
 				ptr_level++;
 			symbol_begin_pos += ptr_level;
-			memcpy(struct_name, str + symbol_begin_pos, len - symbol_begin_pos);
+			kmemcpy(struct_name, str + symbol_begin_pos, len - symbol_begin_pos);
 			struct_name[len - symbol_begin_pos] = 0;
 			varity_attribute* arg_node_ptr = (varity_attribute*)vmalloc(sizeof(varity_info) * MAX_VARITY_COUNT_IN_STRUCT);
 			arg_stack = (stack*)vmalloc(sizeof(stack));
-			memcpy(arg_stack, &stack(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT), sizeof(stack));
+			stack tmp_stack(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
+			kmemcpy(arg_stack, &tmp_stack, sizeof(stack));
 			//arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
 			this->struct_declare->declare(struct_name, arg_stack);
 			return OK_STRUCT_INPUTING;
@@ -2110,7 +2115,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 			int space_2nd_pos = str_find(str + key_len + 1, len - key_len - 1, ' ') + key_len + 1;
 			if(str[space_2nd_pos - 1] == '*')
 				space_2nd_pos--;
-			memcpy(struct_name, str + key_len + 1, space_2nd_pos - key_len - 1);
+			kmemcpy(struct_name, str + key_len + 1, space_2nd_pos - key_len - 1);
 			struct_name[space_2nd_pos - key_len - 1] = 0;
 			struct_node_ptr = this->struct_declare->find(struct_name);
 			if(!struct_node_ptr) {
