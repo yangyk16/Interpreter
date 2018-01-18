@@ -1288,7 +1288,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 		} else if(str[0] == '}') {
 			this->function_flag_set.brace_depth--;
 			if(!this->function_flag_set.brace_depth) {
-				int current_function_ptr = this->function_declare->get_current_node();
+				function_info *current_function_ptr = this->function_declare->get_current_node();
 				mid_code *mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr(), *code_end_ptr = mid_code_ptr;
 				while(--mid_code_ptr >= (mid_code*)current_function_ptr->mid_code_stack.get_base_addr()) {
 					if(mid_code_ptr->ret_operator == CTL_RETURN)
@@ -1303,6 +1303,10 @@ int c_interpreter::function_analysis(char* str, uint len)
 						}
 						if(i == this->sentence_analysis_data_struct.label_count) {
 							error("No label called \"%s\"\n", (char*)&mid_code_ptr->ret_addr);
+							current_function_ptr->reset();
+							vfree(current_function_ptr->arg_list->get_base_addr());
+							vfree(current_function_ptr->arg_list);
+							this->varity_declare->destroy_local_varity();
 							return ERROR_GOTO_LABEL;
 						}
 					}
