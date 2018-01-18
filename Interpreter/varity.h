@@ -141,6 +141,7 @@ int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count);
 void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag);
 void inc_varity_ref(varity_info *varity_ptr);
 void *get_basic_info(int basic_type, void *info_ptr, struct_define *struct_define_ptr);
+int destroy_varity_stack(stack *stack_ptr);
 
 extern const char type_key[15][19];
 extern const char sizeof_type[15];

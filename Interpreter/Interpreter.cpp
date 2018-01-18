@@ -1,7 +1,5 @@
 #include "interpreter.h"
-#include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include "operator.h"
 #include "string_lib.h"
 #include "error.h"
@@ -634,14 +632,13 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	code_stack_ptr->push();
 	RETURN(ERROR_NO);
 }
-#undef RETURN(x)
+#undef RETURN
 
 int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr)
 {
 	register mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 	node_attribute_t *node_attribute = ((node_attribute_t*)opt_node_ptr->value);//避免滥用&，误修改了变量。
 	switch(node_attribute->value.int_value) {
-		int varity_number;
 		varity_info *varity_ptr;
 	case OPT_TERNARY_Q:
 		this->generate_expression_value(code_stack_ptr, (node_attribute_t*)opt_node_ptr->left->value);
@@ -1020,7 +1017,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 	if(len == 0) {
 		if(nonseq_info->non_seq_struct_depth && nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE) {
 			error("blank shouldn't appear here.\n");
-			nonseq_info->reset();
+			//nonseq_info->reset();
 			return ERROR_NONSEQ_GRAMMER;
 		}
 	}
@@ -1033,7 +1030,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 		if(nonseq_info->brace_depth == 0) {
 			if(len != 0 && nonseq_info->non_seq_check_ret != NONSEQ_KEY_ELSE) {
 				error("if is unmatch with else or blank\n");
-				nonseq_info->reset();
+				//nonseq_info->reset();
 				return ERROR_NONSEQ_GRAMMER;
 			} else if(len == 0) {
 				while(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] == 0 && this->nonseq_info->non_seq_struct_depth > 0) {
@@ -1086,7 +1083,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 	} else if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_WHILE) {
 		if(nonseq_info->non_seq_check_ret != NONSEQ_KEY_WHILE && len != 0) {
 			error("do is unmatch with while\n");
-			nonseq_info->reset();
+			//nonseq_info->reset();
 			return ERROR_NONSEQ_GRAMMER;
 		} else if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_WHILE) {
 			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_WHILE;
@@ -1122,7 +1119,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 			nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 2;
 			if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE || nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] != nonseq_info->brace_depth) {
 				error("else is unmatch with if\n");
-				nonseq_info->reset();
+				//nonseq_info->reset();
 				return ERROR_NONSEQ_GRAMMER;
 			}
 			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_IF;
@@ -1180,7 +1177,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 			}
 			//nonseq_info->brace_depth--;
 		} else {
-			error("there is no { to match\n");
+			//error("there is no { to match\n");
 			return ERROR_NONSEQ_GRAMMER;
 		}
 	}
@@ -1265,6 +1262,16 @@ int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)/
 	return ERROR_NO;
 }
 
+#define ARG_RETURN(x) this->function_flag_set.function_flag = 0; \
+	this->function_flag_set.function_begin_flag = 0; \
+	destroy_varity_stack(arg_stack); \
+	vfree(arg_stack->get_base_addr()); \
+	vfree(arg_stack); \
+	this->varity_declare->destroy_local_varity(); \
+	this->cur_mid_code_stack_ptr = &this->mid_code_stack; \
+	this->exec_flag = true; \
+	this->varity_global_flag = VARITY_SCOPE_GLOBAL; \
+	return x
 int c_interpreter::function_analysis(char* str, uint len)
 {//TODO:非调试使能删除函数源代码
 	int ret_function_define;
@@ -1281,8 +1288,9 @@ int c_interpreter::function_analysis(char* str, uint len)
 		} else if(str[0] == '}') {
 			this->function_flag_set.brace_depth--;
 			if(!this->function_flag_set.brace_depth) {
+				int current_function_ptr = this->function_declare->get_current_node();
 				mid_code *mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr(), *code_end_ptr = mid_code_ptr;
-				while(--mid_code_ptr >= (mid_code*)this->function_declare->get_current_node()->mid_code_stack.get_base_addr()) {
+				while(--mid_code_ptr >= (mid_code*)current_function_ptr->mid_code_stack.get_base_addr()) {
 					if(mid_code_ptr->ret_operator == CTL_RETURN)
 						mid_code_ptr->opda_addr = code_end_ptr - mid_code_ptr;
 					else if(mid_code_ptr->ret_operator == CTL_GOTO) {
@@ -1301,8 +1309,8 @@ int c_interpreter::function_analysis(char* str, uint len)
 				}
 				this->function_flag_set.function_flag = 0;
 				this->cur_mid_code_stack_ptr = &this->mid_code_stack;
-				this->function_declare->get_current_node()->stack_frame_size = this->varity_declare->local_varity_stack->offset;
-				this->function_declare->get_current_node()->size_adapt();
+				current_function_ptr->stack_frame_size = this->varity_declare->local_varity_stack->offset;
+				current_function_ptr->size_adapt();
 				this->exec_flag = true;
 				this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 				this->varity_declare->destroy_local_varity();
@@ -1350,7 +1358,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 			//for(i=symbol_begin_pos; str[i]!='('; i++);
 			//kmemcpy(function_name, str + symbol_begin_pos, i - symbol_begin_pos);
 			//function_name[i - symbol_begin_pos] = 0;
-			varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);//TODO:去掉多申请的空间
+			varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);
 			arg_stack = (stack*)vmalloc(sizeof(stack));
 			arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
 			arg_node_ptr->arg_init("", ret_function_define, sizeof_type[ret_function_define], 0);//TODO:加上offset
@@ -1364,7 +1372,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 				int pos = key_match(str + i, r_bracket_pos-i+1, &type);
 				if(pos < 0) {
 					error("arg type error.\n");
-					return ERROR_FUNC_ARG_LIST;					
+					ARG_RETURN(ERROR_FUNC_ARG_LIST);
 				}
 				keylen = kstrlen(type_key[type]);
 				arg_name_begin_pos = i + pos + keylen + (str[i + pos + keylen] == ' ' ? 1 : 0);
@@ -1373,13 +1381,13 @@ int c_interpreter::function_analysis(char* str, uint len)
 				if(type == VOID && !ptr_level) {
 					if(arg_stack->get_count() > 1) {
 						error("arg list error.\n");
-						return ERROR_FUNC_ARG_LIST;
+						ARG_RETURN(ERROR_FUNC_ARG_LIST);
 					}
 					void_flag = true;
 				} else {
 					if(void_flag) {
 						error("arg cannot use void type.\n");
-						return ERROR_FUNC_ARG_LIST;
+						ARG_RETURN(ERROR_FUNC_ARG_LIST);
 					}
 				}
 				arg_name_begin_pos += ptr_level;
@@ -1398,12 +1406,11 @@ int c_interpreter::function_analysis(char* str, uint len)
 				} else {
 					if(varity_name[0] != 0) {
 						error("arg cannot use void type.\n");
-						return ERROR_FUNC_ARG_LIST;
+						ARG_RETURN(ERROR_FUNC_ARG_LIST);
 					}
 				}
 				offset = make_align(offset, PLATFORM_WORD_LEN) + sizeof_type[type];
 			}
-			//TODO: 释放申请的多余空间
 			this->function_declare->declare(function_name, arg_stack);
 			this->cur_mid_code_stack_ptr = &this->function_declare->get_current_node()->mid_code_stack;
 			this->exec_flag = false;
@@ -1413,6 +1420,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 	}
 	return OK_FUNC_NOFUNC;
 }
+#undef ARG_RETURN
 
 bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int &prio)
 {
@@ -2269,7 +2277,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 
 int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varity_info* expression_value)
 {
-	int i, ret;
+	int ret;
 	int total_bracket_depth;
 	char ch_last = str[len];
 	int source_len = len;

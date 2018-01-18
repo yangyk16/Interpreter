@@ -3,8 +3,6 @@
 #include "error.h"
 #include "varity.h"
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include "config.h"
 #include "interpreter.h"
 #include "cstdlib.h"
@@ -46,8 +44,11 @@ int function_info::reset(void)
 	if(this->row_len)
 		vfree(this->row_len);
 	if(this->arg_list) {
-		vfree(this->arg_list->visit_element_by_index(0));
-		vfree(this->arg_list);
+		destroy_varity_stack(this->arg_list);
+	}
+	void *code_addr = this->mid_code_stack.get_base_addr();
+	if(code_addr) {
+		vfree(code_addr);
 	}
 	return 0;
 }

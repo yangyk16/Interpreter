@@ -1,7 +1,5 @@
 #include "varity.h"
 #include "data_struct.h"
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
 #include "error.h"
 #include "struct.h"
@@ -25,7 +23,7 @@ bool varity_info::en_echo = 1;
 void inc_varity_ref(varity_info *varity_ptr)
 {
 	PTR_N_VALUE(varity_ptr->get_complex_ptr())++;
-	//debug("inc %x\n", varity_ptr);
+	debug("inc %x\n", varity_ptr);
 }
 
 void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag)
@@ -33,16 +31,22 @@ void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag)
 	int remain_count = --PTR_N_VALUE(varity_ptr->get_complex_ptr());
 	if(destroy_flag && !remain_count)
 		vfree(varity_ptr->get_complex_ptr());
-	//debug("dec %x\n", varity_ptr);
+	debug("dec %x\n", varity_ptr);
+}
+
+int destroy_varity_stack(stack *stack_ptr)//仅限局部变量和参数表
+{
+	varity_info *varity_ptr = (varity_info*)stack_ptr->get_base_addr();
+	for(int i=0; i<stack_ptr->get_count(); i++, varity_ptr++) {
+		dec_varity_ref(varity_ptr, true);
+		vfree(varity_ptr->get_name());
+	}
+	return ERROR_NO;
 }
 
 varity_info::varity_info()
 {
 	kmemset(this, 0, sizeof(*this));
-	//this->content_ptr = 0;
-	//this->type = 0;
-	//this->size = 0;
-	//this->name = 0;
 }
 
 void varity_info::config_varity(char attribute, void* info_ptr)
@@ -88,7 +92,7 @@ int varity_info::struct_apply(void)
 void varity_info::arg_init(char* name, char type, uint size, void* offset)
 {
 	int name_len = kstrlen(name);
-	this->name = (char*)malloc(name_len + 1);
+	this->name = (char*)vmalloc(name_len + 1);
 	kstrcpy(this->name, name);
 	this->type = type;
 	this->size = size;
