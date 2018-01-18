@@ -11,9 +11,9 @@
 
 int function_info::init(char* name, stack* arg_list)
 {//TODO: add malloc fail action.
-	int name_len = strlen(name);
+	int name_len = kstrlen(name);
 	this->name = (char*)vmalloc(name_len + 1);
-	strcpy(this->name, name);
+	kstrcpy(this->name, name);
 	this->buffer = (char*)vmalloc(MAX_FUNCTION_LEN);
 	this->row_begin_pos = (char**)vmalloc(MAX_FUNCTION_LINE * sizeof(char*));
 	this->row_len = (int*)vmalloc(MAX_FUNCTION_LINE * sizeof(int));
@@ -25,9 +25,9 @@ int function_info::init(char* name, stack* arg_list)
 
 int function_info::init(char *name, void* addr, stack *arg_list, char variable_arg_flag)
 {
-	int name_len = strlen(name);
+	int name_len = kstrlen(name);
 	this->name = (char*)vmalloc(name_len + 1);
-	strcpy(this->name, name);
+	kstrcpy(this->name, name);
 	this->func_addr = addr;
 	this->compile_func_flag = 1;
 	this->variable_para_flag = variable_arg_flag;

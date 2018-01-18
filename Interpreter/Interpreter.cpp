@@ -8,6 +8,7 @@
 #include "varity.h"
 #include "data_struct.h"
 #include "cstdlib.h"
+#include "kmalloc.h"
 
 #if TTY_TYPE == 0
 tty stdio;
@@ -839,14 +840,14 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 		this->token_fifo.write(str + real_token_pos, i - real_token_pos);
 		this->token_fifo.write("\0",1);
 		for(int j=0; j<sizeof(type_key)/sizeof(type_key[0]); j++) {
-			if(!strcmp(symbol_ptr, type_key[j])) {
+			if(!kstrcmp(symbol_ptr, type_key[j])) {
 				info->value.int_value = j;
 				info->node_type = TOKEN_KEYWORD_TYPE;
 				return i;
 			}
 		}
 		for(int j=0; j<sizeof(non_seq_key)/sizeof(non_seq_key[0]); j++) {
-			if(!strcmp(symbol_ptr, non_seq_key[j])) {
+			if(!kstrcmp(symbol_ptr, non_seq_key[j])) {
 				info->value.int_value = j;
 				info->node_type = TOKEN_KEYWORD_NONSEQ;
 				return i;
@@ -1236,7 +1237,7 @@ int c_interpreter::generate_compile_func(void)
 
 int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)//没有容错，不开放给终端输入，仅用于链接标准库函数
 {
-	int len = strlen(str);
+	int len = kstrlen(str);
 	void *arg_stack = vmalloc(sizeof(varity_info) * count);
 	arg_list_ptr.init(sizeof(varity_info), arg_stack, count);
 	varity_info *varity_ptr = (varity_info*)arg_list_ptr.get_base_addr();
@@ -1287,7 +1288,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 					else if(mid_code_ptr->ret_operator == CTL_GOTO) {
 						int i;
 						for(i=0; i<this->sentence_analysis_data_struct.label_count; i++) {
-							if(!strcmp(this->sentence_analysis_data_struct.label_name[i], (char*)&mid_code_ptr->ret_addr)) {
+							if(!kstrcmp(this->sentence_analysis_data_struct.label_name[i], (char*)&mid_code_ptr->ret_addr)) {
 								mid_code_ptr->opda_addr = (mid_code*)this->sentence_analysis_data_struct.label_addr[i] - mid_code_ptr;
 								break;
 							}
@@ -1322,7 +1323,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 			int token_len;
 			token_len = get_token(str_bak, &node_ptr);
 			if(node_ptr.node_type == TOKEN_NAME) {
-				strcpy(function_name, node_ptr.value.ptr_value);
+				kstrcpy(function_name, node_ptr.value.ptr_value);
 				get_token(str_bak + token_len, &node_ptr);
 				if(node_ptr.node_type == TOKEN_OPERATOR && node_ptr.value.int_value == OPT_L_SMALL_BRACKET) {
 					str = str_bak;
@@ -1337,7 +1338,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 		int r_bracket_pos = str_find(str, ')');
 		if(function_declare_flag) {
 			int symbol_begin_pos, ptr_level = 0;
-			int keylen = strlen(type_key[ret_function_define]);
+			int keylen = kstrlen(type_key[ret_function_define]);
 			stack* arg_stack;
 			this->function_flag_set.function_flag = 1;
 			this->function_flag_set.function_begin_flag = 1;
@@ -1365,7 +1366,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 					error("arg type error.\n");
 					return ERROR_FUNC_ARG_LIST;					
 				}
-				keylen = strlen(type_key[type]);
+				keylen = kstrlen(type_key[type]);
 				arg_name_begin_pos = i + pos + keylen + (str[i + pos + keylen] == ' ' ? 1 : 0);
 				for(int j=arg_name_begin_pos; str[j]=='*'; j++)
 					ptr_level++;
@@ -1489,7 +1490,7 @@ int c_interpreter::label_analysis(char *str, int len)
 	token_len = get_token(str, &node);
 	if(node.node_type == TOKEN_NAME) {
 		char name[MAX_LABEL_NAME_LEN + 1];
-		strcpy(name, node.value.ptr_value);
+		kstrcpy(name, node.value.ptr_value);
 		str += token_len;
 		token_len = get_token(str, &node);
 		if(node.node_type == TOKEN_OPERATOR && node.value.int_value == OPT_TERNARY_C) {
@@ -1505,7 +1506,7 @@ int c_interpreter::label_analysis(char *str, int len)
 					return ERROR_GOTO_COUNT_MAX;
 				}
 				this->sentence_analysis_data_struct.label_addr[this->sentence_analysis_data_struct.label_count] = this->cur_mid_code_stack_ptr->get_current_ptr();
-				strcpy(this->sentence_analysis_data_struct.label_name[this->sentence_analysis_data_struct.label_count++], name);
+				kstrcpy(this->sentence_analysis_data_struct.label_name[this->sentence_analysis_data_struct.label_count++], name);
 				return OK_LABEL_DEFINE;
 			}
 		}
@@ -1569,7 +1570,7 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 		}
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 		mid_code_ptr->ret_operator = CTL_GOTO;
-		strcpy((char*)&mid_code_ptr->ret_addr, analysis_data_struct_ptr->node_attribute->value.ptr_value);
+		kstrcpy((char*)&mid_code_ptr->ret_addr, analysis_data_struct_ptr->node_attribute->value.ptr_value);
 		this->cur_mid_code_stack_ptr->push();
 		return ERROR_NO;
 	}
@@ -2010,7 +2011,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 				varity_info* new_node_ptr = (varity_info*)varity_stack_ptr->get_current_ptr();
 				int varity_type, varity_name_begin_pos, ptr_level = 0, key_len;
 				varity_type = optcmp(str);
-				key_len = strlen(type_key[varity_type]);
+				key_len = kstrlen(type_key[varity_type]);
 				varity_name_begin_pos = key_len + (str[key_len] == ' ' ? 1 : 0); 
 				int opt_len, opt_type, symbol_pos_once, symbol_pos_last = str[key_len]==' '?key_len+1:key_len, size = len - symbol_pos_last;
 				int array_flag = 0, element_count = 1;
@@ -2076,7 +2077,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 		int space_count = char_count(str + 6, ' ');
 		if(space_count == 1) {//1:define 2+:declare
 			int symbol_begin_pos, ptr_level = 0;
-			int keylen = strlen(type_key[is_varity_declare]);
+			int keylen = kstrlen(type_key[is_varity_declare]);
 			stack* arg_stack;
 			char struct_name[32];
 			this->struct_info_set.declare_flag = 1;
@@ -2108,7 +2109,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 	char struct_name[32];
 	struct_info* struct_node_ptr = 0;
 	if(is_varity_declare >= 0) {
-		int key_len = strlen(type_key[is_varity_declare]);
+		int key_len = kstrlen(type_key[is_varity_declare]);
 		if(is_varity_declare != STRUCT)
 			len = remove_char(str + key_len + 1, ' ') + key_len + 1;
 		else {//TODO: 处理结构名后接*的情况
@@ -2253,7 +2254,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 			} else if(node_attribute->node_type == TOKEN_NAME) {
 				token_flag = 1;
 				cur_stack_ptr = &analysis_data_struct_ptr->expression_final_stack;
-				strcpy(varity_name, node_attribute->value.ptr_value);
+				kstrcpy(varity_name, node_attribute->value.ptr_value);
 			}
 			this->sentence_analysis_data_struct.last_token = *node_attribute;
 			cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
@@ -2373,4 +2374,10 @@ void c_interpreter::print_code(void)
 		debug("\n");
 		//debug("opt=%d,radd=%x,rtype=%d,ropd=%d,aadd=%x,atype=%d,aopd=%d,badd=%x,byte=%d,bopd=%d\n",ptr->ret_operator,ptr->ret_addr,ptr->ret_varity_type,ptr->ret_operand_type,ptr->opda_addr,ptr->opda_varity_type,ptr->opda_operand_type,ptr->opdb_addr,ptr->opdb_varity_type,ptr->opdb_operand_type);
 	}
+}
+
+extern "C" void run_interpreter(void)
+{
+	heapinit();
+	myinterpreter.run_interpreter();
 }

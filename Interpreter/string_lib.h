@@ -22,7 +22,7 @@ inline int get_bracket_depth(char* str)
 	int max_depth = 0;
 	int current_depth = 0;//parentheses
 	int current_depth_m = 0;//bracket
-	int len = strlen(str);
+	int len = kstrlen(str);
 
 	for(int i=0; i<len; i++) {
 		if(str[i] == '(') {

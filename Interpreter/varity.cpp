@@ -87,9 +87,9 @@ int varity_info::struct_apply(void)
 
 void varity_info::arg_init(char* name, char type, uint size, void* offset)
 {
-	int name_len = strlen(name);
+	int name_len = kstrlen(name);
 	this->name = (char*)malloc(name_len + 1);
-	strcpy(this->name, name);
+	kstrcpy(this->name, name);
 	this->type = type;
 	this->size = size;
 	this->content_ptr = offset;
@@ -109,9 +109,9 @@ void varity_info::init_varity(void* addr, char* name, char type, uint size)
 {
 	varity_info* varity_ptr = (varity_info*)addr;
 	if(name) {
-		int name_len = strlen(name);
+		int name_len = kstrlen(name);
 		varity_ptr->name = (char*)vmalloc(name_len+1);
-		strcpy(varity_ptr->name, name);
+		kstrcpy(varity_ptr->name, name);
 	}
 	varity_ptr->type = type;
 	varity_ptr->size = size;
@@ -130,9 +130,9 @@ void varity_info::init_varity(void* addr, char* name, char type, uint size)
 
 varity_info::varity_info(char* name, int type, uint size)
 {
-	int name_len = strlen(name);
+	int name_len = kstrlen(name);
 	this->name = (char*)vmalloc(name_len+1);
-	strcpy(this->name, name);
+	kstrcpy(this->name, name);
 	this->type = type;
 	this->size = size;
 	this->attribute = 0;
@@ -289,14 +289,14 @@ int varity::declare(int scope_flag, char *name, char type, uint size, int comple
 
 void varity_attribute::init(void* addr, char* name, char type, char attribute, uint size)
 {
-	int name_len = strlen(name);
+	int name_len = kstrlen(name);
 	varity_attribute* ptr = (varity_attribute*)addr;
 	ptr->type = type;
 	ptr->attribute = attribute;
 	ptr->size = size;
 	if(name) {
 		ptr->name = (char*)vmalloc(name_len + 1);
-		strcpy(ptr->name, name);
+		kstrcpy(ptr->name, name);
 	}
 }
 

@@ -31,7 +31,7 @@ int is_type_convert(char* str, varity_info* covert_type_ptr)
 	varity_type = optcmp(str);
 	if(varity_type >= 0) {
 		int ptr_level = 0;
-		int i = strlen(type_key[varity_type]);
+		int i = kstrlen(type_key[varity_type]);
 		while(str[i]) {
 			if(str[i] != '*' && str[i] != 0)
 				return 0;
@@ -254,10 +254,10 @@ int check_symbol(char* str, int size)
 
 int sub_replace(char* str, int indexl, int indexr, char* sub_str)
 {
-	int sub_str_len = strlen(sub_str);
+	int sub_str_len = kstrlen(sub_str);
 	if(sub_str_len <= indexr - indexl + 1) {
 		kmemcpy(str + indexl, sub_str, sub_str_len);
-		strcpy(str + indexl + sub_str_len, str + indexr + 1);
+		kstrcpy(str + indexl + sub_str_len, str + indexr + 1);
 	} else {
 		debug("complete code,string_lib.cpp, %d" ,__LINE__);
 	}

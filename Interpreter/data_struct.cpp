@@ -57,7 +57,7 @@ void* stack::find(char* name)
 	char* element_name;
 	for(uint i=0; i<this->count; i++) {
 		element_name = ((element*)((char*)this->bottom_addr + i * this->element_size))->get_name();
-		if(!strcmp(element_name, name))
+		if(!kstrcmp(element_name, name))
 			return (char*)this->bottom_addr + i * this->element_size;
 	}
 	return NULL;
@@ -84,7 +84,7 @@ void* indexed_stack::find(char* name)
 	int visible_index = this->index_table[this->visible_depth];
 	for(uint i=visible_index; i<this->count; i++) {
 		element_name = ((element*)((char*)this->bottom_addr + i * this->element_size))->get_name();
-		if(!strcmp(element_name, name))
+		if(!kstrcmp(element_name, name))
 			return (char*)this->bottom_addr + i * this->element_size;
 	}
 	return NULL;

@@ -9,9 +9,9 @@
 
 int struct_info::init(char* name, stack* varity_list)
 {//TODO: mallocÊ§°Ü
-	int name_len = strlen(name);
+	int name_len = kstrlen(name);
 	this->name = (char*)vmalloc(name_len + 1);
-	strcpy(this->name, name);
+	kstrcpy(this->name, name);
 	this->varity_stack_ptr = varity_list;
 	kmemcpy(this->type_info_ptr, basic_type_info[STRUCT], sizeof(int) * 3);
 	this->type_info_ptr[1] = (uint)this;

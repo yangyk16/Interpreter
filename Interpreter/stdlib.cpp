@@ -168,7 +168,7 @@ unsigned int strnlen(const char * s, unsigned int count)
                 /* nothing */; 
         return sc - s;
 }
-
+/*stdlib interface*/
 int ksprintf(char *buf, const char *fmt, va_list args)
 {
         int len;
@@ -371,6 +371,8 @@ void* kmemcpy(void *d, const void *s, unsigned int size)
 			}
 			for(j=size-remain; j<size; j++)
 				*(char*)((long)d + j) = *(char*)((long)s + j);
+		} else {
+			//比对结尾位置是否4/2Byte对齐
 		}
 	}
 	return d;
@@ -407,5 +409,35 @@ void* kmemset(register void *d, int ch, register unsigned int size)
 				*(char*)((long)d + j) = ch;
 		}
 	}
+	return d;
+}
+
+unsigned int kstrlen(const char *str)
+{
+	unsigned int i = 0;
+	while(*str++)
+		i++;
+	return i;
+}
+
+int kstrcmp(const char *str1, const char *str2)
+{
+	while(*str1 && *str2) {
+		if(*str1++ != *str2++)
+			return -1;
+	}
+	if(*str1 == *str2)
+		return 0;
+	else
+		return -1;
+}
+
+char *kstrcpy(char *d, const char *s)
+{
+	int i;
+	for(i=0; s[i]; i++) {
+		d[i] = s[i];
+	}
+	d[i] = 0;
 	return d;
 }
