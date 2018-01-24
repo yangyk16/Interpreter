@@ -45,8 +45,10 @@ void stack::push(void* eptr)
 
 void* stack::pop(void)
 {
-	if(count == 0)
+	if(count == 0) {
+		error("Empty stack pop.\n");
 		return NULL;
+	}
 	this->top -= this->element_size;
 	this->count--;
 	return (void*)&((char*)(this->bottom_addr))[this->top];

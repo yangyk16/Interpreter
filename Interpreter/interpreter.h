@@ -159,6 +159,7 @@ class c_interpreter: public interpreter {
 	int non_seq_struct_check(char* str);
 	int function_analysis(char*, uint);
 	int struct_analysis(char*, uint);
+	int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak);
 	int non_seq_struct_analysis(char*, uint);
 	int sub_sentence_analysis(char*, uint* size);
 	int key_word_analysis(char*, uint);
