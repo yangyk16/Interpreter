@@ -159,7 +159,7 @@ class c_interpreter: public interpreter {
 	int non_seq_struct_check(char* str);
 	int function_analysis(char*, uint);
 	int struct_analysis(char*, uint);
-	int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak);
+	int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
 	int non_seq_struct_analysis(char*, uint);
 	int sub_sentence_analysis(char*, uint* size);
 	int key_word_analysis(char*, uint);
@@ -187,7 +187,7 @@ class c_interpreter: public interpreter {
 	int exec_mid_code(mid_code *pc, uint count);
 	int nonseq_start_gen_mid_code(char *str, uint len, int non_seq_type);
 	int nonseq_mid_gen_mid_code(char *str, uint len);
-	int nonseq_end_gen_mid_code(char *str, uint len);
+	int nonseq_end_gen_mid_code(int row_num, char*, int);
 	int tree_to_code(node *tree, stack *code_stack);
 	int operator_pre_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr);

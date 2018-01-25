@@ -1013,21 +1013,25 @@ int c_interpreter::save_sentence(char* str, uint len)
 #define GET_BRACE_FLAG(x)	(((x) & 128) >> 7)
 #define GET_BRACE_DATA(x)	((x) & 127)
 #define SET_BRACE(x,y) (((x) << 7) | (y))
-int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak)
+int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, register bool try_flag)
 {
 	int ret = 0;
+	int depth_bak = this->nonseq_info->non_seq_struct_depth;
 	while(this->nonseq_info->non_seq_struct_depth > 0 
 		&& ((GET_BRACE_DATA(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1]) == nonseq_info->brace_depth + 1 && GET_BRACE_FLAG(nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1]))
 		|| (GET_BRACE_DATA(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1]) == nonseq_info->brace_depth && !GET_BRACE_FLAG(nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1])))) {
-		this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1] = 0;
-		this->varity_declare->local_varity_stack->dedeep();
+		if(!try_flag) {
+			this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1] = 0;
+			this->varity_declare->local_varity_stack->dedeep();
+		}
 		if(nonseq_info->non_seq_struct_depth > 0 && nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] == NONSEQ_KEY_IF && !(struct_end_flag & 2)) {
-			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] = NONSEQ_KEY_WAIT_ELSE;
+			if(!try_flag)
+				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] = NONSEQ_KEY_WAIT_ELSE;
 			--nonseq_info->non_seq_struct_depth;
 			break;
 		}
 		--nonseq_info->non_seq_struct_depth;
-		if(nonseq_info->non_seq_struct_depth >= 0)
+		if(nonseq_info->non_seq_struct_depth >= 0 && !try_flag)
 			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = 0;
 	}
 	if(struct_end_flag & 1) {
@@ -1040,11 +1044,15 @@ int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak)
 		} else if(nonseq_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_WHILE) {
 			ret = OK_NONSEQ_INPUTING;
 		} else {
-			nonseq_info->non_seq_exec = 1;
-			this->exec_flag = exec_flag_bak;
+			if(!try_flag) {
+				nonseq_info->non_seq_exec = 1;
+				this->exec_flag = exec_flag_bak;
+			}
 			ret = OK_NONSEQ_FINISH;
 		}
 	}
+	if(!try_flag)
+		this->nonseq_info->non_seq_struct_depth = depth_bak;
 	return ret;
 }
 
@@ -1068,6 +1076,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_IF;
 				struct_end_flag = 2;
 			} else { //nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE
+				nonseq_mid_gen_mid_code(str, len);//这句不会出错，不加返回值判断了
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 3;
 			}
 		} else {
@@ -1076,9 +1085,11 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_IF;
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 1;
-				struct_end(struct_end_flag, exec_flag_bak);
+				nonseq_end_gen_mid_code(nonseq_info->row_num - 1, 0, 0);
+				struct_end(struct_end_flag, exec_flag_bak, 0);
 				struct_end_flag = 0;
 			} else if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE) {
+				nonseq_mid_gen_mid_code(str, len);
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 3;
 			}
 		}
@@ -1116,20 +1127,20 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 			return ERROR_NONSEQ_GRAMMER;
 		}
 	}
-	if(nonseq_info->last_non_seq_check_ret && nonseq_info->non_seq_struct_depth && str[len-1] == ';') {// && nonseq_info->brace_depth == 0
-		if(nonseq_info->last_non_seq_check_ret != NONSEQ_KEY_DO)
-			struct_end_flag = 1;
-		else
-			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] = NONSEQ_KEY_WAIT_WHILE;
-	}
 
 	if(nonseq_info->non_seq_check_ret) {
 		if(nonseq_info->row_num == 0) {
 			exec_flag_bak = this->exec_flag;
 			this->exec_flag = 0;
 		}
-		this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] = SET_BRACE(0, nonseq_info->brace_depth);
 		this->varity_declare->local_varity_stack->endeep();
+		ret = nonseq_start_gen_mid_code(str, len, nonseq_info->non_seq_check_ret);
+		if(ret) {
+			error("Nonseq struct error.\n");
+			this->varity_declare->local_varity_stack->dedeep();
+			return ret;
+		}
+		this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] = SET_BRACE(0, nonseq_info->brace_depth);
 		nonseq_info->row_info_node[nonseq_info->row_num].non_seq_info = 0;
 		if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE) {
 			nonseq_info->row_info_node[nonseq_info->row_num].non_seq_info = 2;
@@ -1137,7 +1148,6 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 				error("else is unmatch with if\n");
 				return ERROR_NONSEQ_GRAMMER;
 			}
-			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_IF;
 		}
 		nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = nonseq_info->non_seq_check_ret;
 		nonseq_info->non_seq_struct_depth++;
@@ -1145,12 +1155,24 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 		nonseq_info->row_info_node[nonseq_info->row_num].nonseq_type = nonseq_info->non_seq_check_ret;
 		ret = OK_NONSEQ_DEFINE;
 	}
+	if(str[len - 1] == ';') {
+		if(nonseq_info->non_seq_struct_depth)
+			this->sentence_exec(str, len, true, 0);
+		if(nonseq_info->last_non_seq_check_ret && nonseq_info->non_seq_struct_depth) {// && nonseq_info->brace_depth == 0
+			if(nonseq_info->last_non_seq_check_ret != NONSEQ_KEY_DO)
+				struct_end_flag = 1;
+			else
+				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] = NONSEQ_KEY_WAIT_WHILE;
+		}
+	}
 struct_end_check:
 	if(struct_end_flag) {
-		ret = struct_end(struct_end_flag, exec_flag_bak);
+		ret = struct_end(struct_end_flag, exec_flag_bak, 1);
+		nonseq_end_gen_mid_code(nonseq_info->row_num, str, len);
+		ret = struct_end(struct_end_flag, exec_flag_bak, 0);
 	}
 struct_save:
-	if(len && (nonseq_info->non_seq_check_ret || nonseq_info->non_seq_struct_depth)) {
+	if(len && (nonseq_info->non_seq_struct_depth || nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth)) {// && (nonseq_info->non_seq_check_ret || nonseq_info->non_seq_struct_depth)) {
 		this->save_sentence(str, len);
 		nonseq_info->row_num++;
 	}
@@ -1498,7 +1520,7 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 		return ret;
 	} else if(!strmcmp(str, "break;", 6)) {
 		if(this->nonseq_info->row_num > 0) {
-			int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num - 1].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num - 1].non_seq_depth;
+			int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth;
 			for(int i=read_seq_depth; i>0; i--) {
 				if(this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_FOR || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_WHILE || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_DO) {
 					mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
@@ -1512,7 +1534,7 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 		return ERROR_NONSEQ_CTL;
 	} else if(!strmcmp(str, "continue;", 9)) {
 		if(this->nonseq_info->row_num > 0) {
-			int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num - 1].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num - 1].non_seq_depth;
+			int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth;
 			for(int i=read_seq_depth; i>0; i--) {
 				if(this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_FOR || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_WHILE || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_DO) {
 					mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
@@ -1749,34 +1771,34 @@ int c_interpreter::sentence_analysis(char* str, int len)
 	//	return ERROR_NO;
 	ret2 = non_seq_struct_analysis(str, len);
 	debug("nonseqret=%d\n", ret2);
-	//if(ret2 == OK_NONSEQ_FINISH || ret2 == OK_NONSEQ_INPUTING || ret2 == OK_NONSEQ_DEFINE) {
-	//	if(this->cur_mid_code_stack_ptr == &this->mid_code_stack) {
-	//		this->varity_global_flag = VARITY_SCOPE_LOCAL;
-	//	}
-	//	if(nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth) {
-	//		switch(nonseq_info->row_info_node[nonseq_info->row_num].non_seq_info) {
-	//		case 0:
-	//			this->nonseq_start_gen_mid_code(str, len, nonseq_info->row_info_node[nonseq_info->row_num].nonseq_type);
-	//			break;
-	//		case 1:
-	//			this->nonseq_end_gen_mid_code(nonseq_info->row_info_node[nonseq_info->row_num].row_ptr, nonseq_info->row_info_node[nonseq_info->row_num].row_len);
-	//			break;
-	//		case 2:
-	//			this->nonseq_mid_gen_mid_code(str, len);
-	//			break;
-	//		default:
-	//			break;
-	//		}
-	//	} else {
-	//		this->sentence_exec(str, len, true, 0);
-	//	}
-	//	if(this->cur_mid_code_stack_ptr == &this->mid_code_stack && ret2 == OK_NONSEQ_FINISH) {
-	//		this->varity_global_flag = VARITY_SCOPE_GLOBAL;
-	//		this->nonseq_info->stack_frame_size = this->varity_declare->local_varity_stack->offset;
-	//		this->varity_declare->destroy_local_varity_cur_depth();
-	//	}
-	//} else if(ret2 == ERROR_NONSEQ_GRAMMER)
-	//	return ret2;
+	if(ret2 == OK_NONSEQ_FINISH || ret2 == OK_NONSEQ_INPUTING || ret2 == OK_NONSEQ_DEFINE) {
+		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack) {
+			this->varity_global_flag = VARITY_SCOPE_LOCAL;
+		}
+		//if(nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth) {
+		//	switch(nonseq_info->row_info_node[nonseq_info->row_num].non_seq_info) {
+		//	case 0:
+		//		this->nonseq_start_gen_mid_code(str, len, nonseq_info->row_info_node[nonseq_info->row_num].nonseq_type);
+		//		break;
+		//	case 1:
+		//		this->nonseq_end_gen_mid_code(nonseq_info->row_info_node[nonseq_info->row_num].row_ptr, nonseq_info->row_info_node[nonseq_info->row_num].row_len);
+		//		break;
+		//	case 2:
+		//		this->nonseq_mid_gen_mid_code(str, len);
+		//		break;
+		//	default:
+		//		break;
+		//	}
+		//} else {
+		//	this->sentence_exec(str, len, true, 0);
+		//}
+		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack && ret2 == OK_NONSEQ_FINISH) {
+			this->varity_global_flag = VARITY_SCOPE_GLOBAL;
+			this->nonseq_info->stack_frame_size = this->varity_declare->local_varity_stack->offset;
+			this->varity_declare->destroy_local_varity_cur_depth();
+		}
+	} else if(ret2 < 0)
+		return ret2;
 	
 	if(nonseq_info->non_seq_exec) {
 		debug("exec non seq struct\n");
@@ -1801,13 +1823,13 @@ int c_interpreter::sentence_analysis(char* str, int len)
 int c_interpreter::nonseq_mid_gen_mid_code(char *str, uint len)
 {
 	mid_code* mid_code_ptr;
-	int cur_depth = nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth;
+	int cur_depth = nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth;
 	mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 	mid_code_ptr->ret_operator = CTL_BRANCH;
 	this->cur_mid_code_stack_ptr->push();
-	nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+	nonseq_info->row_info_node[nonseq_info->row_num].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 	for(int i=nonseq_info->row_num-1; i>=0; i--) {
-		if(nonseq_info->row_info_node[i].non_seq_depth == cur_depth 
+		if(nonseq_info->row_info_node[i].non_seq_depth == cur_depth + 1
 			&& nonseq_info->row_info_node[i].non_seq_info == 0) {
 			mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 			mid_code_ptr->opda_addr++;
@@ -1818,22 +1840,29 @@ int c_interpreter::nonseq_mid_gen_mid_code(char *str, uint len)
 	return ERROR_NO;
 }
 
-int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
+int c_interpreter::nonseq_end_gen_mid_code(int row_num, char *str_try, int len_try)
 {
-	int i, key_len;
-	int cur_depth = nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth;
+	int i, key_len, len;
+	char *str;
+	if(str_try)
+		str = str_try;
+	else
+		str =  nonseq_info->row_info_node[row_num].row_ptr;
+	if(len_try)
+		len = len_try;
+	else
+		len = nonseq_info->row_info_node[row_num].row_len;
+	int cur_depth = nonseq_info->row_info_node[row_num].non_seq_depth;
 	if(len == 0)return ERROR_NO;
 	mid_code *mid_code_ptr;
 	node_attribute_t cur_node;
 	key_len = get_token(str, &cur_node);
 	if(cur_node.node_type != TOKEN_KEYWORD_NONSEQ && str[0] != '}') {//TODO：do while 检测bug
-		if(!nonseq_info->row_info_node[nonseq_info->row_num - 1].finish_flag) {
-			nonseq_info->row_info_node[nonseq_info->row_num - 1].finish_flag = 1;
-			int ret = this->generate_mid_code(str, len, true);
-			if(ret) return ret;
+		if(!nonseq_info->row_info_node[nonseq_info->row_num].finish_flag) {
+			nonseq_info->row_info_node[nonseq_info->row_num].finish_flag = 1;
 		}
 	}
-	for(i=nonseq_info->row_num-1; i>=0; i--) {
+	for(i=row_num; i>=0; i--) {
 		if(nonseq_info->row_info_node[i].non_seq_depth >= cur_depth 
 			&& (nonseq_info->row_info_node[i].non_seq_info == 0 || nonseq_info->row_info_node[i].non_seq_info == 2) 
 			&& !nonseq_info->row_info_node[i].finish_flag) {
@@ -1897,52 +1926,77 @@ int c_interpreter::nonseq_end_gen_mid_code(char *str, uint len)
 
 int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_type)
 {
-	mid_code* mid_code_ptr;
+	mid_code *mid_code_ptr;
 	node_attribute_t token_node;
-	int key_len = get_token(str, &token_node), first_flag_pos, second_flag_pos;
+	int key_len = get_token(str, &token_node), first_flag_pos, second_flag_pos, third_flag_pos;
 	int begin_pos = get_token(str + key_len, &token_node);
-	if((token_node.node_type != TOKEN_OPERATOR || token_node.value.int_value != OPT_L_SMALL_BRACKET) && token_node.value.int_value != NONSEQ_KEY_DO) {
+	int ret = ERROR_NO;
+	int mid_code_count;
+	int mid_code_count_of_for;
+	if((token_node.node_type != TOKEN_OPERATOR || token_node.value.int_value != OPT_L_SMALL_BRACKET) && token_node.value.int_value != NONSEQ_KEY_DO && token_node.value.int_value != NONSEQ_KEY_ELSE) {
 		error("Lack of bracket\n");
 		return ERROR_NONSEQ_GRAMMER;
 	}
+	mid_code_count = this->cur_mid_code_stack_ptr->get_count();
 	switch(non_seq_type) {
 	case NONSEQ_KEY_IF:
-		this->generate_mid_code(str + key_len, len - key_len, false);
+		ret = this->generate_mid_code(str + key_len, len - key_len, false);
+		if(ret)
+			break;
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+		nonseq_info->row_info_node[nonseq_info->row_num].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 		mid_code_ptr->ret_operator = CTL_BRANCH_FALSE;
 		this->cur_mid_code_stack_ptr->push();
 		break;
 	case NONSEQ_KEY_FOR: 
 		first_flag_pos = find_ch_with_bracket_level(str + key_len, ';', 1);
 		second_flag_pos = find_ch_with_bracket_level(str + key_len + first_flag_pos + 1, ';', 0);
-		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_c = key_len + first_flag_pos + second_flag_pos + 1;
+		nonseq_info->row_info_node[nonseq_info->row_num].post_info_c = key_len + first_flag_pos + second_flag_pos + 1;
 		if(first_flag_pos == -1 || second_flag_pos == -1)
 			return ERROR_NONSEQ_GRAMMER;
-		this->generate_mid_code(str + key_len + begin_pos, first_flag_pos - begin_pos, false);
+		ret = this->generate_mid_code(str + key_len + begin_pos, first_flag_pos - begin_pos, false);
+		if(ret)
+			break;
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();//循环条件判断处中间代码地址
-		this->generate_mid_code(str + key_len + first_flag_pos + 1, second_flag_pos, false);
+		nonseq_info->row_info_node[nonseq_info->row_num].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();//循环条件判断处中间代码地址
+		ret = this->generate_mid_code(str + key_len + first_flag_pos + 1, second_flag_pos, false);
+		if(ret)
+			break;
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_a = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr() - nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b;//循环体处距循环条件中间代码处相对偏移
+		nonseq_info->row_info_node[nonseq_info->row_num].post_info_a = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr() - nonseq_info->row_info_node[nonseq_info->row_num].post_info_b;//循环体处距循环条件中间代码处相对偏移
 		mid_code_ptr->ret_operator = CTL_BRANCH_FALSE;
 		this->cur_mid_code_stack_ptr->push();
+		mid_code_count_of_for = this->cur_mid_code_stack_ptr->get_count();
+		third_flag_pos = find_ch_with_bracket_level(str + nonseq_info->row_info_node[nonseq_info->row_num].post_info_c + 1, ')', 0);
+		ret = this->generate_mid_code(str + nonseq_info->row_info_node[nonseq_info->row_num].post_info_c + 1, third_flag_pos, false);
+		while(this->cur_mid_code_stack_ptr->get_count() > mid_code_count_of_for) {
+			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->pop();
+			memset(mid_code_ptr, 0, sizeof(mid_code));
+		}
 		break;
 	case NONSEQ_KEY_WHILE:
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
-		this->generate_mid_code(str + key_len, len - key_len, false);
+		nonseq_info->row_info_node[nonseq_info->row_num].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+		ret = this->generate_mid_code(str + key_len, len - key_len, false);
+		if(ret)
+			break;
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_a = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr() - nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b;//循环体处距循环条件中间代码处相对偏移
+		nonseq_info->row_info_node[nonseq_info->row_num].post_info_a = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr() - nonseq_info->row_info_node[nonseq_info->row_num].post_info_b;//循环体处距循环条件中间代码处相对偏移
 		mid_code_ptr->ret_operator = CTL_BRANCH_FALSE;
 		this->cur_mid_code_stack_ptr->push();
 		break;
 	case NONSEQ_KEY_DO:
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		nonseq_info->row_info_node[nonseq_info->row_num - 1].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+		nonseq_info->row_info_node[nonseq_info->row_num].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 		break;
 	}
-	return ERROR_NO;
+	if(ret) {
+		while(this->cur_mid_code_stack_ptr->get_count() > mid_code_count) {
+			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->pop();
+			memset(mid_code_ptr, 0, sizeof(mid_code));
+		}
+	}
+	return ret;
 }
 
 int c_interpreter::struct_analysis(char* str, uint len)
