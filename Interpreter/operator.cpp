@@ -813,9 +813,11 @@ int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *op
 		case 3:
 			func3_ptr = (func3)function_ptr->func_addr;
 			ret = func3_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2));
+			break;
 		case 4:
 			func4_ptr = (func4)function_ptr->func_addr;
 			ret = func4_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3));
+			break;
 		case 16:
 			break;
 		}
@@ -848,7 +850,7 @@ int ctl_branch_true_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	mid_code *last_instruction_ptr = instruction_ptr - 1;
-	if(last_instruction_ptr->ret_varity_type != INT)//TODO:加入其他合法类型
+	if(last_instruction_ptr->ret_varity_type < CHAR || last_instruction_ptr->ret_varity_type > U_LONG_LONG)
 		return ERROR_CONDITION_TYPE;
 	if(is_non_zero(last_instruction_ptr->ret_varity_type, last_ret_abs_addr))
 		instruction_ptr += instruction_ptr->opda_addr - 1;
@@ -859,7 +861,7 @@ int ctl_branch_false_handle(c_interpreter *interpreter_ptr, int *opda_addr, int 
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	mid_code *last_instruction_ptr = instruction_ptr - 1;
-	if(last_instruction_ptr->ret_varity_type != INT)
+	if(last_instruction_ptr->ret_varity_type < CHAR || last_instruction_ptr->ret_varity_type > U_LONG_LONG)
 		return ERROR_CONDITION_TYPE;
 	if(!is_non_zero(last_instruction_ptr->ret_varity_type, last_ret_abs_addr))
 		instruction_ptr += instruction_ptr->opda_addr - 1;
@@ -1055,6 +1057,31 @@ int try_plus_handle(int opda_type, int opdb_type, int opda_complex_count, int *o
 	}
 }
 
+int try_minus_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
+{
+	if(opda_type < VOID && opdb_type < VOID) {
+		return opda_type<opdb_type?opdb_type:opda_type;
+	} else if(opda_type == STRUCT || opdb_type == STRUCT || opda_type == VOID || opdb_type == VOID) {
+		goto wrong;
+	} else if(opda_type >= PTR && opdb_type <= U_LONG_LONG) {
+		return PTR;
+	} else if(opda_type >= PTR && opdb_type >= PTR) {
+		if(opda_complex_count != opdb_complex_count)
+			goto wrong;
+		else {
+			for(int i=1; i<=opda_complex_count-1; i++) {
+				if(opda_type_info[i] != opdb_type_info[i])
+					goto wrong;
+			}
+		}
+	} else
+		goto wrong;
+	return ERROR_NO;
+wrong:
+	error("Can't minus.\n");
+	return ERROR_ILLEGAL_OPERAND;
+}
+
 int try_mul_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
 {
 	if(opda_type > DOUBLE || opdb_type > DOUBLE)
@@ -1101,6 +1128,8 @@ int try_call_opt_handle(int opt, int opda_type, int opdb_type, int opda_complex_
 		return try_assign_handle(opda_type, opdb_type, opda_complex_count, opda_type_info, opdb_complex_count, opdb_type_info);
 	else if(opt == OPT_PLUS)
 		return try_plus_handle(opda_type, opdb_type, opda_complex_count, opda_type_info, opdb_complex_count, opdb_type_info);
+	else if(opt == OPT_MINUS)
+		return try_minus_handle(opda_type, opdb_type, opda_complex_count, opda_type_info, opdb_complex_count, opdb_type_info);
 	else if(opt == OPT_MUL)
 		return try_mul_handle(opda_type, opdb_type, opda_complex_count, opda_type_info, opdb_complex_count, opdb_type_info);
 	else if(opt == OPT_EQU)

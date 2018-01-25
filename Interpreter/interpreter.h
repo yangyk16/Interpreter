@@ -112,20 +112,20 @@ typedef struct call_func_info_s {
 
 class mid_code {
 public:
-	char break_flag;
-	char opda_varity_type;//操作数1变量类型
-	char opdb_varity_type;//操作数2变量类型
-	unsigned char ret_operator;    //执行的操作
 	int ret_addr;         //结果地址
-	int opda_addr;        //操作数1地址
+	long opda_addr;        //操作数1地址，务必保持在操作数1的4个相关量的第一个位置 TODO:定义联合体，合并addr与doublespace方便位数不同的平台移植
 	int double_space1;    //操作数1为double立即数时使用的空间
-	int opdb_addr;
-	int double_space2;
-	int data;
+	char opda_varity_type;//操作数1变量类型
 	char opda_operand_type;//操作数1类型：变量/立即数
-	char opdb_operand_type;//操作数2类型：变量/立即数
-	char ret_operand_type;
 	char ret_varity_type;
+	char ret_operand_type;
+	long opdb_addr;		//操作数2四个相关变量顺序要保持和操作数1一致，有代码依赖
+	int double_space2;
+	char opdb_varity_type;
+	char opdb_operand_type;
+	unsigned char ret_operator;    //执行的操作	
+	char break_flag;
+	int data;
 };
 
 class interpreter {

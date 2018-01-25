@@ -109,7 +109,8 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 	return x
 int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr)
 {
-	register varity_info *avarity_ptr = 0, *bvarity_ptr = 0, *rvarity_ptr;
+	static varity_info static_varity;
+	register varity_info *avarity_ptr = &static_varity, *bvarity_ptr = &static_varity, *rvarity_ptr;
 	register int opt = ((node_attribute_t*)opt_node_ptr->value)->value.int_value;
 	register int varity_scope;
 	register node_attribute_t *node_attribute;
@@ -274,8 +275,16 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_MINUS:
 	case OPT_MUL:
 	case OPT_DIVIDE:
-		if(opt == OPT_PLUS || opt == OPT_MINUS)//TODO:减法可用两个指针减，改用cmp的try_handle
+		if(opt == OPT_PLUS && instruction_ptr->opda_varity_type >= CHAR && instruction_ptr->opda_varity_type <= U_LONG_LONG && instruction_ptr->opdb_varity_type <= ARRAY && instruction_ptr->opdb_varity_type >= PTR) {
+			char tmp[sizeof(instruction_ptr->opda_addr) + sizeof(instruction_ptr->opda_operand_type) + sizeof(instruction_ptr->double_space1) + sizeof(instruction_ptr->opda_varity_type)];
+			memcpy(tmp, &instruction_ptr->opda_addr, sizeof(tmp));
+			memcpy(&instruction_ptr->opda_addr, &instruction_ptr->opdb_addr, sizeof(tmp));
+			memcpy(&instruction_ptr->opdb_addr, tmp, sizeof(tmp));
+		}
+		if(opt == OPT_PLUS)
 			ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		else if(opt == OPT_MINUS)//减法可用两个指针减，改用cmp的try_handle
+			ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
 		else
 			ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
 		if(ret_type < 0)
@@ -346,10 +355,14 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY) {
 			error("Assign operator need left value.\n");
 			return ERROR_NEED_LEFT_VALUE;
-		} else if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
-			//this->mid_varity_stack.pop();
+		} else if(instruction_ptr->opda_operand_type == OPERAND_CONST) {
+			error("Const value assigned.\n");
+			return ERROR_CONST_ASSIGNED;
 		} else {
 		}
+		ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		if(ret_type < 0)
+			return ret_type;
 		instruction_ptr->ret_addr = instruction_ptr->opda_addr;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
@@ -583,7 +596,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
 
 				if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY || instruction_ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
-					this->mid_varity_stack.pop();
+					//this->mid_varity_stack.pop();//TODO:加回来肯定有bug，不加回来不知道有没有
 					//dec_varity_ref(bvarity_ptr, true);//TODO:确认是否有需要，不注释掉出bug了，释放了全局变量类型信息
 				}
 			}
@@ -1304,6 +1317,10 @@ int c_interpreter::function_analysis(char* str, uint len)
 		int v_len = len;
 		node_attribute_t node_ptr;
 		int function_declare_flag = 0;
+		if(!this->exec_flag) {
+			error("Cannot define function here.\n");
+			return ERROR_FUNC_DEF_POS;
+		}
 		while(v_len > 0) {
 			int token_len;
 			token_len = get_token(str_bak, &node_ptr);
@@ -2075,16 +2092,6 @@ int c_interpreter::struct_analysis(char* str, uint len)
 					symbol_pos_last += symbol_pos_once + opt_len;
 					size -= symbol_pos_once + opt_len;
 				}
-				/*for(int j=varity_name_begin_pos; str[j]=='*'; j++)
-					ptr_level++;
-				varity_name_begin_pos += ptr_level;
-
-				kmemcpy(varity_name, str + varity_name_begin_pos, len - varity_name_begin_pos + 1);
-				varity_name[len - varity_name_begin_pos - 1] = 0;
-				new_node_ptr->arg_init(varity_name, varity_type, sizeof_type[varity_type], (void*)this->struct_info_set.current_offset);
-				this->struct_info_set.current_offset = make_align(this->struct_info_set.current_offset, sizeof_type[varity_type]) + sizeof_type[varity_type];
-				varity_stack_ptr->push();*/
-
 				return OK_STRUCT_INPUTING;
 			}
 		}
