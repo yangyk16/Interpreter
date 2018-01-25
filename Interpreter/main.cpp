@@ -7,14 +7,21 @@
 #include <stdio.h>
 #include "kmalloc.h"
 #include <iostream>
+#include <signal.h>
 using namespace std;
 
 extern c_interpreter myinterpreter;
+
+void ouch(int sig)
+{
+	myinterpreter.set_break_flag(1);
+}
 
 int _tmain(int argc, _TCHAR* argv[])
 {
 	extern char* heapbase;
 	int *a, *b, *c, *d, *e, *f, *g, *h;
+	signal(SIGINT, ouch);
 	heapinit();
 	cout<<"heapbase="<<(void*)heapbase<<endl;
 	a = (int*)kmalloc(192);

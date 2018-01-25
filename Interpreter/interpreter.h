@@ -153,7 +153,7 @@ class c_interpreter: public interpreter {
 	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
 	round_queue non_seq_code_fifo;
 	int varity_global_flag;
-	//int function_depth;
+	int break_flag;
 	unsigned int analysis_buf_inc_stack[MAX_FUNCTION_DEPTH];
 	int save_sentence(char*, uint);
 	int non_seq_struct_check(char* str);
@@ -204,6 +204,7 @@ class c_interpreter: public interpreter {
 
 public:
 	mid_code *pc;
+	void set_break_flag(int flag) {break_flag = flag;}
 	int init(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
 	//c_interpreter(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
 	virtual int run_interpreter(void);

@@ -978,6 +978,7 @@ int c_interpreter::init(terminal* tty_used, varity* varity_declare, nonseq_info_
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 	///////////
 	handle_init();
+	this->break_flag = 0;
 	this->stack_pointer = this->simulation_stack;
 	this->tmp_varity_stack_pointer = this->tmp_varity_stack;
 	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);

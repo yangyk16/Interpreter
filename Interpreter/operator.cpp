@@ -997,6 +997,12 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 		ret_addr = (int*)instruction_ptr->ret_addr;
 		break;
 	}
+	if(interpreter_ptr->break_flag) {
+		error("Interrupted by break.\n");
+		if(interpreter_ptr->cur_mid_code_stack_ptr = &interpreter_ptr->mid_code_stack)
+			interpreter_ptr->break_flag = 0;
+		return ERROR_CTL_BREAK;
+	}
 	if(opt_handle[instruction_ptr->ret_operator])
 		ret = opt_handle[instruction_ptr->ret_operator](interpreter_ptr, opda_addr, opdb_addr, ret_addr);
 	else {
