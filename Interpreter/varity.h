@@ -120,7 +120,7 @@ class varity {
 	uint current_stack_depth;
 	int cur_analysis_varity_count;
 public:
-	varity(stack*, indexed_stack*);
+	void init(stack*, indexed_stack*);
 	stack* global_varity_stack;
 	indexed_stack* local_varity_stack;
 	varity_info* find(char*, int);

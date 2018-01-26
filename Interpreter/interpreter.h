@@ -87,6 +87,22 @@ typedef struct node_attribute_s {
 	operand_value_t value;
 } node_attribute_t;
 
+typedef struct language_element_space {
+	varity_info g_varity_node[MAX_G_VARITY_NODE];
+	varity_info l_varity_node[MAX_L_VARITY_NODE];
+	indexed_stack l_varity_list;
+	stack g_varity_list;
+	varity c_varity;
+	nonseq_info_struct nonseq_info_s;
+	function_info function_node[MAX_FUNCTION_NODE];
+	stack function_list;
+	function c_function;
+	struct_info struct_node[MAX_STRUCT_NODE];
+	stack struct_list;
+	struct_define c_struct;
+	int init_done;
+} language_elment_space_t;
+
 typedef struct sentence_analysis_data_struct_s {
 	list_stack expression_tmp_stack;
 	list_stack expression_final_stack;
@@ -146,6 +162,7 @@ public:
 class c_interpreter: public interpreter {
 	char pretreat_buf[MAX_PRETREAT_BUFLEN];
 	round_queue row_pretreat_fifo;
+	static language_elment_space_t language_elment_space;
 	nonseq_info_struct* nonseq_info;
 	struct_info_struct struct_info_set;
 	function_flag_struct function_flag_set;
@@ -159,7 +176,7 @@ class c_interpreter: public interpreter {
 	int non_seq_struct_check(char* str);
 	int function_analysis(char*, uint);
 	int struct_analysis(char*, uint);
-	int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
+	int struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
 	int non_seq_struct_analysis(char*, uint);
 	int sub_sentence_analysis(char*, uint* size);
 	int key_word_analysis(char*, uint);
@@ -169,7 +186,6 @@ class c_interpreter: public interpreter {
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;
 	stack mid_code_stack;
 	stack mid_varity_stack;
-	stack link_varity_stack;
 	stack *cur_mid_code_stack_ptr;
 	char *stack_pointer;
 	char *tmp_varity_stack_pointer;
@@ -177,7 +193,7 @@ class c_interpreter: public interpreter {
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	bool exec_flag;
 	call_func_info_t call_func_info;
-	int get_varity_type(char *str, int len, int basic_type, PLATFORM_WORD *info);
+	int get_varity_type(char *str, int &len, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info);
 	int generate_arg_list(char *str, int count, stack &arg_list_ptr);
 	int generate_compile_func(void);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
@@ -197,7 +213,7 @@ class c_interpreter: public interpreter {
 	friend int sys_stack_step_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr);
 	int test(char *str, uint len);
 	void print_code(void);
-	static int basic_type_check(char *str, int len, struct_info *&struct_info_ptr);
+	int basic_type_check(char *str, int &len, struct_info *&struct_info_ptr);
 	//////////////////////////////////////////////////////////////////////
 	virtual int sentence_analysis(char*, int);
 	virtual int pre_treat(void);
@@ -205,7 +221,7 @@ class c_interpreter: public interpreter {
 public:
 	mid_code *pc;
 	void set_break_flag(int flag) {break_flag = flag;}
-	int init(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
+	int init(terminal*);
 	//c_interpreter(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
 	virtual int run_interpreter(void);
 };

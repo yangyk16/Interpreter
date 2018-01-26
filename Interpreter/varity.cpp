@@ -367,7 +367,7 @@ int varity::undeclare(void)
 	return 0;
 }
 
-varity::varity(stack* g_stack, indexed_stack* l_stack)
+void varity::init(stack* g_stack, indexed_stack* l_stack)
 {
 	this->global_varity_stack = g_stack;
 	this->local_varity_stack = l_stack;

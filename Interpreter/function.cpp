@@ -73,7 +73,7 @@ int function_info::save_sentence(char* str, uint len)
 	return 0;
 }
 
-function::function(stack* function_stack_ptr)
+void function::init(stack* function_stack_ptr)
 {
 	this->function_stack_ptr = function_stack_ptr;
 }

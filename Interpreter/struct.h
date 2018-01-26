@@ -27,6 +27,6 @@ public:
 	struct_info* find(char* name) {return (struct_info*)struct_stack_ptr->find(name);}
 	struct_info *find_info(void *info_ptr);
 	int save_sentence(char* ,uint);
-	struct_define(stack* stack_ptr) {struct_define::struct_stack_ptr = stack_ptr;}
+	void init(stack* stack_ptr) {this->struct_stack_ptr = stack_ptr;}
 };
 #endif

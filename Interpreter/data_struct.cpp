@@ -70,9 +70,8 @@ void* stack::visit_element_by_index(int index)
 	return (char*)this->bottom_addr + index * this->element_size;
 }
 
-indexed_stack::indexed_stack(int esize, void* base_addr, int capacity)
+void indexed_stack::init(int esize, void* base_addr, int capacity)
 {
-	stack();
 	this->element_size = esize;
 	this->bottom_addr = base_addr;
 	this->length = capacity;

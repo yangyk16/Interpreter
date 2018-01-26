@@ -29,7 +29,7 @@ class function {
 	function_info* current_node;
 	stack* function_stack_ptr;
 public:
-	function(stack*);
+	void init(stack*);
 	function_info* find(char* name) {return (function_info*)this->function_stack_ptr->find(name);}
 	function_info* get_current_node(void) {return this->current_node;}
 	void current_node_abort(void);

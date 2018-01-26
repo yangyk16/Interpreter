@@ -110,45 +110,6 @@ int optcmp(char* str)
 	return -1;
 }
 
-int c_interpreter::basic_type_check(char *str, int len, struct_info *&struct_info_ptr)
-{
-	//int is_varity_declare, token_len;
-	//char varity_name[MAX_VARITY_NAME_LEN], struct_name[MAX_VARITY_NAME_LEN];
-	//node_attribute_t node_attribute;
-	//token_len = get_token(str, &node_attribute);
-	//str += token_len;
-	//len -= token_len;
-	//if(node_attribute.node_type == TOKEN_KEYWORD_TYPE) {
-	//	is_varity_declare = node_attribute.value.int_value;
-	//} else
-	//	is_varity_declare = -1;
-	//struct_info *struct_node_ptr = 0;
-	//if(is_varity_declare > 0) {
-	//	int key_len = kstrlen(type_key[is_varity_declare]);
-	//	if(is_varity_declare == STRUCT) {
-	//		token_len = get_token(str, &node_attribute);
-	//		if(node_attribute.node_type == TOKEN_NAME) {
-	//			kstrcpy(struct_name, node_attribute.value.ptr_value);
-	//			struct_node_ptr = this->struct_define->find(struct_name);
-	//			if(!struct_node_ptr) {
-	//				error("There is no struct called %s.\n", struct_name);
-	//				return ERROR_STRUCT_NONEXIST;
-	//			}
-	//		} else {
-	//			error("Wrong struct name.\n");
-	//			return ERROR_STRUCT_NONEXIST;
-	//		}
-	//		struct_info_ptr = struct_node_ptr;
-	//		str += token_len;
-	//		len -= token_len;
-	//	}
-	//	return is_varity_declare;
-	//} else {
-	//	return ERROR_NO;
-	//}
-	return 0;
-}
-
 int is_type_convert(char* str, varity_info* covert_type_ptr)
 {
 	int ret, varity_type;
