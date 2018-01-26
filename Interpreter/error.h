@@ -40,6 +40,7 @@
 #define ERROR_GOTO_LABEL		-35
 #define ERROR_CTL_BREAK			-36
 #define ERROR_FUNC_DEF_POS		-37
+#define ERROR_TOKEN_TYPE		-38
 #define OK_FUNC_RETURN			-99
 
 #define OK_NONSEQ_FINISH		1

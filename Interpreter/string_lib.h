@@ -56,6 +56,8 @@ inline int get_bracket_depth(char* str)
 		return max_depth;
 }
 
+typedef struct node_attribute_s node_attribute_t;
+
 int optcmp(char* str);
 int is_type_convert(char* str, varity_info* covert_type_ptr);
 int nonseq_key_cmp(char* str);
@@ -79,4 +81,5 @@ bool is_letter(unsigned char ch);
 bool is_number(unsigned char ch);
 bool is_non_zero(int type, void* addr);
 int find_ch_with_bracket_level(char* str, char ch, int level);
+int get_token(char *str, node_attribute_t *info);
 #endif

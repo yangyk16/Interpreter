@@ -166,7 +166,6 @@ class c_interpreter: public interpreter {
 	int label_analysis(char*, int);
 	int sentence_exec(char*, uint, bool, varity_info*);
 	//////////////////////////////////////////////////////////////////////
-	round_queue token_fifo;
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;
 	stack mid_code_stack;
 	stack mid_varity_stack;
@@ -178,7 +177,7 @@ class c_interpreter: public interpreter {
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	bool exec_flag;
 	call_func_info_t call_func_info;
-	int get_token(char *str, node_attribute_t *info);
+	int get_varity_type(char *str, int len, int basic_type, PLATFORM_WORD *info);
 	int generate_arg_list(char *str, int count, stack &arg_list_ptr);
 	int generate_compile_func(void);
 	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
@@ -198,6 +197,7 @@ class c_interpreter: public interpreter {
 	friend int sys_stack_step_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr);
 	int test(char *str, uint len);
 	void print_code(void);
+	static int basic_type_check(char *str, int len, struct_info *&struct_info_ptr);
 	//////////////////////////////////////////////////////////////////////
 	virtual int sentence_analysis(char*, int);
 	virtual int pre_treat(void);
@@ -210,4 +210,6 @@ public:
 	virtual int run_interpreter(void);
 };
 
+extern "C" void global_init(void);
+extern "C" void run_interpreter(void);
 #endif

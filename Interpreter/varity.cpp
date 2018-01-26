@@ -11,7 +11,7 @@
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "long", "unsigned int", "unsigned long", "long long", "unsigned long long", "float", "double", "void", "struct"};
 const char sizeof_type[] = {0, 1, 1, 2, 2, 4, 4, 4, 4, 8, 8, 4, 8, 0, 0};
 const char type_len[] = {5, 4, 13, 5, 14, 3, 4, 12, 13, 9, 18, 5, 6, 4, 6};
-int basic_type_info[15][4] = {{1, BASIC_TYPE_SET(COMPLEX)}, {1, BASIC_TYPE_SET(CHAR), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(U_CHAR), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(SHORT), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(U_SHORT), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(INT), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(LONG), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(U_INT), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(U_LONG), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(LONG_LONG), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(U_LONG_LONG), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(FLOAT), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(DOUBLE), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(VOID), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, 0, BASIC_TYPE_SET(STRUCT), SET_COMPLEX_TYPE(COMPLEX_PTR)}};
+PLATFORM_WORD basic_type_info[15][4] = {{1, BASIC_TYPE_SET(COMPLEX)}, {1, BASIC_TYPE_SET(CHAR), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(U_CHAR), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(SHORT), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(U_SHORT), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(INT), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(LONG), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(U_INT), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(U_LONG), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(LONG_LONG), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(U_LONG_LONG), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(FLOAT), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(DOUBLE), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, BASIC_TYPE_SET(VOID), SET_COMPLEX_TYPE(COMPLEX_PTR)}, {1, 0, BASIC_TYPE_SET(STRUCT), SET_COMPLEX_TYPE(COMPLEX_PTR)}};
 #elif PLATFORM_WORD_LEN == 8
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "unsigned int", "long", "long long", "unsigned long", "unsigned long long", "float", "double", "void", "struct"};
 const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};
@@ -53,7 +53,7 @@ void varity_info::config_varity(char attribute, void* info_ptr)
 {
 	this->attribute |= attribute;
 	if(info_ptr)
-		this->comlex_info_ptr = (int*)info_ptr;
+		this->comlex_info_ptr = (PLATFORM_WORD*)info_ptr;
 }
 
 int varity_attribute::get_type(void)
@@ -71,10 +71,10 @@ int varity_attribute::get_type(void)
 	}
 }
 
-void varity_info::config_complex_info(int complex_arg_count, void* info_ptr)
+void varity_info::config_complex_info(int complex_arg_count, PLATFORM_WORD* info_ptr)
 {
 	this->complex_arg_count = complex_arg_count;
-	this->comlex_info_ptr = (int*)info_ptr;
+	this->comlex_info_ptr = info_ptr;
 }
 
 void varity_info::clear_attribute(char attribute)
@@ -154,7 +154,7 @@ void varity_info::set_type(int type)
 int varity_info::get_first_order_sub_struct_size(void)
 {
 	if(GET_COMPLEX_TYPE(this->comlex_info_ptr[this->complex_arg_count]) == COMPLEX_PTR || GET_COMPLEX_TYPE(this->comlex_info_ptr[this->complex_arg_count]) == COMPLEX_ARRAY)
-		return get_varity_size(0, (uint*)this->comlex_info_ptr, this->complex_arg_count - 1);
+		return get_varity_size(0, this->comlex_info_ptr, this->complex_arg_count - 1);
 	else
 		return ERROR_NO_SUB_STRUCT;
 }
@@ -167,7 +167,7 @@ int varity_info::get_element_size(void)
 			break;
 		}
 	}
-	return get_varity_size(0, (uint*)this->comlex_info_ptr, i);
+	return get_varity_size(0, this->comlex_info_ptr, i);
 	//if(this->type == STRUCT) {
 	//	return ((struct_info*)this->comlex_info_ptr)->struct_size;
 	//} else {
@@ -249,7 +249,7 @@ void varity_info::echo(void)
 	}
 }
 
-int varity::declare(int scope_flag, char *name, char type, uint size, int complex_arg_count, void *complex_info_ptr)
+int varity::declare(int scope_flag, char *name, char type, uint size, int complex_arg_count, PLATFORM_WORD *complex_info_ptr)
 {//scope_flag = 0:global; 1: local; 2:analysis_tmp
 	int ret;
 	varity_info* varity_ptr;
@@ -375,7 +375,7 @@ varity::varity(stack* g_stack, indexed_stack* l_stack)
 	this->current_stack_depth = 0;
 }
 
-int get_varity_size(int basic_type, uint *complex_info, int complex_arg_count)
+int get_varity_size(int basic_type, PLATFORM_WORD *complex_info, int complex_arg_count)
 {
 	int varity_size = 0;
 	int &n = complex_arg_count;

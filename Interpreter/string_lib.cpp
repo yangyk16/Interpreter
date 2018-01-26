@@ -6,10 +6,95 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "cstdlib.h"
+#include "interpreter.h"
 
 extern char non_seq_key[7][7];
 extern const char non_seq_key_len[7];
 extern char opt_str[43][4];
+extern char opt_str_len[43];
+extern char opt_prio[43];
+extern char opt_number[54];
+
+round_queue token_fifo;
+int get_token(char *str, node_attribute_t *info)
+{
+	int i = 0, real_token_pos;
+	char *symbol_ptr = token_fifo.get_wptr() + (char*)token_fifo.get_base_addr();
+	while(str[i] == ' ' || str[i] == '\t')i++;
+	real_token_pos = i;
+	if(is_letter(str[i])) {
+		i++;
+		while(is_valid_c_char(str[i]))i++;
+		token_fifo.write(str + real_token_pos, i - real_token_pos);
+		token_fifo.write("\0",1);
+		for(int j=0; j<sizeof(type_key)/sizeof(type_key[0]); j++) {
+			if(!kstrcmp(symbol_ptr, type_key[j])) {
+				info->value.int_value = j;
+				info->node_type = TOKEN_KEYWORD_TYPE;
+				return i;
+			}
+		}
+		for(int j=0; j<sizeof(non_seq_key)/sizeof(non_seq_key[0]); j++) {
+			if(!kstrcmp(symbol_ptr, non_seq_key[j])) {
+				info->value.int_value = j;
+				info->node_type = TOKEN_KEYWORD_NONSEQ;
+				return i;
+			}
+		}
+		info->value.ptr_value = symbol_ptr;
+		info->node_type = TOKEN_NAME;
+		return i;
+	} else if(is_number(str[i])) {
+		i++;
+		while(is_number(str[i]))i++;
+		info->value_type = INT;
+		info->value.int_value = y_atoi(str, i);
+		info->node_type = TOKEN_CONST_VALUE;
+		return i;
+	} else if(str[i] == '"') {
+		int count = 0;
+		int pos = ++i;
+		while(str[i]) {
+			if(str[i] == '\\') {//TODO:¥¶¿Ì\ddd\xhh
+				i++;
+			} else if(str[i] == '"') {
+				char *p = (char*)vmalloc(count + 1);
+				for(int j=0; j<count; j++) {
+					if(str[pos] == '\\') {
+						char ch = str[pos + 1];
+						switch(ch) {
+						case 'n':
+							p[j] = '\n';
+						}
+						pos += 2;
+					} else {
+						p[j] = str[pos++]; 
+					}
+				}
+				p[count] = 0;
+				info->node_type = TOKEN_STRING;
+				info->value.ptr_value = p;
+				return i + 1;
+			}
+			i++;
+			count++;
+		}
+	} else if(str[i] == '\'') {
+
+	} else {
+		for(int j=0; j<sizeof(opt_str)/sizeof(opt_str[0]); j++) {
+			if(!strmcmp(str + i, opt_str[j], opt_str_len[j])) {
+				info->value.int_value = j;
+				info->node_type = TOKEN_OPERATOR;
+				info->value_type = opt_prio[j];
+				return i + opt_str_len[j];
+			}
+		}
+		info->node_type = TOKEN_ERROR;
+		return ERROR_TOKEN;
+	}
+	return 0;
+}
 
 int optcmp(char* str)
 {
@@ -23,6 +108,45 @@ int optcmp(char* str)
 			return i;
 	}
 	return -1;
+}
+
+int c_interpreter::basic_type_check(char *str, int len, struct_info *&struct_info_ptr)
+{
+	//int is_varity_declare, token_len;
+	//char varity_name[MAX_VARITY_NAME_LEN], struct_name[MAX_VARITY_NAME_LEN];
+	//node_attribute_t node_attribute;
+	//token_len = get_token(str, &node_attribute);
+	//str += token_len;
+	//len -= token_len;
+	//if(node_attribute.node_type == TOKEN_KEYWORD_TYPE) {
+	//	is_varity_declare = node_attribute.value.int_value;
+	//} else
+	//	is_varity_declare = -1;
+	//struct_info *struct_node_ptr = 0;
+	//if(is_varity_declare > 0) {
+	//	int key_len = kstrlen(type_key[is_varity_declare]);
+	//	if(is_varity_declare == STRUCT) {
+	//		token_len = get_token(str, &node_attribute);
+	//		if(node_attribute.node_type == TOKEN_NAME) {
+	//			kstrcpy(struct_name, node_attribute.value.ptr_value);
+	//			struct_node_ptr = this->struct_define->find(struct_name);
+	//			if(!struct_node_ptr) {
+	//				error("There is no struct called %s.\n", struct_name);
+	//				return ERROR_STRUCT_NONEXIST;
+	//			}
+	//		} else {
+	//			error("Wrong struct name.\n");
+	//			return ERROR_STRUCT_NONEXIST;
+	//		}
+	//		struct_info_ptr = struct_node_ptr;
+	//		str += token_len;
+	//		len -= token_len;
+	//	}
+	//	return is_varity_declare;
+	//} else {
+	//	return ERROR_NO;
+	//}
+	return 0;
 }
 
 int is_type_convert(char* str, varity_info* covert_type_ptr)

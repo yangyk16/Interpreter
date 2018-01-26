@@ -40,6 +40,7 @@ public:
 	int write(const void*, uint);
 	int read(void*, uint);
 	int readline(char*);
+	uint get_wptr(void) {return wptr;}
 	char* readline(int&);
 };
 

@@ -65,14 +65,14 @@
 #define PTR 16
 #define ARRAY 17
 #define PLATFORM_TYPE LONG
-#define PLATFORM_WORD long
+typedef unsigned long PLATFORM_WORD;
 
 class varity_attribute: public element {
 protected:
 	char type;
 	char attribute;
 	uint size;
-	int*	comlex_info_ptr;
+	PLATFORM_WORD* comlex_info_ptr;
 public:
 	int complex_arg_count;
 	inline uint get_size(void){return this->size;}
@@ -88,7 +88,7 @@ public:
 	static void init_varity(void*, char*, char, uint);
 	void arg_init(char*, char, uint, void*);
 	void config_varity(char, void* = 0);
-	void config_complex_info(int, void*);
+	void config_complex_info(int, PLATFORM_WORD*);
 	void clear_attribute(char);
 	varity_info();
 	varity_info(char*, int, uint);
@@ -98,7 +98,7 @@ public:
 	int get_element_size(void);
 	int get_first_order_sub_struct_size(void);
 	void *get_content_ptr(void){return content_ptr;}
-	void *&get_complex_ptr(void){return (void*&)this->comlex_info_ptr;}
+	PLATFORM_WORD *&get_complex_ptr(void){return this->comlex_info_ptr;}
 	int  get_complex_arg_count(void) {return this->complex_arg_count;}
 	void *get_element_ptr(int);
 	void set_complex_arg_count(int n) {this->complex_arg_count = n;}
@@ -125,7 +125,7 @@ public:
 	indexed_stack* local_varity_stack;
 	varity_info* find(char*, int);
 	varity_info* vfind(char *name, int &scope);
-	int declare(int scope_flag, char* name, char type, uint size, int, void*);
+	int declare(int scope_flag, char* name, char type, uint size, int, PLATFORM_WORD*);
 	int destroy_local_varity_cur_depth(void);
 	int destroy_local_varity(void);
 	int undeclare();
@@ -136,7 +136,7 @@ class struct_define;
 void *vmalloc(unsigned int size);
 void vfree(void*);
 void* vrealloc(void* addr, unsigned int size);
-int get_varity_size(int basic_type, uint *complex_info = 0, int complex_arg_count = 0);
+int get_varity_size(int basic_type, PLATFORM_WORD *complex_info = 0, int complex_arg_count = 0);
 int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count);
 void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag);
 void inc_varity_ref(varity_info *varity_ptr);
@@ -146,5 +146,5 @@ int destroy_varity_stack(stack *stack_ptr);
 extern const char type_key[15][19];
 extern const char sizeof_type[15];
 extern const char type_len[15];
-extern int basic_type_info[15][4];
+extern PLATFORM_WORD basic_type_info[15][4];
 #endif

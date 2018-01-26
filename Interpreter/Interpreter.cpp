@@ -30,9 +30,9 @@ c_interpreter myinterpreter;
 char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
 const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
 char opt_str[43][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
-const char opt_str_len[] = {3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-const char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,1,1,17,1,4,2,3,8,2,3,3,4,6,6,9,10,13,13,14,15,16};
-const char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1};
+char opt_str_len[] = {3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,1,1,17,1,4,2,3,8,2,3,3,4,6,6,9,10,13,13,14,15,16};
+char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1};
 char tmp_varity_name[MAX_A_VARITY_NODE][3];
 char link_varity_name[MAX_A_VARITY_NODE][3];
 
@@ -250,7 +250,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	{//TODO:set_type也需要重写与声明统一
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
-		uint *complex_info_ptr = (uint*)avarity_ptr->get_complex_ptr();
+		PLATFORM_WORD *complex_info_ptr = avarity_ptr->get_complex_ptr();
 		int complex_arg_count = avarity_ptr->get_complex_arg_count();
 		if(GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count]) == COMPLEX_ARRAY || GET_COMPLEX_TYPE(complex_info_ptr[complex_arg_count]) == COMPLEX_PTR) {
 			rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
@@ -450,7 +450,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		//bvarity被rvarity覆盖，先处理，都要留意获取rvarity之后的覆盖问题
 		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 		rvarity_ptr->config_complex_info(bvarity_ptr->get_complex_arg_count() - 1, bvarity_ptr->get_complex_ptr());
-		rvarity_ptr->set_size(get_varity_size(0, (uint*)bvarity_ptr->get_complex_ptr(), rvarity_ptr->get_complex_arg_count()));
+		rvarity_ptr->set_size(get_varity_size(0, bvarity_ptr->get_complex_ptr(), rvarity_ptr->get_complex_arg_count()));
 		inc_varity_ref(rvarity_ptr);
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_varity_type = rvarity_ptr->get_type();//TODO：考察所有指针在生成中间代码时置为void*的可行性
@@ -838,92 +838,12 @@ int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 	return 0;
 }
 
-int c_interpreter::get_token(char *str, node_attribute_t *info)
-{
-	int i = 0, real_token_pos;
-	char* symbol_ptr = this->token_fifo.wptr + (char*)this->token_fifo.get_base_addr();//only element_size=1
-	while(str[i] == ' ' || str[i] == '\t')i++;
-	real_token_pos = i;
-	if(is_letter(str[i])) {
-		i++;
-		while(is_valid_c_char(str[i]))i++;
-		this->token_fifo.write(str + real_token_pos, i - real_token_pos);
-		this->token_fifo.write("\0",1);
-		for(int j=0; j<sizeof(type_key)/sizeof(type_key[0]); j++) {
-			if(!kstrcmp(symbol_ptr, type_key[j])) {
-				info->value.int_value = j;
-				info->node_type = TOKEN_KEYWORD_TYPE;
-				return i;
-			}
-		}
-		for(int j=0; j<sizeof(non_seq_key)/sizeof(non_seq_key[0]); j++) {
-			if(!kstrcmp(symbol_ptr, non_seq_key[j])) {
-				info->value.int_value = j;
-				info->node_type = TOKEN_KEYWORD_NONSEQ;
-				return i;
-			}
-		}
-		info->value.ptr_value = symbol_ptr;
-		info->node_type = TOKEN_NAME;
-		return i;
-	} else if(is_number(str[i])) {
-		i++;
-		while(is_number(str[i]))i++;
-		info->value_type = INT;
-		info->value.int_value = y_atoi(str, i);
-		info->node_type = TOKEN_CONST_VALUE;
-		return i;
-	} else if(str[i] == '"') {
-		int count = 0;
-		int pos = ++i;
-		while(str[i]) {
-			if(str[i] == '\\') {//TODO:处理\ddd\xhh
-				i++;
-			} else if(str[i] == '"') {
-				char *p = (char*)vmalloc(count + 1);
-				for(int j=0; j<count; j++) {
-					if(str[pos] == '\\') {
-						char ch = str[pos + 1];
-						switch(ch) {
-						case 'n':
-							p[j] = '\n';
-						}
-						pos += 2;
-					} else {
-						p[j] = str[pos++]; 
-					}
-				}
-				p[count] = 0;
-				info->node_type = TOKEN_STRING;
-				info->value.ptr_value = p;
-				return i + 1;
-			}
-			i++;
-			count++;
-		}
-	} else if(str[i] == '\'') {
-
-	} else {
-		for(int j=0; j<sizeof(opt_str)/sizeof(opt_str[0]); j++) {
-			if(!strmcmp(str + i, opt_str[j], opt_str_len[j])) {
-				info->value.int_value = j;
-				info->node_type = TOKEN_OPERATOR;
-				info->value_type = opt_prio[j];
-				return i + opt_str_len[j];
-			}
-		}
-		info->node_type = TOKEN_ERROR;
-		return ERROR_TOKEN;
-	}
-	return 0;
-}
-
 int c_interpreter::test(char *str, uint len)
 {
 	int token_len;
 	node_attribute_t node_attribute;
 	while(len > 0) {
-		token_len = this->get_token(str, &node_attribute);
+		token_len = get_token(str, &node_attribute);
 		len -= token_len;
 		str += token_len;
 	}
@@ -985,7 +905,6 @@ int c_interpreter::init(terminal* tty_used, varity* varity_declare, nonseq_info_
 	this->non_seq_code_fifo.set_base(this->non_seq_tmp_buf);
 	this->non_seq_code_fifo.set_length(sizeof(this->non_seq_tmp_buf));
 	this->non_seq_code_fifo.set_element_size(1);
-	this->token_fifo.init(MAX_ANALYSIS_BUFLEN);
 	this->nonseq_info->nonseq_begin_stack_ptr = 0;
 	this->call_func_info.function_depth = 0;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
@@ -1440,7 +1359,7 @@ bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int 
 	case OPT_MINUS_MINUS:
 		node_attribute_t next_node_attribute;
 		int next_token_len;
-		next_token_len = this->get_token(str + opt_len, &next_node_attribute);
+		next_token_len = get_token(str + opt_len, &next_node_attribute);
 		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_NAME && next_node_attribute.node_type == TOKEN_NAME) {
 			if(type == OPT_PLUS_PLUS) {
 				type = OPT_PLUS;
@@ -1579,7 +1498,7 @@ int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//
 	while(len > 0) {
 		node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
 		analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
-		token_len = this->get_token(str, node_attribute);
+		token_len = get_token(str, node_attribute);
 		if(len < token_len)
 			break;
 		if(node_attribute->node_type == TOKEN_ERROR)
@@ -2125,36 +2044,40 @@ int c_interpreter::struct_analysis(char* str, uint len)
 	return OK_STRUCT_NOSTRUCT;
 }
 
-int c_interpreter::key_word_analysis(char* str, uint len)
+int c_interpreter::get_varity_type(char *str, int len, int basic_type, PLATFORM_WORD *info)
 {
-	int is_varity_declare;
-	is_varity_declare = optcmp(str);
-	char struct_name[32];
-	struct_info* struct_node_ptr = 0;
+	int is_varity_declare, token_len;
+	char varity_name[MAX_VARITY_NAME_LEN], struct_name[MAX_VARITY_NAME_LEN];
+	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
+	node_attribute_t *node_attribute = &analysis_data_struct_ptr->node_attribute[0], *stack_top_node_ptr;
+	token_len = get_token(str, node_attribute);
+	str += token_len;
+	len -= token_len;
+	if(node_attribute->node_type == TOKEN_KEYWORD_TYPE) {
+		is_varity_declare = node_attribute->value.int_value;
+	} else
+		is_varity_declare = 0;
+	struct_info *struct_node_ptr = 0;
 	if(is_varity_declare >= 0) {
 		int key_len = kstrlen(type_key[is_varity_declare]);
-		if(is_varity_declare != STRUCT)
-			len = remove_char(str + key_len + 1, ' ') + key_len + 1;
-		else {//TODO: 处理结构名后接*的情况
-			int space_2nd_pos = str_find(str + key_len + 1, len - key_len - 1, ' ') + key_len + 1;
-			if(str[space_2nd_pos - 1] == '*')
-				space_2nd_pos--;
-			kmemcpy(struct_name, str + key_len + 1, space_2nd_pos - key_len - 1);
-			struct_name[space_2nd_pos - key_len - 1] = 0;
-			struct_node_ptr = this->struct_declare->find(struct_name);
-			if(!struct_node_ptr) {
-				error("There is no struct called %s.\n", struct_name);
+		if(is_varity_declare == STRUCT) {
+			token_len = get_token(str, node_attribute);
+			if(node_attribute->node_type == TOKEN_NAME) {
+				kstrcpy(struct_name, node_attribute->value.ptr_value);
+				struct_node_ptr = this->struct_declare->find(struct_name);
+				if(!struct_node_ptr) {
+					error("There is no struct called %s.\n", struct_name);
+					return ERROR_STRUCT_NONEXIST;
+				}
+			} else {
+				error("Wrong struct name.\n");
 				return ERROR_STRUCT_NONEXIST;
 			}
-			len = remove_char(str + space_2nd_pos + 1, ' ') + space_2nd_pos + 1;
-			key_len = space_2nd_pos;
+			str += token_len;
+			len -= token_len;
 		}
-		str += key_len;
 		//解析复杂变量类型///////////////
-		char varity_name[32];
-		node_attribute_t *node_attribute, *stack_top_node_ptr;
-		sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
-		int node_index = 0, token_len, v_len = len - key_len;
+		int node_index = 0, v_len = len;
 		int token_flag = 0, array_flag = 0, ptr_level = 0;
 		int varity_basic_type = 0, varity_size, ret;
 		varity_info *new_varity_ptr;
@@ -2164,11 +2087,9 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 		while(v_len > 0) {
 			node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
 			analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
-			token_len = this->get_token(str, node_attribute);
-			//if(v_len < token_len) //error
-			//	break;
+			token_len = get_token(str, node_attribute);
 			if(node_attribute->node_type == TOKEN_ERROR)
-				return node_attribute->node_type;//TODO:找一个合适的返回值，generate_mid_code也一样
+				return ERROR_TOKEN_TYPE;
 			if(node_attribute->node_type == TOKEN_OPERATOR) {
 				stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
 				if(node_attribute->value.int_value == OPT_L_SMALL_BRACKET) {
@@ -2232,11 +2153,145 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 						analysis_data_struct_ptr->expression_final_stack.reset();//避免后续声明错误及影响生成后序表达式
 					}
 					////////
+					node_index = 0;
+					this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
+					this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
+					v_len -= token_len;
+					str += token_len;
+					continue;
+				} else {
+#if !DYNAMIC_ARRAY_EN
+					error("Not allowed to use dynamic array.\n");
+#endif
+				}
+			} else if(node_attribute->node_type == TOKEN_NAME) {
+				token_flag = 1;
+				cur_stack_ptr = &analysis_data_struct_ptr->expression_final_stack;
+				kstrcpy(varity_name, node_attribute->value.ptr_value);
+			}
+			this->sentence_analysis_data_struct.last_token = *node_attribute;
+			cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
+			v_len -= token_len;
+			str += token_len;
+			node_index++;
+		}
+		return OK_VARITY_DECLARE;
+	}
+	return ERROR_NO;
+}
+
+int c_interpreter::key_word_analysis(char* str, uint len)
+{
+	int is_varity_declare;
+	is_varity_declare = optcmp(str);
+	char struct_name[32];
+	struct_info* struct_node_ptr = 0;
+	if(is_varity_declare >= 0) {
+		int key_len = kstrlen(type_key[is_varity_declare]);
+		if(is_varity_declare != STRUCT)
+			len = remove_char(str + key_len + 1, ' ') + key_len + 1;
+		else {//TODO: 处理结构名后接*的情况
+			int space_2nd_pos = str_find(str + key_len + 1, len - key_len - 1, ' ') + key_len + 1;
+			if(str[space_2nd_pos - 1] == '*')
+				space_2nd_pos--;
+			kmemcpy(struct_name, str + key_len + 1, space_2nd_pos - key_len - 1);
+			struct_name[space_2nd_pos - key_len - 1] = 0;
+			struct_node_ptr = this->struct_declare->find(struct_name);
+			if(!struct_node_ptr) {
+				error("There is no struct called %s.\n", struct_name);
+				return ERROR_STRUCT_NONEXIST;
+			}
+			len = remove_char(str + space_2nd_pos + 1, ' ') + space_2nd_pos + 1;
+			key_len = space_2nd_pos;
+		}
+		str += key_len;
+		//解析复杂变量类型///////////////
+		char varity_name[32];
+		node_attribute_t *node_attribute, *stack_top_node_ptr;
+		sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
+		int node_index = 0, token_len, v_len = len - key_len;
+		int token_flag = 0, array_flag = 0, ptr_level = 0;
+		int varity_basic_type = 0, varity_size, ret;
+		varity_info *new_varity_ptr;
+		list_stack *cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
+		this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
+		this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
+		while(v_len > 0) {
+			node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
+			analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
+			token_len = get_token(str, node_attribute);
+			//if(v_len < token_len) //error
+			//	break;
+			if(node_attribute->node_type == TOKEN_ERROR)
+				return node_attribute->node_type;//TODO:找一个合适的返回值，generate_mid_code也一样
+			if(node_attribute->node_type == TOKEN_OPERATOR) {
+				stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
+				if(node_attribute->value.int_value == OPT_L_SMALL_BRACKET) {
+					analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
+				} else if(node_attribute->value.int_value == OPT_R_SMALL_BRACKET) {
+					while(1) {
+						stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
+						if(stack_top_node_ptr->node_type == TOKEN_OPERATOR && stack_top_node_ptr->value.int_value == OPT_L_SMALL_BRACKET)
+							break;
+						analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
+					}
+					analysis_data_struct_ptr->expression_tmp_stack.pop();
+				} else if(node_attribute->value.int_value == OPT_L_MID_BRACKET) {
+					array_flag = 1;
+				} else if(node_attribute->value.int_value == OPT_R_MID_BRACKET) {
+					array_flag = 0;
+					cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
+					node_attribute->value.int_value = OPT_INDEX;
+					node_attribute->value_type = this->sentence_analysis_data_struct.last_token.value.int_value;
+				} else if(node_attribute->value.int_value == OPT_MUL) {
+					static node_attribute_t *ptr_node_ptr;
+					if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.value.int_value == OPT_PTR_CONTENT) {
+						ptr_node_ptr->value_type++;
+					} else {
+						cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
+						node_attribute->value.int_value = OPT_PTR_CONTENT;
+						node_attribute->value_type = 1;
+						ptr_node_ptr = node_attribute;
+					}
+				} else if(node_attribute->value.int_value == OPT_COMMA || node_attribute->value.int_value == OPT_EDGE || node_attribute->value.int_value == OPT_ASSIGN) {
+					while(stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value) {
+						analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
+					}
+					int node_count = analysis_data_struct_ptr->expression_final_stack.get_count();
+					PLATFORM_WORD *complex_info = 0, *cur_complex_info_ptr;
+					int basic_info_node_count = 1;
+					if(is_varity_declare == STRUCT)
+						basic_info_node_count++;
+					if(node_count) {
+						if(ptr_level)
+							node_count++;
+						complex_info = (PLATFORM_WORD*)vmalloc((node_count + 1 + basic_info_node_count) * sizeof(int)); //+基本类型
+						cur_complex_info_ptr = complex_info + node_count + basic_info_node_count;
+						node *head = analysis_data_struct_ptr->expression_final_stack.get_head();
+						for(int n=0; n<node_count; n++) {
+							head = head->right;
+							node_attribute_t *complex_attribute = (node_attribute_t*)head->value;
+							if(complex_attribute->value.int_value == OPT_INDEX) {
+								*cur_complex_info_ptr = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
+							} else if(complex_attribute->value.int_value == OPT_PTR_CONTENT) {
+								*cur_complex_info_ptr = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
+							}
+							cur_complex_info_ptr--;
+						}
+						if(ptr_level)
+							*cur_complex_info_ptr-- = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | ptr_level;
+						*cur_complex_info_ptr-- = (COMPLEX_BASIC << COMPLEX_TYPE_BIT) | is_varity_declare;
+						if(is_varity_declare == STRUCT) {
+							*cur_complex_info_ptr-- = struct_node_ptr->type_info_ptr[1];//TODO:或许有更好办法
+						}
+						analysis_data_struct_ptr->expression_final_stack.reset();//避免后续声明错误及影响生成后序表达式
+					}
+					////////
 					varity_basic_type = is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT;
 					if(node_count)
 						varity_basic_type = COMPLEX;
 					else
-						complex_info = (uint*)get_basic_info(varity_basic_type, struct_node_ptr, this->struct_declare);
+						complex_info = (PLATFORM_WORD*)get_basic_info(varity_basic_type, struct_node_ptr, this->struct_declare);
 					varity_size = get_varity_size(varity_basic_type, complex_info, node_count + basic_info_node_count);
 					if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
 						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_basic_type, varity_size, node_count + basic_info_node_count, complex_info);
@@ -2403,4 +2458,10 @@ extern "C" void run_interpreter(void)
 {
 	heapinit();
 	myinterpreter.run_interpreter();
+}
+
+extern round_queue token_fifo;
+extern "C" void global_init(void)
+{
+	token_fifo.init(MAX_TOKEN_BUFLEN);
 }

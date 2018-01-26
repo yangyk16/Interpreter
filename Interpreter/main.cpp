@@ -23,6 +23,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	int *a, *b, *c, *d, *e, *f, *g, *h;
 	signal(SIGINT, ouch);
 	heapinit();
+	global_init();
 	cout<<"heapbase="<<(void*)heapbase<<endl;
 	a = (int*)kmalloc(192);
 	cout<<"a="<<a<<endl;
