@@ -204,13 +204,29 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_REFERENCE:
 	{
 		varity_info *member_varity_ptr, *struct_ptr = avarity_ptr;
-		struct_info *struct_info_ptr = (struct_info*)(((int*)avarity_ptr->get_complex_ptr())[1]);
+		struct_info *struct_info_ptr = (struct_info*)(((PLATFORM_WORD*)avarity_ptr->get_complex_ptr())[1]);
+		if(opt == OPT_MEMBER) {
+			if(avarity_ptr->get_type() != STRUCT) {
+				error("Only struct can use member operator.\n");
+				return ERROR_ILLEGAL_OPERAND;
+			}
+		} else {
+			if(avarity_ptr->get_complex_arg_count() != 3 || GET_COMPLEX_DATA(((PLATFORM_WORD*)avarity_ptr->get_complex_ptr())[2]) != STRUCT || GET_COMPLEX_TYPE(((PLATFORM_WORD*)avarity_ptr->get_complex_ptr())[3]) != COMPLEX_PTR) {
+				error("Only pointer to struct can use reference operator.\n");
+				return ERROR_ILLEGAL_OPERAND;			
+			}
+		}
 		//ret_type = get_ret_type(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 		varity_number = this->mid_varity_stack.get_count();
 		this->mid_varity_stack.push();
 		member_varity_ptr = (varity_info*)struct_info_ptr->varity_stack_ptr->find(node_attribute->value.ptr_value);
+		if(!member_varity_ptr) {
+			error("No member in struct.\n");
+			return ERROR_STRUCT_MEMBER;
+		}
 		avarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		avarity_ptr->set_type(member_varity_ptr->get_type());
+		avarity_ptr->config_complex_info(member_varity_ptr->get_complex_arg_count(), member_varity_ptr->get_complex_ptr());
+		//avarity_ptr->set_type(member_varity_ptr->get_type());
 		inc_varity_ref(avarity_ptr);
 		if(opt == OPT_MEMBER) {
 			instruction_ptr->opda_varity_type = INT;
@@ -233,7 +249,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		}
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
-		((node_attribute_t*)opt_node_ptr->value)->value_type = varity_scope;
+		((node_attribute_t*)opt_node_ptr->value)->value_type = VARITY_SCOPE_ANALYSIS;
 		break;
 	}
 	case OPT_INDEX:
