@@ -161,29 +161,7 @@ int varity_info::get_first_order_sub_struct_size(void)
 
 int varity_info::get_element_size(void)
 {
-	int i;
-	for(i=this->complex_arg_count; i>0; i--) {
-		if(GET_COMPLEX_TYPE(this->comlex_info_ptr[i]) != COMPLEX_ARRAY) {
-			break;
-		}
-	}
-	return get_varity_size(0, this->comlex_info_ptr, i);
-	//if(this->type == STRUCT) {
-	//	return ((struct_info*)this->comlex_info_ptr)->struct_size;
-	//} else {
-	//	return sizeof_type[this->type];
-	//}
-}
-
-void* varity_info::get_element_ptr(int index)
-{
-	return (char*)this->get_content_ptr() + index * this->get_element_size();
-}
-
-void varity_info::set_to_single(int index)
-{
-	this->size = this->get_element_size();
-	this->content_ptr = this->get_element_ptr(index);
+	return ::get_element_size(this->complex_arg_count, this->comlex_info_ptr);//成员函数访问全局同名普通函数加上::
 }
 
 int varity_info::apply_space(void)
@@ -426,4 +404,15 @@ void *get_basic_info(int basic_type, void *info_ptr, struct_define *struct_defin
 	} else {
 		return 0;
 	}
+}
+
+int get_element_size(int complex_arg_count, PLATFORM_WORD *comlex_info_ptr)
+{
+	int i;
+	for(i=complex_arg_count; i>0; i--) {
+		if(GET_COMPLEX_TYPE(comlex_info_ptr[i]) != COMPLEX_ARRAY) {
+			break;
+		}
+	}
+	return get_varity_size(0, comlex_info_ptr, i);
 }

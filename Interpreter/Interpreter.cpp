@@ -1104,7 +1104,6 @@ struct_end_check:
 		nonseq_end_gen_mid_code(nonseq_info->row_num, str, len);
 		ret = struct_end(struct_end_flag, exec_flag_bak, 0);
 	}
-struct_save:
 	if(len && (nonseq_info->non_seq_struct_depth || nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth)) {// && (nonseq_info->non_seq_check_ret || nonseq_info->non_seq_struct_depth)) {
 		this->save_sentence(str, len);
 		nonseq_info->row_num++;
@@ -1229,19 +1228,22 @@ int c_interpreter::function_analysis(char* str, uint len)
 		}
 		return OK_FUNC_INPUTING;
 	}
-	ret_function_define = optcmp(str);
+	int basic_type_len;
+	struct_info *struct_info_ptr;
+	ret_function_define = basic_type_check(str, basic_type_len, struct_info_ptr);
+	//ret_function_define = optcmp(str);
 	if(ret_function_define >= 0) {
 		char function_name[32];
 		char *str_bak = str;
 		int v_len = len;
 		node_attribute_t node_ptr;
+		int token_len;
 		int function_declare_flag = 0;
 		if(!this->exec_flag) {
 			error("Cannot define function here.\n");
 			return ERROR_FUNC_DEF_POS;
 		}
 		while(v_len > 0) {
-			int token_len;
 			token_len = get_token(str_bak, &node_ptr);
 			if(node_ptr.node_type == TOKEN_NAME) {
 				kstrcpy(function_name, node_ptr.value.ptr_value);
@@ -1255,22 +1257,13 @@ int c_interpreter::function_analysis(char* str, uint len)
 			v_len -= token_len;
 			str_bak += token_len;
 		}
-		int l_bracket_pos = str_find(str, '(');
-		int r_bracket_pos = str_find(str, ')');
+		int l_bracket_pos = find_ch_with_bracket_level(str, '(', 0);
+		int r_bracket_pos = find_ch_with_bracket_level(str, ')', 1);
 		if(function_declare_flag) {
-			int symbol_begin_pos, ptr_level = 0;
 			int keylen = kstrlen(type_key[ret_function_define]);
 			stack* arg_stack;
 			this->function_flag_set.function_flag = 1;
 			this->function_flag_set.function_begin_flag = 1;
-			int i=keylen+1;
-			symbol_begin_pos=(str[keylen]==' '?i:i-1);
-			//for(int j=symbol_begin_pos; str[j]=='*'; j++)
-			//	ptr_level++;
-			//symbol_begin_pos += ptr_level;
-			//for(i=symbol_begin_pos; str[i]!='('; i++);
-			//kmemcpy(function_name, str + symbol_begin_pos, i - symbol_begin_pos);
-			//function_name[i - symbol_begin_pos] = 0;
 			varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);
 			arg_stack = (stack*)vmalloc(sizeof(stack));
 			arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
@@ -1279,22 +1272,32 @@ int c_interpreter::function_analysis(char* str, uint len)
 			bool void_flag = false;
 			int offset = 0;
 			this->varity_global_flag = VARITY_SCOPE_LOCAL;
-			for(int i=l_bracket_pos+1; i<r_bracket_pos; i++) {
+			for(int i=l_bracket_pos+1; i<r_bracket_pos;) {
 				char varity_name[32];
-				int type, arg_name_begin_pos, arg_name_end_pos;
-				int pos = key_match(str + i, r_bracket_pos-i+1, &type);
-				if(pos < 0) {
+				int type;
+				struct_info *struct_info_ptr;
+				PLATFORM_WORD *varity_complex_ptr;
+				int type_len, complex_node_count;
+				token_len = get_token(str + i, &node_ptr);
+				if(token_len > r_bracket_pos - i) {
+					break;
+				}
+				type = basic_type_check(str + i, type_len, struct_info_ptr);
+				//int pos = key_match(str + i, r_bracket_pos-i+1, &type);
+				if(type < 0) {     
 					error("arg type error.\n");
 					ARG_RETURN(ERROR_FUNC_ARG_LIST);
 				}
-				keylen = kstrlen(type_key[type]);
-				arg_name_begin_pos = i + pos + keylen + (str[i + pos + keylen] == ' ' ? 1 : 0);
-				for(int j=arg_name_begin_pos; str[j]=='*'; j++)
-					ptr_level++;
-				if(type == VOID && !ptr_level) {
-					if(arg_stack->get_count() > 1) {
-						error("arg list error.\n");
-						ARG_RETURN(ERROR_FUNC_ARG_LIST);
+				i += type_len;
+				type_len = r_bracket_pos - i;
+				complex_node_count = get_varity_type(str + i, type_len, varity_name, type, struct_info_ptr, varity_complex_ptr);
+				i += type_len;
+				if(type == VOID) {
+					if(complex_node_count == 1 || (complex_node_count > 1 && varity_complex_ptr[complex_node_count] != PTR)) {
+						if(arg_stack->get_count() > 1) {
+							error("arg list error.\n");
+							ARG_RETURN(ERROR_FUNC_ARG_LIST);
+						}
 					}
 					void_flag = true;
 				} else {
@@ -1303,18 +1306,10 @@ int c_interpreter::function_analysis(char* str, uint len)
 						ARG_RETURN(ERROR_FUNC_ARG_LIST);
 					}
 				}
-				arg_name_begin_pos += ptr_level;
-				for(int j=arg_name_begin_pos; j<=r_bracket_pos; j++)
-					if(str[j] == ',' || str[j] == ')') {
-						arg_name_end_pos = j - 1;
-						i = j;
-						break;
-					}
-				kmemcpy(varity_name, str + arg_name_begin_pos, arg_name_end_pos - arg_name_begin_pos + 1);
-				varity_name[arg_name_end_pos - arg_name_begin_pos + 1] = 0;
 				if(!void_flag) {
 					arg_node_ptr->arg_init(varity_name, type, sizeof_type[type], (void*)make_align(offset, PLATFORM_WORD_LEN));
-					this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, type, sizeof_type[type], 0, 0);
+					arg_node_ptr->config_complex_info(complex_node_count, varity_complex_ptr);
+					this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, type, sizeof_type[type], complex_node_count, varity_complex_ptr);
 					arg_stack->push(arg_node_ptr++);
 				} else {
 					if(varity_name[0] != 0) {
@@ -1938,7 +1933,14 @@ int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_ty
 
 int c_interpreter::struct_analysis(char* str, uint len)
 {
-	int is_varity_declare = optcmp(str);
+	int token_len;
+	node_attribute_t node;
+	int is_varity_declare;
+	token_len = get_token(str, &node);
+	if(node.node_type == TOKEN_KEYWORD_TYPE)
+		is_varity_declare = node.value.int_value;
+	else
+		is_varity_declare = 0;
 	if(this->struct_info_set.declare_flag) {
 		if(this->struct_info_set.struct_begin_flag) {
 			struct_info_set.struct_begin_flag = 0;
@@ -1957,66 +1959,46 @@ int c_interpreter::struct_analysis(char* str, uint len)
 				//重写reset，一次保留name，stack，二次全部reset。
 				//vfree(this->struct_declare->current_node);
 			} else {
-				//this->struct_declare->save_sentence(str, len);
 				char varity_name[32];
+				int type, type_len, remain_len = len, complex_node_count, varity_size, align_size;
+				struct_info *struct_info_ptr;
+				PLATFORM_WORD *varity_complex_ptr;
 				stack *varity_stack_ptr = this->struct_declare->current_node->varity_stack_ptr;
 				varity_info* new_node_ptr = (varity_info*)varity_stack_ptr->get_current_ptr();
-				int varity_type, varity_name_begin_pos, ptr_level = 0, key_len;
-				varity_type = optcmp(str);
-				key_len = kstrlen(type_key[varity_type]);
-				varity_name_begin_pos = key_len + (str[key_len] == ' ' ? 1 : 0); 
-				int opt_len, opt_type, symbol_pos_once, symbol_pos_last = str[key_len]==' '?key_len+1:key_len, size = len - symbol_pos_last;
-				int array_flag = 0, element_count = 1;
-				while(1) {
-					for(ptr_level=0; str[symbol_pos_last]=='*'; symbol_pos_last++)
-						ptr_level++;
-					size -= ptr_level;
-					varity_type += ptr_level * BASIC_VARITY_TYPE_COUNT;
-					if((symbol_pos_once = search_opt(str + symbol_pos_last, size, 0, &opt_len, &opt_type)) >= 0) {
-						if(opt_type != OPT_COMMA && opt_type != OPT_EDGE && opt_type != OPT_L_MID_BRACKET && opt_type != OPT_R_MID_BRACKET) {
-							error("Wrong operator exist in struct definition\n");
-							return -1;
-						} else if(opt_type == OPT_L_MID_BRACKET) {
-							kmemcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
-							varity_name[symbol_pos_once] = 0;
-							array_flag = 1;
-						} else if(opt_type == OPT_R_MID_BRACKET) {
-							array_flag = 2;
-							element_count = y_atoi(str + symbol_pos_last, symbol_pos_once);
-						} else {
-							if(array_flag == 0) {
-								kmemcpy(varity_name, str + symbol_pos_last, symbol_pos_once);
-								varity_name[symbol_pos_once] = 0;
-							} else if(array_flag == 2) {
-
-							} else {
-								
-							}
-							int varity_size;
-							if(varity_type < BASIC_VARITY_TYPE_COUNT)
-								varity_size = sizeof_type[varity_type];
-							else
-								varity_size = PLATFORM_WORD_LEN;
-							this->struct_info_set.current_offset = make_align(this->struct_info_set.current_offset, varity_size);
-							new_node_ptr->arg_init(varity_name, varity_type, varity_size * element_count, (void*)this->struct_info_set.current_offset);
-							this->struct_info_set.current_offset += varity_size * element_count;
-							varity_stack_ptr->push();
-							array_flag = 0;
-							element_count = 1;
-							ptr_level = 0;
-						}
-					} else {
+				type = basic_type_check(str, type_len, struct_info_ptr);
+				if(type < 0) {     
+					error("arg type error.\n");
+					return ERROR_FUNC_ARG_LIST;
+				}
+				str += type_len;
+				remain_len -= type_len;
+				while(remain_len > 0) {
+					token_len = get_token(str, &node);
+					if(token_len > remain_len || token_len == ERROR_TOKEN) {//TODO:增加NO_TOKEN
 						break;
 					}
-					symbol_pos_last += symbol_pos_once + opt_len;
-					size -= symbol_pos_once + opt_len;
+					type_len = remain_len;
+					complex_node_count = get_varity_type(str, type_len, varity_name, type, struct_info_ptr, varity_complex_ptr);
+					if(type == STRUCT)
+						align_size = PLATFORM_WORD_LEN;
+					else
+						align_size = get_element_size(complex_node_count, varity_complex_ptr);
+					varity_size = get_varity_size(0, varity_complex_ptr, complex_node_count);
+					this->struct_info_set.current_offset = make_align(this->struct_info_set.current_offset, align_size);
+					new_node_ptr->arg_init(varity_name, type, varity_size, (void*)this->struct_info_set.current_offset);
+					new_node_ptr->config_complex_info(complex_node_count, varity_complex_ptr);
+					this->struct_info_set.current_offset += varity_size;
+					varity_stack_ptr->push();
+					str += type_len;
+					remain_len -= type_len;
 				}
+				//this->struct_declare->save_sentence(str, len);
 				return OK_STRUCT_INPUTING;
 			}
 		}
 	}
 	if(is_varity_declare == STRUCT) {
-		int space_count = char_count(str + 6, ' ');
+		int space_count = char_count(str + token_len, ' ');
 		if(space_count == 1) {//1:define 2+:declare
 			int symbol_begin_pos, ptr_level = 0;
 			int keylen = kstrlen(type_key[is_varity_declare]);
@@ -2055,7 +2037,7 @@ int c_interpreter::basic_type_check(char *str, int &len, struct_info *&struct_in
 	if(node_attribute.node_type == TOKEN_KEYWORD_TYPE) {
 		is_varity_declare = node_attribute.value.int_value;
 	} else
-		is_varity_declare = -1;
+		is_varity_declare = ERROR_NO_VARITY_FOUND;
 	struct_info *struct_node_ptr = 0;
 	if(is_varity_declare > 0) {
 		if(is_varity_declare == STRUCT) {
@@ -2086,20 +2068,28 @@ int c_interpreter::basic_type_check(char *str, int &len, struct_info *&struct_in
 int c_interpreter::get_varity_type(char *str, int &len, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info)
 {
 	int is_varity_declare = basic_type, token_len, total_len = 0;
-	char struct_name[MAX_VARITY_NAME_LEN];
 	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
 	node_attribute_t *node_attribute = &analysis_data_struct_ptr->node_attribute[0], *stack_top_node_ptr;
 	//解析复杂变量类型///////////////
 	int node_index = 0, v_len = len;
 	int token_flag = 0, array_flag = 0;
-	int varity_basic_type = 0, ret;
+	int varity_basic_type = 0;
 	list_stack *cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
 	this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
 	this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
-	while(v_len > 0) {
+	name[0] = '\d000';
+	while(v_len >= 0) {
+		if(v_len == 0) {
+			token_len = 0;
+			goto varity_end;
+		}
 		node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
 		analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
 		token_len = get_token(str, node_attribute);
+		if(token_len > v_len) {
+			token_len = 0;
+			goto varity_end;
+		}
 		if(node_attribute->node_type == TOKEN_ERROR)
 			return ERROR_TOKEN_TYPE;
 		if(node_attribute->node_type == TOKEN_OPERATOR) {
@@ -2132,6 +2122,7 @@ int c_interpreter::get_varity_type(char *str, int &len, char *name, int basic_ty
 					ptr_node_ptr = node_attribute;
 				}
 			} else if(node_attribute->value.int_value == OPT_COMMA || node_attribute->value.int_value == OPT_EDGE || node_attribute->value.int_value == OPT_ASSIGN) {
+varity_end:
 				while(stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value) {
 					analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
 				}
@@ -2161,7 +2152,10 @@ int c_interpreter::get_varity_type(char *str, int &len, char *name, int basic_ty
 					analysis_data_struct_ptr->expression_final_stack.reset();//避免后续声明错误及影响生成后序表达式
 					ret_info = complex_info;
 				} else {
-					ret_info = basic_type_info[is_varity_declare];
+					if(is_varity_declare == STRUCT)
+						ret_info = info->type_info_ptr;
+					else
+						ret_info = basic_type_info[is_varity_declare];
 				}
 				////////
 				
@@ -2469,12 +2463,12 @@ void c_interpreter::print_code(void)
 
 extern "C" void run_interpreter(void)
 {
-	heapinit();
 	myinterpreter.run_interpreter();
 }
 
 extern round_queue token_fifo;
 extern "C" void global_init(void)
 {
+	heapinit();
 	token_fifo.init(MAX_TOKEN_BUFLEN);
 }

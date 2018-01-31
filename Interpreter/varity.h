@@ -100,9 +100,7 @@ public:
 	void *get_content_ptr(void){return content_ptr;}
 	PLATFORM_WORD *&get_complex_ptr(void){return this->comlex_info_ptr;}
 	int  get_complex_arg_count(void) {return this->complex_arg_count;}
-	void *get_element_ptr(int);
 	void set_complex_arg_count(int n) {this->complex_arg_count = n;}
-	void set_to_single(int);
 	void set_size(uint size) {this->size = size;}
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
 	void set_type(int type);
@@ -141,6 +139,7 @@ int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count);
 void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag);
 void inc_varity_ref(varity_info *varity_ptr);
 void *get_basic_info(int basic_type, void *info_ptr, struct_define *struct_define_ptr);
+int get_element_size(int complex_arg_count, PLATFORM_WORD *comlex_info_ptr);
 int destroy_varity_stack(stack *stack_ptr);
 
 extern const char type_key[15][19];

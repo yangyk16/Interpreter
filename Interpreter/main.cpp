@@ -22,7 +22,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	extern char* heapbase;
 	int *a, *b, *c, *d, *e, *f, *g, *h;
 	signal(SIGINT, ouch);
-	heapinit();
 	global_init();
 	cout<<"heapbase="<<(void*)heapbase<<endl;
 	a = (int*)kmalloc(192);
