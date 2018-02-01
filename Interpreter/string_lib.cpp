@@ -16,9 +16,18 @@ extern char opt_prio[43];
 extern char opt_number[54];
 
 round_queue token_fifo;
+int get_escape_char(char *str, char &ch) {
+	switch(str[1]) {
+	case 'n':
+		ch = '\n';
+		return 2;
+	case 0:
+		return -1;
+	}
+}
 int get_token(char *str, node_attribute_t *info)
 {
-	int i = 0, real_token_pos;
+	int i = 0, real_token_pos, float_flag = 0;
 	char *symbol_ptr = token_fifo.get_wptr() + (char*)token_fifo.get_base_addr();
 	while(str[i] == ' ' || str[i] == '\t')i++;
 	real_token_pos = i;
@@ -44,9 +53,25 @@ int get_token(char *str, node_attribute_t *info)
 		info->value.ptr_value = symbol_ptr;
 		info->node_type = TOKEN_NAME;
 		return i;
-	} else if(is_number(str[i])) {
+	} else if(is_number(str[i]) || (str[i] == '.' && is_number(str[i + 1]))) {
 		i++;
 		while(is_number(str[i]))i++;
+		if(str[i] == '.') {
+			i++;
+			float_flag = 1;
+			while(is_number(str[i]))i++;
+		}
+		if(str[i] == 'e' || str[i] == 'E') {
+			i++;
+			float_flag = 1;
+			while(is_number(str[i]))i++;
+		}
+		if(float_flag) {
+			info->value_type = DOUBLE;
+			info->value.double_value = y_atof(str, i);
+			info->node_type = TOKEN_CONST_VALUE;
+			return i;
+		}
 		info->value_type = INT;
 		info->value.int_value = y_atoi(str, i);
 		info->node_type = TOKEN_CONST_VALUE;
@@ -80,7 +105,25 @@ int get_token(char *str, node_attribute_t *info)
 			count++;
 		}
 	} else if(str[i] == '\'') {
-
+		char character;
+		int ret = 1;
+		i++;
+		if(str[i] == '\\') {
+			ret = get_escape_char(str, character);
+		} else {
+			character = str[i];
+		}
+		i += ret;
+		if(str[i] == '\'') {
+			info->value_type = CHAR;
+			info->value.int_value = character;
+			info->node_type = TOKEN_CONST_VALUE;
+			return i + 1;
+		} else {
+			info->node_type = TOKEN_ERROR;
+			error("\' operator error.\n");
+			return ERROR_TOKEN;
+		}
 	} else {
 		for(int j=0; j<sizeof(opt_str)/sizeof(opt_str[0]); j++) {
 			if(!strmcmp(str + i, opt_str[j], opt_str_len[j])) {

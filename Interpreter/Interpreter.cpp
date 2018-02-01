@@ -49,7 +49,7 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 			error("Invalid key word.\n");
 			return ERROR_INVALID_KEYWORD;
 		}
-		if(opt_number[((node_attribute_t*)tree_node->value)->value.int_value] == 1 && ((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR) {
+		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && opt_number[((node_attribute_t*)tree_node->value)->value.int_value] == 1) {
 			return ERROR_NO;
 		}
 		//TODO: 函数查参数个数, 避免使用全局function数组，应把全局量改为类的静态成员变量
@@ -1442,11 +1442,13 @@ int c_interpreter::label_analysis(char *str, int len)
 				return OK_LABEL_DEFINE;
 			}
 		}
+	} else if(node.node_type == TOKEN_ERROR) {
+		return ERROR_TOKEN;
 	}
 	return ERROR_NO;
 }
 
-int c_interpreter::generate_mid_code(char *str, uint len, bool need_semicolon)//TODO:所有uint len统统改int，否则传个-1进来
+int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//TODO:所有uint len统统改int，否则传个-1进来
 {
 	if(len == 0 || str[0] == '{' || str[0] == '}')return ERROR_NO;
 	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
