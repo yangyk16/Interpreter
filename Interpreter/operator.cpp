@@ -177,39 +177,32 @@ int get_varity_size(int type)
 
 inline int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr, int converting_type)
 {
-	if(converted_type >= PTR) {
-		if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG) {
-			INT_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
-		} else if(converting_type == CHAR || converting_type == U_CHAR) {
-			INT_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
-		} else if(converting_type == SHORT || converting_type == U_SHORT) {
-			INT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
-		} else if(converting_type > CHAR) {
-			INT_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
-		} else {
-			error("There is no method for coverting ptr converting_type from float\n");
-			return ERROR_TYPE_CONVERT;
-		}
-		return ERROR_NO;
-	}
 	if(converted_type == converting_type) {
 		kmemcpy(converted_ptr, converting_ptr, get_varity_size(converting_type, 0, 0));//TODO:É¾³ýget_varity_sizeµÄ¼òµ¥ÖØÔØ
 	} else if(converted_type > converting_type) {
-		if(converted_type == INT || converted_type == U_INT || converted_type == LONG || converted_type == U_LONG) {
+		switch(converted_type) {
+		case INT:
+		case U_INT:
+		case LONG:
+		case U_LONG:
 			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG || converting_type == LONG_LONG || converting_type == U_LONG_LONG)
 				INT_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
 			else if(converting_type == SHORT || converting_type == U_SHORT)
 				INT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
 			else if(converting_type == CHAR || converting_type == U_CHAR)
 				INT_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
-		} else if(converted_type == U_SHORT || converted_type == SHORT) {
+			break;
+		case U_SHORT:
+		case SHORT:
 			if(converting_type == U_SHORT || converting_type == SHORT)
 				SHORT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
 			else if(converting_type == CHAR || converting_type == U_CHAR)
 				SHORT_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
-		} else if(converted_type == U_CHAR) {
+			break;
+		case U_CHAR:
 			CHAR_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
-		} else if(converted_type == DOUBLE) {
+			break;
+		case DOUBLE:
 			switch(converting_type) {
 			case U_CHAR:
 				DOUBLE_VALUE(converted_ptr) = U_CHAR_VALUE(converting_ptr);
@@ -245,7 +238,8 @@ inline int varity_convert(void *converted_ptr, int converted_type, void *convert
 				DOUBLE_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr);
 				break;
 			}
-		} else if(converted_type == FLOAT) {
+			break;
+		case FLOAT:
 			switch(converting_type) {
 			case U_CHAR:
 				FLOAT_VALUE(converted_ptr) = U_CHAR_VALUE(converting_ptr);
@@ -278,19 +272,36 @@ inline int varity_convert(void *converted_ptr, int converted_type, void *convert
 				FLOAT_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr);
 				break;
 			}
+			break;
+		case PTR:
+			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG) {
+				PTR_VALUE(converted_ptr) = (void*)INT_VALUE(converting_ptr);
+			} else if(converting_type == CHAR || converting_type == U_CHAR) {
+				PTR_VALUE(converted_ptr) = (void*)CHAR_VALUE(converting_ptr);
+			} else if(converting_type == SHORT || converting_type == U_SHORT) {
+				PTR_VALUE(converted_ptr) = (void*)SHORT_VALUE(converting_ptr);
+			} else if(converting_type > CHAR) {
+				PTR_VALUE(converted_ptr) = (void*)INT_VALUE(converting_ptr);
+			}
+			break;
 		}
 	} else if(converted_type < converting_type) {
-		if(converted_type == FLOAT) {
+		switch(converted_type) {
+		case FLOAT:
 			FLOAT_VALUE(converted_ptr) = (float)DOUBLE_VALUE(converting_ptr);
-		} else if(converted_type == INT || converted_type == U_INT || converted_type == INT || converted_type == U_INT){
+			break;
+		case INT:
+		case U_INT:
 			if(converting_type == DOUBLE) {
 				INT_VALUE(converted_ptr) = (int)DOUBLE_VALUE(converting_ptr);
 			} else if(converting_type == FLOAT) {
 				INT_VALUE(converted_ptr) = (int)FLOAT_VALUE(converting_ptr);
-			} else {
-				INT_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
+			} else if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) {
+				INT_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr);
 			}
-		} else if(converted_type == U_SHORT || converted_type == SHORT) {
+			break;
+		case U_SHORT:
+		case SHORT:
 			if(converting_type == DOUBLE) {
 				SHORT_VALUE(converted_ptr) = (short)DOUBLE_VALUE(converting_ptr);
 			} else if(converting_type == FLOAT) {
@@ -298,7 +309,9 @@ inline int varity_convert(void *converted_ptr, int converted_type, void *convert
 			} else {
 				SHORT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
 			}
-		} else if(converted_type == U_CHAR || converted_type == CHAR) {
+			break;
+		case U_CHAR:
+		case CHAR:
 			if(converting_type == DOUBLE) {
 				CHAR_VALUE(converted_ptr) = (char)DOUBLE_VALUE(converting_ptr);
 			} else if(converting_type == FLOAT) {
@@ -306,6 +319,7 @@ inline int varity_convert(void *converted_ptr, int converted_type, void *convert
 			} else {
 				CHAR_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
 			}
+			break;
 		}
 	}
 	return ERROR_NO;

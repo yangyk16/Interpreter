@@ -25,6 +25,7 @@ int get_escape_char(char *str, char &ch) {
 		return -1;
 	}
 }
+
 int get_token(char *str, node_attribute_t *info)
 {
 	int i = 0, real_token_pos, float_flag = 0;

@@ -110,7 +110,7 @@ typedef struct sentence_analysis_data_struct_s {
 	node node_struct[MAX_ANALYSIS_NODE];
 	node_attribute_t last_token;
 	node *tree_root;
-	int short_calc_stack[MAX_LOGIC_DEPTH];//TODO:保存地址的变量换成平台相关宏
+	PLATFORM_WORD short_calc_stack[MAX_LOGIC_DEPTH];
 	char short_depth;
 	void* label_addr[MAX_LABEL_COUNT];
 	char label_name[MAX_LABEL_COUNT][MAX_LABEL_NAME_LEN];
