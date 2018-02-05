@@ -149,6 +149,236 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 		INT_VALUE(ret_addr) = x CHAR_VALUE(opdb_addr); \
 	}/*核实是否全部单目运算符都使用int返回值*/
 
+#define ASSIGN_OPT_INT_EXEC(x, converted_type, converting_type, converted_ptr, converting_ptr) \
+	if(converted_type == converting_type) { \
+		switch(converted_type) { \
+		case INT: \
+		case U_INT: \
+			INT_VALUE(converted_ptr) x INT_VALUE(converting_ptr); \
+			break; \
+		case LONG: \
+		case U_LONG: \
+			LONG_VALUE(converted_ptr) x LONG_VALUE(converting_ptr); \
+			break; \
+		case LONG_LONG: \
+		case U_LONG_LONG : \
+			LONG_LONG_VALUE(converted_ptr) x LONG_LONG_VALUE(converting_ptr); \
+			break; \
+		case SHORT: \
+		case U_SHORT: \
+			SHORT_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
+			break; \
+		case CHAR: \
+		case U_CHAR: \
+			CHAR_VALUE(converted_ptr) x U_CHAR_VALUE(converting_ptr); \
+			break; \
+		} \
+	} else if(converted_type > converting_type) { \
+		switch(converted_type) { \
+		case INT: \
+		case U_INT: \
+		case LONG: \
+		case U_LONG: \
+			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG || converting_type == LONG_LONG || converting_type == U_LONG_LONG) \
+				INT_VALUE(converted_ptr) x INT_VALUE(converting_ptr); \
+			else if(converting_type == SHORT || converting_type == U_SHORT) \
+				INT_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
+			else if(converting_type == CHAR || converting_type == U_CHAR) \
+				INT_VALUE(converted_ptr) x CHAR_VALUE(converting_ptr); \
+			break; \
+		case U_SHORT: \
+		case SHORT: \
+			if(converting_type == U_SHORT || converting_type == SHORT) \
+				SHORT_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
+			else if(converting_type == CHAR || converting_type == U_CHAR) \
+				SHORT_VALUE(converted_ptr) x CHAR_VALUE(converting_ptr); \
+			break; \
+		case U_CHAR: \
+			CHAR_VALUE(converted_ptr) x CHAR_VALUE(converting_ptr); \
+			break; \
+		} \
+	} else if(converted_type < converting_type) { \
+		switch(converted_type) { \
+		case INT: \
+		case U_INT: \
+			if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) { \
+				INT_VALUE(converted_ptr) x LONG_LONG_VALUE(converting_ptr); \
+			} \
+			break; \
+		case U_SHORT: \
+		case SHORT: \
+			SHORT_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
+			break; \
+		case U_CHAR: \
+		case CHAR: \
+			CHAR_VALUE(converted_ptr) x CHAR_VALUE(converting_ptr); \
+			break; \
+		} \
+	}
+
+#define ASSIGN_OPT_EXEC(x, converted_type, converting_type, converted_ptr, converting_ptr) \
+	if(converted_type == converting_type) { \
+		switch(converted_type) { \
+		case INT: \
+		case U_INT: \
+			INT_VALUE(converted_ptr) x INT_VALUE(converting_ptr); \
+			break; \
+		case LONG: \
+		case U_LONG: \
+			LONG_VALUE(converted_ptr) x LONG_VALUE(converting_ptr); \
+			break; \
+		case LONG_LONG: \
+		case U_LONG_LONG : \
+			LONG_LONG_VALUE(converted_ptr) x LONG_LONG_VALUE(converting_ptr); \
+			break; \
+		case SHORT: \
+		case U_SHORT: \
+			SHORT_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
+			break; \
+		case CHAR: \
+		case U_CHAR: \
+			CHAR_VALUE(converted_ptr) x U_CHAR_VALUE(converting_ptr); \
+			break; \
+		case FLOAT: \
+			FLOAT_VALUE(converted_ptr) x FLOAT_VALUE(converting_ptr); \
+			break; \
+		case DOUBLE: \
+			DOUBLE_VALUE(converted_ptr) x DOUBLE_VALUE(converting_ptr); \
+			break; \
+		} \
+	} else if(converted_type > converting_type) { \
+		switch(converted_type) { \
+		case INT: \
+		case U_INT: \
+		case LONG: \
+		case U_LONG: \
+			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG || converting_type == LONG_LONG || converting_type == U_LONG_LONG) \
+				INT_VALUE(converted_ptr) x INT_VALUE(converting_ptr); \
+			else if(converting_type == SHORT || converting_type == U_SHORT) \
+				INT_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
+			else if(converting_type == CHAR || converting_type == U_CHAR) \
+				INT_VALUE(converted_ptr) x CHAR_VALUE(converting_ptr); \
+			break; \
+		case U_SHORT: \
+		case SHORT: \
+			if(converting_type == U_SHORT || converting_type == SHORT) \
+				SHORT_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
+			else if(converting_type == CHAR || converting_type == U_CHAR) \
+				SHORT_VALUE(converted_ptr) x CHAR_VALUE(converting_ptr); \
+			break; \
+		case U_CHAR: \
+			CHAR_VALUE(converted_ptr) x CHAR_VALUE(converting_ptr); \
+			break; \
+		case DOUBLE: \
+			switch(converting_type) { \
+			case U_CHAR: \
+				DOUBLE_VALUE(converted_ptr) x U_CHAR_VALUE(converting_ptr); \
+				break; \
+			case CHAR: \
+				DOUBLE_VALUE(converted_ptr) x CHAR_VALUE(converting_ptr); \
+				break; \
+			case U_SHORT: \
+				DOUBLE_VALUE(converted_ptr) x U_SHORT_VALUE(converting_ptr); \
+				break; \
+			case SHORT: \
+				DOUBLE_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
+				break; \
+			case U_INT: \
+				DOUBLE_VALUE(converted_ptr) x U_INT_VALUE(converting_ptr); \
+				break; \
+			case INT: \
+				DOUBLE_VALUE(converted_ptr) x INT_VALUE(converting_ptr); \
+				break; \
+			case U_LONG: \
+				DOUBLE_VALUE(converted_ptr) x U_LONG_VALUE(converting_ptr); \
+				break; \
+			case LONG: \
+				DOUBLE_VALUE(converted_ptr) x LONG_VALUE(converting_ptr); \
+				break; \
+			case FLOAT: \
+				DOUBLE_VALUE(converted_ptr) x FLOAT_VALUE(converting_ptr); \
+				break; \
+			case U_LONG_LONG: \
+				DOUBLE_VALUE(converted_ptr) x U_LONG_LONG_VALUE(converting_ptr); \
+				break; \
+			case LONG_LONG: \
+				DOUBLE_VALUE(converted_ptr) x LONG_LONG_VALUE(converting_ptr); \
+				break; \
+			} \
+			break; \
+		case FLOAT: \
+			switch(converting_type) { \
+			case U_CHAR: \
+				FLOAT_VALUE(converted_ptr) x U_CHAR_VALUE(converting_ptr); \
+				break; \
+			case CHAR: \
+				FLOAT_VALUE(converted_ptr) x CHAR_VALUE(converting_ptr); \
+				break; \
+			case U_SHORT: \
+				FLOAT_VALUE(converted_ptr) x U_SHORT_VALUE(converting_ptr); \
+				break; \
+			case SHORT: \
+				FLOAT_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
+				break; \
+			case U_INT: \
+				FLOAT_VALUE(converted_ptr) x U_INT_VALUE(converting_ptr); \
+				break; \
+			case INT: \
+				FLOAT_VALUE(converted_ptr) x INT_VALUE(converting_ptr); \
+				break; \
+			case U_LONG: \
+				FLOAT_VALUE(converted_ptr) x U_LONG_VALUE(converting_ptr); \
+				break; \
+			case LONG: \
+				FLOAT_VALUE(converted_ptr) x LONG_VALUE(converting_ptr); \
+				break; \
+			case U_LONG_LONG: \
+				FLOAT_VALUE(converted_ptr) x U_LONG_LONG_VALUE(converting_ptr); \
+				break; \
+			case LONG_LONG: \
+				FLOAT_VALUE(converted_ptr) x LONG_LONG_VALUE(converting_ptr); \
+				break; \
+			} \
+			break; \
+		} \
+	} else if(converted_type < converting_type) { \
+		switch(converted_type) { \
+		case FLOAT: \
+			FLOAT_VALUE(converted_ptr) x (float)DOUBLE_VALUE(converting_ptr); \
+			break; \
+		case INT: \
+		case U_INT: \
+			if(converting_type == DOUBLE) { \
+				INT_VALUE(converted_ptr) x (int)DOUBLE_VALUE(converting_ptr); \
+			} else if(converting_type == FLOAT) { \
+				INT_VALUE(converted_ptr) x (int)FLOAT_VALUE(converting_ptr); \
+			} else if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) { \
+				INT_VALUE(converted_ptr) x LONG_LONG_VALUE(converting_ptr); \
+			} \
+			break; \
+		case U_SHORT: \
+		case SHORT: \
+			if(converting_type == DOUBLE) { \
+				SHORT_VALUE(converted_ptr) x (short)DOUBLE_VALUE(converting_ptr); \
+			} else if(converting_type == FLOAT) { \
+				SHORT_VALUE(converted_ptr) x (short)FLOAT_VALUE(converting_ptr); \
+			} else { \
+				SHORT_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
+			} \
+			break; \
+		case U_CHAR: \
+		case CHAR: \
+			if(converting_type == DOUBLE) { \
+				CHAR_VALUE(converted_ptr) x (char)DOUBLE_VALUE(converting_ptr); \
+			} else if(converting_type == FLOAT) { \
+				CHAR_VALUE(converted_ptr) x (char)FLOAT_VALUE(converting_ptr); \
+			} else { \
+				CHAR_VALUE(converted_ptr) x CHAR_VALUE(converting_ptr); \
+			} \
+			break; \
+		} \
+	}
+
 typedef int (*opt_handle_func)(c_interpreter*, int*, int*, int*);
 opt_handle_func opt_handle[OPERATOR_TYPE_NUM];
 
@@ -412,6 +642,408 @@ int opt_not_equ_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb
 	return ERROR_NO;
 }
 
+int opt_devide_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *instruction_ptr = interpreter_ptr->pc;
+	ASSIGN_OPT_EXEC(/=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
+	return 0;
+}
+
+int opt_mul_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *instruction_ptr = interpreter_ptr->pc;
+	ASSIGN_OPT_EXEC(*=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
+	return 0;
+}
+
+int opt_mod_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *instruction_ptr = interpreter_ptr->pc;
+	ASSIGN_OPT_INT_EXEC(%=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
+	return 0;
+}
+
+int opt_add_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *instruction_ptr = interpreter_ptr->pc;
+	register int converted_type = instruction_ptr->opda_varity_type, converting_type = instruction_ptr->opdb_varity_type;
+	register void *converted_ptr = (void*)opda_addr, *converting_ptr = (void*)opdb_addr;
+	if(converted_type == converting_type) { 
+		switch(converted_type) { 
+		case INT: 
+		case U_INT: 
+			INT_VALUE(converted_ptr) += INT_VALUE(converting_ptr); 
+			break; 
+		case LONG: 
+		case U_LONG: 
+			LONG_VALUE(converted_ptr) += LONG_VALUE(converting_ptr); 
+			break; 
+		case LONG_LONG: 
+		case U_LONG_LONG : 
+			LONG_LONG_VALUE(converted_ptr) += LONG_LONG_VALUE(converting_ptr); 
+			break; 
+		case SHORT:
+		case U_SHORT:
+			SHORT_VALUE(converted_ptr) += SHORT_VALUE(converting_ptr);
+			break;
+		case CHAR:
+		case U_CHAR:
+			CHAR_VALUE(converted_ptr) += U_CHAR_VALUE(converting_ptr);
+			break;
+		case FLOAT:
+			FLOAT_VALUE(converted_ptr) += FLOAT_VALUE(converting_ptr);
+			break;
+		case DOUBLE:
+			DOUBLE_VALUE(converted_ptr) += DOUBLE_VALUE(converting_ptr);
+			break;
+		}
+	} else if(converted_type > converting_type) {
+		switch(converted_type) {
+		case INT:
+		case U_INT:
+		case LONG:
+		case U_LONG:
+			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG || converting_type == LONG_LONG || converting_type == U_LONG_LONG)
+				INT_VALUE(converted_ptr) += INT_VALUE(converting_ptr);
+			else if(converting_type == SHORT || converting_type == U_SHORT)
+				INT_VALUE(converted_ptr) += SHORT_VALUE(converting_ptr);
+			else if(converting_type == CHAR || converting_type == U_CHAR)
+				INT_VALUE(converted_ptr) += CHAR_VALUE(converting_ptr);
+			break;
+		case U_SHORT:
+		case SHORT:
+			if(converting_type == U_SHORT || converting_type == SHORT)
+				SHORT_VALUE(converted_ptr) += SHORT_VALUE(converting_ptr);
+			else if(converting_type == CHAR || converting_type == U_CHAR)
+				SHORT_VALUE(converted_ptr) += CHAR_VALUE(converting_ptr);
+			break;
+		case U_CHAR:
+			CHAR_VALUE(converted_ptr) += CHAR_VALUE(converting_ptr);
+			break;
+		case DOUBLE:
+			switch(converting_type) {
+			case U_CHAR:
+				DOUBLE_VALUE(converted_ptr) += U_CHAR_VALUE(converting_ptr);
+				break;
+			case CHAR:
+				DOUBLE_VALUE(converted_ptr) += CHAR_VALUE(converting_ptr);
+				break;
+			case U_SHORT:
+				DOUBLE_VALUE(converted_ptr) += U_SHORT_VALUE(converting_ptr);
+				break;
+			case SHORT:
+				DOUBLE_VALUE(converted_ptr) += SHORT_VALUE(converting_ptr);
+				break;
+			case U_INT:
+				DOUBLE_VALUE(converted_ptr) += U_INT_VALUE(converting_ptr);
+				break;
+			case INT:
+				DOUBLE_VALUE(converted_ptr) += INT_VALUE(converting_ptr);
+				break;
+			case U_LONG:
+				DOUBLE_VALUE(converted_ptr) += U_LONG_VALUE(converting_ptr);
+				break;
+			case LONG:
+				DOUBLE_VALUE(converted_ptr) += LONG_VALUE(converting_ptr);
+				break;
+			case FLOAT:
+				DOUBLE_VALUE(converted_ptr) += FLOAT_VALUE(converting_ptr);
+				break;
+			case U_LONG_LONG:
+				DOUBLE_VALUE(converted_ptr) += U_LONG_LONG_VALUE(converting_ptr);
+				break;
+			case LONG_LONG:
+				DOUBLE_VALUE(converted_ptr) += LONG_LONG_VALUE(converting_ptr);
+				break;
+			}
+			break;
+		case FLOAT:
+			switch(converting_type) {
+			case U_CHAR:
+				FLOAT_VALUE(converted_ptr) += U_CHAR_VALUE(converting_ptr);
+				break;
+			case CHAR:
+				FLOAT_VALUE(converted_ptr) += CHAR_VALUE(converting_ptr);
+				break;
+			case U_SHORT:
+				FLOAT_VALUE(converted_ptr) += U_SHORT_VALUE(converting_ptr);
+				break;
+			case SHORT:
+				FLOAT_VALUE(converted_ptr) += SHORT_VALUE(converting_ptr);
+				break;
+			case U_INT:
+				FLOAT_VALUE(converted_ptr) += U_INT_VALUE(converting_ptr);
+				break;
+			case INT:
+				FLOAT_VALUE(converted_ptr) += INT_VALUE(converting_ptr);
+				break;
+			case U_LONG:
+				FLOAT_VALUE(converted_ptr) += U_LONG_VALUE(converting_ptr);
+				break;
+			case LONG:
+				FLOAT_VALUE(converted_ptr) += LONG_VALUE(converting_ptr);
+				break;
+			case U_LONG_LONG:
+				FLOAT_VALUE(converted_ptr) += U_LONG_LONG_VALUE(converting_ptr);
+				break;
+			case LONG_LONG:
+				FLOAT_VALUE(converted_ptr) += LONG_LONG_VALUE(converting_ptr);
+				break;
+			}
+			break;
+		case PTR:
+			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG) {
+				PTR_N_VALUE(converted_ptr) += INT_VALUE(converting_ptr) * instruction_ptr->data;
+			} else if(converting_type == CHAR || converting_type == U_CHAR) {
+				PTR_N_VALUE(converted_ptr) += CHAR_VALUE(converting_ptr) * instruction_ptr->data;
+			} else if(converting_type == SHORT || converting_type == U_SHORT) {
+				PTR_N_VALUE(converted_ptr) += SHORT_VALUE(converting_ptr) * instruction_ptr->data;
+			} else if(converting_type > CHAR) {
+				PTR_N_VALUE(converted_ptr) += INT_VALUE(converting_ptr) * instruction_ptr->data;
+			}
+			break;
+		}
+	} else if(converted_type < converting_type) {
+		switch(converted_type) {
+		case FLOAT:
+			FLOAT_VALUE(converted_ptr) += (float)DOUBLE_VALUE(converting_ptr);
+			break;
+		case INT:
+		case U_INT:
+			if(converting_type == DOUBLE) {
+				INT_VALUE(converted_ptr) += (int)DOUBLE_VALUE(converting_ptr);
+			} else if(converting_type == FLOAT) {
+				INT_VALUE(converted_ptr) += (int)FLOAT_VALUE(converting_ptr);
+			} else if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) {
+				INT_VALUE(converted_ptr) += LONG_LONG_VALUE(converting_ptr);
+			}
+			break;
+		case U_SHORT:
+		case SHORT:
+			if(converting_type == DOUBLE) {
+				SHORT_VALUE(converted_ptr) += (short)DOUBLE_VALUE(converting_ptr);
+			} else if(converting_type == FLOAT) {
+				SHORT_VALUE(converted_ptr) += (short)FLOAT_VALUE(converting_ptr);
+			} else {
+				SHORT_VALUE(converted_ptr) += SHORT_VALUE(converting_ptr);
+			}
+			break;
+		case U_CHAR:
+		case CHAR:
+			if(converting_type == DOUBLE) {
+				CHAR_VALUE(converted_ptr) += (char)DOUBLE_VALUE(converting_ptr);
+			} else if(converting_type == FLOAT) {
+				CHAR_VALUE(converted_ptr) += (char)FLOAT_VALUE(converting_ptr);
+			} else {
+				CHAR_VALUE(converted_ptr) += CHAR_VALUE(converting_ptr);
+			}
+			break;
+		}
+	}
+	return 0;
+}
+
+int opt_minus_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *instruction_ptr = interpreter_ptr->pc;
+	register int converted_type = instruction_ptr->opda_varity_type, converting_type = instruction_ptr->opdb_varity_type;
+	register void *converted_ptr = (void*)opda_addr, *converting_ptr = (void*)opdb_addr;
+	if(converted_type == converting_type) { 
+		switch(converted_type) { 
+		case INT: 
+		case U_INT: 
+			INT_VALUE(converted_ptr) -= INT_VALUE(converting_ptr); 
+			break; 
+		case LONG: 
+		case U_LONG: 
+			LONG_VALUE(converted_ptr) -= LONG_VALUE(converting_ptr); 
+			break; 
+		case LONG_LONG: 
+		case U_LONG_LONG : 
+			LONG_LONG_VALUE(converted_ptr) -= LONG_LONG_VALUE(converting_ptr); 
+			break; 
+		case SHORT:
+		case U_SHORT:
+			SHORT_VALUE(converted_ptr) -= SHORT_VALUE(converting_ptr);
+			break;
+		case CHAR:
+		case U_CHAR:
+			CHAR_VALUE(converted_ptr) -= U_CHAR_VALUE(converting_ptr);
+			break;
+		case FLOAT:
+			FLOAT_VALUE(converted_ptr) -= FLOAT_VALUE(converting_ptr);
+			break;
+		case DOUBLE:
+			DOUBLE_VALUE(converted_ptr) -= DOUBLE_VALUE(converting_ptr);
+			break;
+		}
+	} else if(converted_type > converting_type) {
+		switch(converted_type) {
+		case INT:
+		case U_INT:
+		case LONG:
+		case U_LONG:
+			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG || converting_type == LONG_LONG || converting_type == U_LONG_LONG)
+				INT_VALUE(converted_ptr) -= INT_VALUE(converting_ptr);
+			else if(converting_type == SHORT || converting_type == U_SHORT)
+				INT_VALUE(converted_ptr) -= SHORT_VALUE(converting_ptr);
+			else if(converting_type == CHAR || converting_type == U_CHAR)
+				INT_VALUE(converted_ptr) -= CHAR_VALUE(converting_ptr);
+			break;
+		case U_SHORT:
+		case SHORT:
+			if(converting_type == U_SHORT || converting_type == SHORT)
+				SHORT_VALUE(converted_ptr) -= SHORT_VALUE(converting_ptr);
+			else if(converting_type == CHAR || converting_type == U_CHAR)
+				SHORT_VALUE(converted_ptr) -= CHAR_VALUE(converting_ptr);
+			break;
+		case U_CHAR:
+			CHAR_VALUE(converted_ptr) -= CHAR_VALUE(converting_ptr);
+			break;
+		case DOUBLE:
+			switch(converting_type) {
+			case U_CHAR:
+				DOUBLE_VALUE(converted_ptr) -= U_CHAR_VALUE(converting_ptr);
+				break;
+			case CHAR:
+				DOUBLE_VALUE(converted_ptr) -= CHAR_VALUE(converting_ptr);
+				break;
+			case U_SHORT:
+				DOUBLE_VALUE(converted_ptr) -= U_SHORT_VALUE(converting_ptr);
+				break;
+			case SHORT:
+				DOUBLE_VALUE(converted_ptr) -= SHORT_VALUE(converting_ptr);
+				break;
+			case U_INT:
+				DOUBLE_VALUE(converted_ptr) -= U_INT_VALUE(converting_ptr);
+				break;
+			case INT:
+				DOUBLE_VALUE(converted_ptr) -= INT_VALUE(converting_ptr);
+				break;
+			case U_LONG:
+				DOUBLE_VALUE(converted_ptr) -= U_LONG_VALUE(converting_ptr);
+				break;
+			case LONG:
+				DOUBLE_VALUE(converted_ptr) -= LONG_VALUE(converting_ptr);
+				break;
+			case FLOAT:
+				DOUBLE_VALUE(converted_ptr) -= FLOAT_VALUE(converting_ptr);
+				break;
+			case U_LONG_LONG:
+				DOUBLE_VALUE(converted_ptr) -= U_LONG_LONG_VALUE(converting_ptr);
+				break;
+			case LONG_LONG:
+				DOUBLE_VALUE(converted_ptr) -= LONG_LONG_VALUE(converting_ptr);
+				break;
+			}
+			break;
+		case FLOAT:
+			switch(converting_type) {
+			case U_CHAR:
+				FLOAT_VALUE(converted_ptr) -= U_CHAR_VALUE(converting_ptr);
+				break;
+			case CHAR:
+				FLOAT_VALUE(converted_ptr) -= CHAR_VALUE(converting_ptr);
+				break;
+			case U_SHORT:
+				FLOAT_VALUE(converted_ptr) -= U_SHORT_VALUE(converting_ptr);
+				break;
+			case SHORT:
+				FLOAT_VALUE(converted_ptr) -= SHORT_VALUE(converting_ptr);
+				break;
+			case U_INT:
+				FLOAT_VALUE(converted_ptr) -= U_INT_VALUE(converting_ptr);
+				break;
+			case INT:
+				FLOAT_VALUE(converted_ptr) -= INT_VALUE(converting_ptr);
+				break;
+			case U_LONG:
+				FLOAT_VALUE(converted_ptr) -= U_LONG_VALUE(converting_ptr);
+				break;
+			case LONG:
+				FLOAT_VALUE(converted_ptr) -= LONG_VALUE(converting_ptr);
+				break;
+			case U_LONG_LONG:
+				FLOAT_VALUE(converted_ptr) -= U_LONG_LONG_VALUE(converting_ptr);
+				break;
+			case LONG_LONG:
+				FLOAT_VALUE(converted_ptr) -= LONG_LONG_VALUE(converting_ptr);
+				break;
+			}
+			break;
+		case PTR:
+			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG) {
+				PTR_N_VALUE(converted_ptr) -= INT_VALUE(converting_ptr);
+			} else if(converting_type == CHAR || converting_type == U_CHAR) {
+				PTR_N_VALUE(converted_ptr) -= CHAR_VALUE(converting_ptr);
+			} else if(converting_type == SHORT || converting_type == U_SHORT) {
+				PTR_N_VALUE(converted_ptr) -= SHORT_VALUE(converting_ptr);
+			} else if(converting_type > CHAR) {
+				PTR_N_VALUE(converted_ptr) -= INT_VALUE(converting_ptr);
+			}
+			break;
+		}
+	} else if(converted_type < converting_type) {
+		switch(converted_type) {
+		case FLOAT:
+			FLOAT_VALUE(converted_ptr) -= (float)DOUBLE_VALUE(converting_ptr);
+			break;
+		case INT:
+		case U_INT:
+			if(converting_type == DOUBLE) {
+				INT_VALUE(converted_ptr) -= (int)DOUBLE_VALUE(converting_ptr);
+			} else if(converting_type == FLOAT) {
+				INT_VALUE(converted_ptr) -= (int)FLOAT_VALUE(converting_ptr);
+			} else if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) {
+				INT_VALUE(converted_ptr) -= LONG_LONG_VALUE(converting_ptr);
+			}
+			break;
+		case U_SHORT:
+		case SHORT:
+			if(converting_type == DOUBLE) {
+				SHORT_VALUE(converted_ptr) -= (short)DOUBLE_VALUE(converting_ptr);
+			} else if(converting_type == FLOAT) {
+				SHORT_VALUE(converted_ptr) -= (short)FLOAT_VALUE(converting_ptr);
+			} else {
+				SHORT_VALUE(converted_ptr) -= SHORT_VALUE(converting_ptr);
+			}
+			break;
+		case U_CHAR:
+		case CHAR:
+			if(converting_type == DOUBLE) {
+				CHAR_VALUE(converted_ptr) -= (char)DOUBLE_VALUE(converting_ptr);
+			} else if(converting_type == FLOAT) {
+				CHAR_VALUE(converted_ptr) -= (char)FLOAT_VALUE(converting_ptr);
+			} else {
+				CHAR_VALUE(converted_ptr) -= CHAR_VALUE(converting_ptr);
+			}
+			break;
+		}
+	}
+	return 0;
+}
+
+int opt_bit_and_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *instruction_ptr = interpreter_ptr->pc;
+	ASSIGN_OPT_INT_EXEC(&=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
+	return 0;
+}
+
+int opt_xor_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *instruction_ptr = interpreter_ptr->pc;
+	ASSIGN_OPT_INT_EXEC(^=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
+	return 0;
+}
+
+int opt_bit_or_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
+{
+	mid_code *instruction_ptr = interpreter_ptr->pc;
+	ASSIGN_OPT_INT_EXEC(|=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
+	return 0;
+}
+
 int opt_and_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr)
 {
 	int ret;
@@ -449,7 +1081,7 @@ int opt_minus_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_a
 {
 	int ret_type, converting_varity_type;
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
-	double converted_varity;
+	double converted_varity, mid_ret;
 	void* converted_varity_ptr = &converted_varity, *converting_varity_ptr;
 	ret_type = get_ret_type(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 	if(instruction_ptr->opda_varity_type != instruction_ptr->opdb_varity_type) {
@@ -466,16 +1098,17 @@ int opt_minus_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_a
 		if(ret_type) return ret_type;
 	}
 	if(ret_type == U_LONG || ret_type == LONG || ret_type == U_INT || ret_type == INT) {
-		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) - INT_VALUE(opdb_addr);
+		INT_VALUE(&mid_ret) = INT_VALUE(opda_addr) - INT_VALUE(opdb_addr);
 	} else if(ret_type == U_SHORT || ret_type == SHORT) {
-		SHORT_VALUE(ret_addr) = SHORT_VALUE(opda_addr) - SHORT_VALUE(opdb_addr);
+		SHORT_VALUE(&mid_ret) = SHORT_VALUE(opda_addr) - SHORT_VALUE(opdb_addr);
 	} else if(ret_type == U_CHAR || ret_type == CHAR) {
-		CHAR_VALUE(ret_addr) = CHAR_VALUE(opda_addr) - CHAR_VALUE(opdb_addr);
+		CHAR_VALUE(&mid_ret) = CHAR_VALUE(opda_addr) - CHAR_VALUE(opdb_addr);
 	} else if(ret_type == DOUBLE) {
-		DOUBLE_VALUE(ret_addr) = DOUBLE_VALUE(opda_addr) - DOUBLE_VALUE(opdb_addr);
+		DOUBLE_VALUE(&mid_ret) = DOUBLE_VALUE(opda_addr) - DOUBLE_VALUE(opdb_addr);
 	} else if(ret_type == FLOAT) {
-		FLOAT_VALUE(ret_addr) = FLOAT_VALUE(opda_addr) - FLOAT_VALUE(opdb_addr);
+		FLOAT_VALUE(&mid_ret) = FLOAT_VALUE(opda_addr) - FLOAT_VALUE(opdb_addr);
 	}
+	varity_convert(ret_addr, instruction_ptr->ret_varity_type, &mid_ret, ret_type);
 	return ERROR_NO;
 }
 
@@ -755,8 +1388,10 @@ int opt_negative_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opd
 	case U_CHAR:
 	case CHAR:
 		CHAR_VALUE(ret_addr) = - CHAR_VALUE(opdb_addr);
+		break;
 	case DOUBLE:
 		DOUBLE_VALUE(ret_addr) = - DOUBLE_VALUE(opdb_addr);
+		break;
 	case FLOAT:
 		FLOAT_VALUE(ret_addr) = - FLOAT_VALUE(opdb_addr);
 	}
@@ -912,6 +1547,14 @@ void handle_init(void)
 	opt_handle[OPT_NOT_EQU] = opt_not_equ_handle;
 	opt_handle[OPT_AND] = opt_and_handle;
 	opt_handle[OPT_OR] = opt_or_handle;
+	opt_handle[OPT_DEVIDE_ASSIGN] = opt_devide_assign_handle;
+	opt_handle[OPT_MUL_ASSIGN] = opt_mul_assign_handle;
+	opt_handle[OPT_MOD_ASSIGN] = opt_mod_assign_handle;
+	opt_handle[OPT_ADD_ASSIGN] = opt_add_assign_handle;
+	opt_handle[OPT_MINUS_ASSIGN] = opt_minus_assign_handle;
+	opt_handle[OPT_BIT_AND_ASSIGN] = opt_bit_and_assign_handle;
+	opt_handle[OPT_BIT_XOR_ASSIGN] = opt_xor_assign_handle;
+	opt_handle[OPT_BIT_OR_ASSIGN] = opt_bit_or_assign_handle;
 	opt_handle[OPT_MEMBER] = opt_member_handle;
 	opt_handle[OPT_MINUS] = opt_minus_handle;
 	opt_handle[OPT_BIT_REVERT] = opt_bit_revert_handle;
