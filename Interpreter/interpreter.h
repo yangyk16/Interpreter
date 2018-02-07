@@ -82,8 +82,9 @@ typedef union operand_value {
 } operand_value_t;
 
 typedef struct node_attribute_s {
-	int node_type;
-	int value_type;
+	char node_type;
+	char value_type;
+	char level;
 	operand_value_t value;
 } node_attribute_t;
 

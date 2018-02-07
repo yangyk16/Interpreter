@@ -481,13 +481,18 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_NEGATIVE:
 		varity_number = this->mid_varity_stack.get_count();
 		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-		rvarity_ptr->set_type(INT);
+		if(opt == OPT_POSITIVE || opt == OPT_NEGATIVE) {
+			rvarity_ptr->set_type(instruction_ptr->opdb_varity_type);
+			instruction_ptr->ret_varity_type = instruction_ptr->opdb_varity_type;
+		} else {
+			rvarity_ptr->set_type(INT);
+			instruction_ptr->ret_varity_type = INT;
+		}
 		this->mid_varity_stack.push();
 		inc_varity_ref(rvarity_ptr);
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
-		instruction_ptr->ret_varity_type = INT;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
@@ -2381,14 +2386,14 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 {
 	int ret;
 	int total_bracket_depth;
-	char ch_last = str[len];
+	//char ch_last = str[len];
 	int source_len = len;
-	str[source_len] = 0;
+	//str[source_len] = 0;
 	if(str[0] == '{' || str[0] == '}')
 		return 0;
 	if(str[len-1] != ';' && need_semicolon) {
 		error("Missing ;\n");
-		str[source_len] = ch_last;
+		//str[source_len] = ch_last;
 		return ERROR_SEMICOLON;
 	}
 	total_bracket_depth = get_bracket_depth(str);
@@ -2396,7 +2401,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varit
 		return ERROR_BRACKET_UNMATCH;
 	int key_word_ret = key_word_analysis(str, len);
 	if(key_word_ret) {
-		str[source_len] = ch_last;
+		//str[source_len] = ch_last;
 		//return key_word_ret;
 	} else {
 		ret = this->generate_mid_code(str, len, true);

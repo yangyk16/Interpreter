@@ -29,69 +29,70 @@ static int skip_atoi(const char **s)
 
 static char * float_number(char *str, double num, int precision)
 {
-        int i, j, k, r_digits;
-        if(num > 1 || num < -1) {
-                if(num < 0) {
-                        *str++ = '-';
-                        num = -num;
-                }
-                for(i=-1; num>1 || num<-1; i++) {
-                        num /= 10;
-                }
-                num *= 10;
-                *str++ = ((int)num % 10) + '0';
-                *str++ = '.';
-                for(j=0; j<4; j++) {
-                        num *= 10;
-                        *str++ = ((int)num % 10) + '0';
-                }
-                *str++ = 'e';
-                for(k=i, r_digits=0; k; k/=10, r_digits++) {
-                }
-                for(j=r_digits-1; j>=0; j--) {
-                        str[j] = i % 10 + '0';
-                        i /= 10;
-                }
-                str += r_digits;
+	int i, j, k, r_digits;
+	double num_bak = num;
+	if(num > 1 || num < -1) {
+		if(num < 0) {
+			*str++ = '-';
+			num = -num;
+		}
+		for(i=-1; num>1; i++) {
+			num /= 10;
+		}
+		num *= 10;
+		*str++ = ((int)num % 10) + '0';
+		*str++ = '.';
+		for(j=0; j<4; j++) {
+			num *= 10;
+			*str++ = ((int)num % 10) + '0';
+		}
+		if(num_bak <= -10 || num_bak >= 10)
+			*str++ = 'e';
+		for(k=i, r_digits=0; k; k/=10, r_digits++) {
+		}
+		for(j=r_digits-1; j>=0; j--) {
+			str[j] = i % 10 + '0';
+			i /= 10;
+		}
+		str += r_digits;
         //      str += sprintf(str, "%d", i);
-        } else if(num == 1 || num == -1) {
-                i = 0;
-                *str++ = '1';
-                *str++ = '.';
-                *str++ = '0';
-        } else if(num == 0) {
-                i = 0;
-                *str++ = '0';
-                *str++ = '.';
-                *str++ = '0';
-        } else {
-                if(num < 0) {
-                        *str++ = '-';
-                        num = -num;
-                }
-                for(i=0; num<1 && num>-1; i--) {
-                        num *= 10;
-                }
-                *str++ = ((int)num % 10) + '0';
-                *str++ = '.'; 
-               for(j=0; j<4; j++) {
-                        num *= 10;
-                        *str++ = ((int)num % 10) + '0';
-                }
-                *str++ = 'e';
-                *str++ = '-';
-                i = -i;
-                for(k=i, r_digits=0; k; k/=10, r_digits++) {
-                }
-                for(j=r_digits-1; j>=0; j--) {
-                        str[j] = i % 10 + '0';
-                        i /= 10;
-                }
-                str += r_digits;
-
-        //      str += sprintf(str, "%d", i);
-        }
-        return str;
+	} else if(num == 1 || num == -1) {
+		if(num == -1)
+			*str++ = '-';
+		*str++ = '1';
+		*str++ = '.';
+		*str++ = '0';
+	} else if(num == 0) {
+		i = 0;
+		*str++ = '0';
+		*str++ = '.';
+		*str++ = '0';
+	} else {
+		if(num < 0) {
+			*str++ = '-';
+			num = -num;
+		}
+		for(i=0; num<1 && num>-1; i--) {
+			num *= 10;
+		}
+		*str++ = ((int)num % 10) + '0';
+		*str++ = '.'; 
+		for(j=0; j<4; j++) {
+			num *= 10;
+			*str++ = ((int)num % 10) + '0';
+		}
+		*str++ = 'e';
+		*str++ = '-';
+		i = -i;
+		for(k=i, r_digits=0; k; k/=10, r_digits++) {
+		}
+		for(j=r_digits-1; j>=0; j--) {
+			str[j] = i % 10 + '0';
+			i /= 10;
+		}
+		str += r_digits;
+	}
+	return str;
 }
 
 static char * number(char * str, long num, int base, int size, int precision ,int type)
