@@ -1,8 +1,8 @@
-#include <stdio.h>
 #include "config.h"
 #include "cstdlib.h"
 
 #define ALIGN_BYTE 16
+#define NULL 0
 typedef unsigned int uint;
 typedef struct head_head_s{
 	uint size;

@@ -1324,6 +1324,8 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 		case DOUBLE:
 			DOUBLE_VALUE(converted_ptr) = DOUBLE_VALUE(converting_ptr);
 			break;
+		case PTR:
+			PTR_VALUE(converted_ptr) = PTR_VALUE(converting_ptr);
 		}
 	} else if(converted_type > converting_type) {
 		switch(converted_type) {
@@ -1438,6 +1440,8 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 			break;
 		case INT:
 		case U_INT:
+		case LONG:
+		case U_LONG:
 			if(converting_type == DOUBLE) {
 				INT_VALUE(converted_ptr) = (int)DOUBLE_VALUE(converting_ptr);
 			} else if(converting_type == FLOAT) {
@@ -1470,6 +1474,20 @@ int opt_assign_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_
 				CHAR_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
 			}
 			break;
+		case LONG_LONG:
+		case U_LONG_LONG:
+			if(converting_type == DOUBLE) {
+				LONG_LONG_VALUE(converted_ptr) = (long long)DOUBLE_VALUE(converting_ptr);
+			} else if(converting_type == FLOAT) {
+				LONG_LONG_VALUE(converted_ptr) = (long long)FLOAT_VALUE(converting_ptr);
+			} else if(converting_type == ARRAY) {
+				LONG_LONG_VALUE(converted_ptr) = (long long)converting_ptr;
+			} else if(converting_type == PTR) {
+				LONG_LONG_VALUE(converted_ptr) = (long long)PTR_VALUE(converting_ptr);
+			}
+			break;
+		case PTR:
+			PTR_N_VALUE(converted_ptr) = (PLATFORM_WORD)converting_ptr;
 		}
 	}
 	return 0;

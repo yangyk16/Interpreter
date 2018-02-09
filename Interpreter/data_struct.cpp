@@ -1,8 +1,8 @@
 #include "data_struct.h"
 #include "varity.h"
-#include <string>
 #include "cstdlib.h"
-using namespace std;
+#include "interpreter.h"
+#include "string_lib.h"
 
 stack::stack()
 {
@@ -177,8 +177,7 @@ char* round_queue::readline(int& len)
 	}
 	return &((char*)bottom_addr)[ret];
 }
-#include "interpreter.h"
-#include "string_lib.h"
+
 void node::middle_visit(void)
 {
 	if(this->left)
@@ -191,4 +190,21 @@ void node::middle_visit(void)
 		kprintf("%d\n",tmp->value.int_value);
 	if(this->right)
 		this->right->middle_visit();
+}
+
+int varity_type_stack_t::find(char arg_count, void *type_info_addr)
+{
+	int i;
+	for(i=0; i<this->count; i++) {
+		if(this->arg_count[i] >= arg_count) {
+			int j;
+			for(j=1; j<=arg_count; j++) {
+				if(((PLATFORM_WORD*)this->type_info_addr[i])[j] != ((PLATFORM_WORD*)type_info_addr)[j])
+					break;
+			}
+			if(j > arg_count)
+				return i;
+		}
+	}
+	return -1;
 }

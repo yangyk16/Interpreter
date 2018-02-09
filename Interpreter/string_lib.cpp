@@ -26,7 +26,7 @@ int get_escape_char(char *str, char &ch) {
 	}
 }
 
-int get_token(char *str, node_attribute_t *info)
+int c_interpreter::get_token(char *str, node_attribute_t *info)
 {
 	int i = 0, real_token_pos, float_flag = 0;
 	char *symbol_ptr = token_fifo.get_wptr() + (char*)token_fifo.get_base_addr();
@@ -125,12 +125,49 @@ int get_token(char *str, node_attribute_t *info)
 			error("\' operator error.\n");
 			return ERROR_TOKEN;
 		}
+	} else if(str[i] == '{' || str[i] == '}') {
+		info->node_type = TOKEN_OTHER;
+		return 1;
 	} else {
 		for(int j=0; j<sizeof(opt_str)/sizeof(opt_str[0]); j++) {
 			if(!strmcmp(str + i, opt_str[j], opt_str_len[j])) {
-				info->value.int_value = j;
+				info->data = j;
 				info->node_type = TOKEN_OPERATOR;
 				info->value_type = opt_prio[j];
+				if(info->data == OPT_L_SMALL_BRACKET) {
+					struct_info *struct_info_ptr;
+					node_attribute_t node;
+					int varity_type, varity_len, total_len;
+					int len_in_bracket = find_ch_with_bracket_level(str + i, ')', 1);
+					int v_len = len_in_bracket;
+					PLATFORM_WORD *complex_info_ptr;
+					char name[32];
+					varity_type = basic_type_check(str + i + 1, v_len, struct_info_ptr);
+					total_len = i + 1;
+					if(varity_type > 0) {
+						i += v_len + 1;
+						total_len += v_len;
+						varity_len = (len_in_bracket -= v_len) - 1;
+						varity_type = get_varity_type(str + i, varity_len, name, varity_type, struct_info_ptr, complex_info_ptr);
+						if(name[0] != '\0') {
+							error("Convert operator contains varity name.\n");
+							info->node_type = TOKEN_ERROR;
+							return ERROR_TOKEN;
+						}
+						if(varity_type > 0) {
+							total_len += varity_len;
+							i += varity_len;
+							len_in_bracket -= varity_len;
+							if(get_token(str + i, &node) == len_in_bracket) {
+								info->data = OPT_TYPE_CONVERT;
+								info->value_type = 2;
+								info->value.ptr_value = (char*)complex_info_ptr;
+								info->count = varity_type; //complex_arg_count
+								return total_len + 1;
+							}
+						}
+					}
+				}
 				return i + opt_str_len[j];
 			}
 		}

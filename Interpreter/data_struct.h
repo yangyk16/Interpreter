@@ -102,4 +102,10 @@ public:
 	node* get_lastest_element(void) {return tail.left;}
 };
 
+typedef struct varity_type_stack_s {
+	int count;
+	char arg_count[MAX_VARITY_TYPE_COUNT];
+	void *type_info_addr[MAX_VARITY_TYPE_COUNT];
+	int find(char arg_count, void *type_info_addr);
+} varity_type_stack_t;
 #endif

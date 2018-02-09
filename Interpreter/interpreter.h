@@ -84,7 +84,8 @@ typedef union operand_value {
 typedef struct node_attribute_s {
 	char node_type;
 	char value_type;
-	char level;
+	char data;
+	char count;
 	operand_value_t value;
 } node_attribute_t;
 
@@ -197,7 +198,8 @@ class c_interpreter: public interpreter {
 	int get_varity_type(char *str, int &len, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info);
 	int generate_arg_list(char *str, int count, stack &arg_list_ptr);
 	int generate_compile_func(void);
-	bool is_operator_convert(char *str, int &type, int &opt_len, int &prio);
+	int get_token(char *str, node_attribute_t *info);
+	bool is_operator_convert(char *str, char &type, int &opt_len, char &prio);
 	int generate_mid_code(char *str, int len, bool need_semicolon);
 	int list_stack_to_tree(node* tree_node, list_stack* post_order_stack);
 	int exec_mid_code(mid_code *pc, uint count);
@@ -220,6 +222,7 @@ class c_interpreter: public interpreter {
 	virtual int pre_treat(void);
 
 public:
+	static varity_type_stack_t varity_type_stack;
 	mid_code *pc;
 	void set_break_flag(int flag) {break_flag = flag;}
 	int init(terminal*);

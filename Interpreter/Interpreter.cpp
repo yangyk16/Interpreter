@@ -14,6 +14,7 @@ tty stdio;
 uart stdio;
 #endif
 
+varity_type_stack_t c_interpreter::varity_type_stack;
 language_elment_space_t c_interpreter::language_elment_space;
 c_interpreter myinterpreter;
 
@@ -22,7 +23,7 @@ const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
 char opt_str[43][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
 char opt_str_len[] = {3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,1,1,17,1,4,2,3,8,2,3,3,4,6,6,9,10,13,13,14,15,16};
-char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1};
+char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1,1};
 char tmp_varity_name[MAX_A_VARITY_NODE][3];
 char link_varity_name[MAX_A_VARITY_NODE][3];
 
@@ -49,11 +50,11 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 			error("Invalid key word.\n");
 			return ERROR_INVALID_KEYWORD;
 		}
-		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && opt_number[((node_attribute_t*)tree_node->value)->value.int_value] == 1) {
+		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && opt_number[((node_attribute_t*)tree_node->value)->data] == 1) {//单目运算符
 			return ERROR_NO;
 		}
 		//TODO: 函数查参数个数, 避免使用全局function数组，应把全局量改为类的静态成员变量
-		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)tree_node->value)->value.int_value == OPT_CALL_FUNC) {
+		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)tree_node->value)->data == OPT_CALL_FUNC) {
 			function_info *function_ptr = this->function_declare->find(((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
 			if(!function_ptr) {
 				error("Function not found.\n");
@@ -101,7 +102,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 {
 	static varity_info static_varity;
 	register varity_info *avarity_ptr = &static_varity, *bvarity_ptr = &static_varity, *rvarity_ptr;
-	register int opt = ((node_attribute_t*)opt_node_ptr->value)->value.int_value;
+	register int opt = ((node_attribute_t*)opt_node_ptr->value)->data;
 	register int varity_scope;
 	register node_attribute_t *node_attribute;
 	register mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
@@ -305,7 +306,10 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			} else if(instruction_ptr->opda_varity_type <= VOID && instruction_ptr->opdb_varity_type >= PTR) {
 				rvarity_ptr->config_complex_info(bvarity_ptr->get_complex_arg_count(), bvarity_ptr->get_complex_ptr());
 				instruction_ptr->data = bvarity_ptr->get_first_order_sub_struct_size();
-			}/* else {
+			} else if(instruction_ptr->opda_varity_type >= PTR && instruction_ptr->opdb_varity_type >= PTR) {
+				rvarity_ptr->config_complex_info(bvarity_ptr->get_complex_arg_count(), bvarity_ptr->get_complex_ptr());
+				instruction_ptr->data = bvarity_ptr->get_first_order_sub_struct_size();
+			} /* else {
 				error("Wrong varities type for operator. Interpreter.cpp Line:%d\n", __LINE__);
 				return ERROR_ILLEGAL_OPERAND;
 			}*/
@@ -590,7 +594,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 						} else if(instruction_ptr->opdb_varity_type == FLOAT || instruction_ptr->opdb_varity_type == DOUBLE) {
 							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = DOUBLE;
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
-						} else if(instruction_ptr->opdb_varity_type == PTR) {
+						} else if(instruction_ptr->opdb_varity_type == PTR || instruction_ptr->opdb_varity_type == ARRAY) {
 							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = PLATFORM_TYPE;
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] += PLATFORM_WORD_LEN;
 						} else {
@@ -613,7 +617,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			}
 		}
 		if(opt == OPT_CALL_FUNC) {
-			if(opt_node_ptr->right && !(node_attribute->value.int_value == OPT_FUNC_COMMA && node_attribute->node_type == TOKEN_OPERATOR))
+			if(opt_node_ptr->right && !(node_attribute->data == OPT_FUNC_COMMA && node_attribute->node_type == TOKEN_OPERATOR))
 				code_stack_ptr->push();
 			function_info *function_ptr;
 			instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
@@ -646,6 +650,19 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			}
 		}
 		break;
+	case OPT_TYPE_CONVERT:
+		varity_number = this->mid_varity_stack.get_count();
+		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		rvarity_ptr->config_complex_info(((node_attribute_t*)opt_node_ptr->value)->count, (PLATFORM_WORD*)((node_attribute_t*)opt_node_ptr->value)->value.ptr_value);
+		this->mid_varity_stack.push();
+		inc_varity_ref(rvarity_ptr);
+		instruction_ptr->ret_addr = instruction_ptr->opda_addr = varity_number * 8;
+		instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = rvarity_ptr->get_type();
+		instruction_ptr->ret_operator = OPT_ASSIGN;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];		
+		break;
 	case OPT_EDGE:
 		error("Extra ;\n");
 		return ERROR_SEMICOLON;
@@ -662,7 +679,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 {
 	register mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 	node_attribute_t *node_attribute = ((node_attribute_t*)opt_node_ptr->value);//避免滥用&，误修改了变量。
-	switch(node_attribute->value.int_value) {
+	switch(node_attribute->data) {
 		varity_info *varity_ptr;
 	case OPT_TERNARY_Q:
 		this->generate_expression_value(code_stack_ptr, (node_attribute_t*)opt_node_ptr->left->value);
@@ -808,9 +825,9 @@ int c_interpreter::operator_pre_handle(stack *code_stack_ptr, node *opt_node_ptr
 {
 	register mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 	node_attribute_t *node_attribute = ((node_attribute_t*)opt_node_ptr->value);
-	switch(node_attribute->value.int_value) {
+	switch(node_attribute->data) {
 	case OPT_TERNARY_C:
-		if(((node_attribute_t*)opt_node_ptr->left->value)->value.int_value != OPT_TERNARY_Q) {
+		if(((node_attribute_t*)opt_node_ptr->left->value)->data != OPT_TERNARY_Q) {
 			error("? && : unmatch.\n");
 			return ERROR_TERNARY_UNMATCH;
 		}
@@ -1171,7 +1188,7 @@ int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)/
 		if(node.node_type == TOKEN_KEYWORD_TYPE) {
 			type = node.value.int_value;
 		} else if(node.node_type == TOKEN_OPERATOR ) {
-			if(node.value.int_value == OPT_MUL) {
+			if(node.data == OPT_MUL) {
 				ptr_flag = 1;
 			} else {
 				varity_info::init_varity(varity_ptr, 0, type, 4);
@@ -1269,7 +1286,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 			if(node_ptr.node_type == TOKEN_NAME) {
 				kstrcpy(function_name, node_ptr.value.ptr_value);
 				get_token(str_bak + token_len, &node_ptr);
-				if(node_ptr.node_type == TOKEN_OPERATOR && node_ptr.value.int_value == OPT_L_SMALL_BRACKET) {
+				if(node_ptr.node_type == TOKEN_OPERATOR && node_ptr.data == OPT_L_SMALL_BRACKET) {
 					str = str_bak;
 					function_declare_flag = 1;
 					break;
@@ -1351,17 +1368,17 @@ int c_interpreter::function_analysis(char* str, uint len)
 }
 #undef ARG_RETURN
 
-bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int &prio)
+bool c_interpreter::is_operator_convert(char *str, char &type, int &opt_len, char &prio)
 {
 	switch(type) {
 	case OPT_PLUS:
 	case OPT_MINUS:
 		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR 
-			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_SMALL_BRACKET 
-			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_L_MINUS_MINUS 
-			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_L_PLUS_PLUS
-			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_PLUS_PLUS
-			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_MINUS_MINUS) {
+			&& this->sentence_analysis_data_struct.last_token.data != OPT_R_SMALL_BRACKET 
+			&& this->sentence_analysis_data_struct.last_token.data != OPT_L_MINUS_MINUS 
+			&& this->sentence_analysis_data_struct.last_token.data != OPT_L_PLUS_PLUS
+			&& this->sentence_analysis_data_struct.last_token.data != OPT_R_PLUS_PLUS
+			&& this->sentence_analysis_data_struct.last_token.data != OPT_R_MINUS_MINUS) {
 			if(type == OPT_PLUS) {
 				type = OPT_POSITIVE;
 			} else {
@@ -1390,11 +1407,11 @@ bool c_interpreter::is_operator_convert(char *str, int &type, int &opt_len, int 
 	case OPT_MUL:
 	case OPT_BIT_AND:
 		if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR 
-			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_SMALL_BRACKET 
-			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_L_MINUS_MINUS 
-			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_L_PLUS_PLUS
-			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_PLUS_PLUS
-			&& this->sentence_analysis_data_struct.last_token.value.int_value != OPT_R_MINUS_MINUS) {
+			&& this->sentence_analysis_data_struct.last_token.data != OPT_R_SMALL_BRACKET 
+			&& this->sentence_analysis_data_struct.last_token.data != OPT_L_MINUS_MINUS 
+			&& this->sentence_analysis_data_struct.last_token.data != OPT_L_PLUS_PLUS
+			&& this->sentence_analysis_data_struct.last_token.data != OPT_R_PLUS_PLUS
+			&& this->sentence_analysis_data_struct.last_token.data != OPT_R_MINUS_MINUS) {
 			if(type == OPT_MUL)
 				type = OPT_PTR_CONTENT;
 			else
@@ -1430,7 +1447,7 @@ int c_interpreter::label_analysis(char *str, int len)
 		kstrcpy(name, node.value.ptr_value);
 		str += token_len;
 		token_len = get_token(str, &node);
-		if(node.node_type == TOKEN_OPERATOR && node.value.int_value == OPT_TERNARY_C) {
+		if(node.node_type == TOKEN_OPERATOR && node.data == OPT_TERNARY_C) {
 			str += token_len;
 			token_len = get_token(str, &node);
 			if(node.node_type == TOKEN_ERROR) {
@@ -1461,7 +1478,7 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 	int node_index = 0;
 	node_attribute_t *node_attribute, *stack_top_node_ptr;
 	this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
-	this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
+	this->sentence_analysis_data_struct.last_token.data = OPT_EDGE;
 	mid_code *mid_code_ptr;
 	if(!strmcmp(str, "return ", 7)) {
 		int ret;
@@ -1523,53 +1540,53 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 			return node_attribute->node_type;
 		if(node_attribute->node_type == TOKEN_OPERATOR) {
 			while(1) {
-				is_operator_convert(str, node_attribute->value.int_value, token_len, node_attribute->value_type);
+				is_operator_convert(str, node_attribute->data, token_len, node_attribute->value_type);
 				stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
 				if(!analysis_data_struct_ptr->expression_tmp_stack.get_count() 
 					|| node_attribute->value_type < stack_top_node_ptr->value_type 
-					|| node_attribute->value.int_value == OPT_L_SMALL_BRACKET 
-					|| stack_top_node_ptr->value.int_value == OPT_L_SMALL_BRACKET
+					|| node_attribute->data == OPT_L_SMALL_BRACKET 
+					|| stack_top_node_ptr->data == OPT_L_SMALL_BRACKET
 					|| (node_attribute->value_type == stack_top_node_ptr->value_type && (node_attribute->value_type == 2 || node_attribute->value_type == 14))) {
-					if(node_attribute->value.int_value == OPT_R_SMALL_BRACKET) {
+					if(node_attribute->data == OPT_R_SMALL_BRACKET) {
 						analysis_data_struct_ptr->expression_tmp_stack.pop();
 						break;
 					} else {
-						if(node_attribute->value.int_value == OPT_CALL_FUNC) {
+						if(node_attribute->data == OPT_CALL_FUNC) {
 							analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
 							node_attribute = &analysis_data_struct_ptr->node_attribute[++node_index];
 							analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
 							node_attribute->node_type = TOKEN_OPERATOR;
 							node_attribute->value_type = 1;
-							node_attribute->value.int_value = OPT_L_SMALL_BRACKET;
-						} else if(node_attribute->value.int_value == OPT_PLUS_PLUS || node_attribute->value.int_value == OPT_MINUS_MINUS) {
+							node_attribute->data = OPT_L_SMALL_BRACKET;
+						} else if(node_attribute->data == OPT_PLUS_PLUS || node_attribute->data == OPT_MINUS_MINUS) {
 							node_attribute_t *final_stack_top_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.get_lastest_element()->value;
 							if(!analysis_data_struct_ptr->expression_final_stack.get_count() || this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR) {
-								if(node_attribute->value.int_value == OPT_PLUS_PLUS)
-									node_attribute->value.int_value = OPT_L_PLUS_PLUS;
+								if(node_attribute->data == OPT_PLUS_PLUS)
+									node_attribute->data = OPT_L_PLUS_PLUS;
 								else
-									node_attribute->value.int_value = OPT_L_MINUS_MINUS;
+									node_attribute->data = OPT_L_MINUS_MINUS;
 							} else {
-								if(node_attribute->value.int_value == OPT_PLUS_PLUS)
-									node_attribute->value.int_value = OPT_R_PLUS_PLUS;
+								if(node_attribute->data == OPT_PLUS_PLUS)
+									node_attribute->data = OPT_R_PLUS_PLUS;
 								else
-									node_attribute->value.int_value = OPT_R_MINUS_MINUS;
+									node_attribute->data = OPT_R_MINUS_MINUS;
 							}
-						} else if(node_attribute->value.int_value == OPT_COMMA) {
+						} else if(node_attribute->data == OPT_COMMA) {
 							for(int n=node_index-1; n>=0; n--) {
-								if(analysis_data_struct_ptr->node_attribute[n].node_type == TOKEN_OPERATOR && analysis_data_struct_ptr->node_attribute[n].value.int_value == OPT_L_SMALL_BRACKET) {
-									if(n>0 && analysis_data_struct_ptr->node_attribute[n-1].node_type == TOKEN_OPERATOR && analysis_data_struct_ptr->node_attribute[n-1].value.int_value == OPT_CALL_FUNC) {
-										node_attribute->value.int_value = OPT_FUNC_COMMA;
+								if(analysis_data_struct_ptr->node_attribute[n].node_type == TOKEN_OPERATOR && analysis_data_struct_ptr->node_attribute[n].data == OPT_L_SMALL_BRACKET) {
+									if(n>0 && analysis_data_struct_ptr->node_attribute[n-1].node_type == TOKEN_OPERATOR && analysis_data_struct_ptr->node_attribute[n-1].data == OPT_CALL_FUNC) {
+										node_attribute->data = OPT_FUNC_COMMA;
 										break;
 									}
 								}
 							}
-						} else if(node_attribute->value.int_value == OPT_INDEX) {
+						} else if(node_attribute->data == OPT_INDEX) {
 							analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
 							node_attribute = &analysis_data_struct_ptr->node_attribute[++node_index];
 							analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
 							node_attribute->node_type = TOKEN_OPERATOR;
 							node_attribute->value_type = 1;
-							node_attribute->value.int_value = OPT_L_SMALL_BRACKET;
+							node_attribute->data = OPT_L_SMALL_BRACKET;
 						}
 						analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
 						break;
@@ -1591,7 +1608,7 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 	}
 	if(need_semicolon) {
 		node *last_token = analysis_data_struct_ptr->expression_final_stack.pop();
-		if(((node_attribute_t*)last_token->value)->node_type != TOKEN_OPERATOR || ((node_attribute_t*)last_token->value)->value.int_value != OPT_EDGE) {
+		if(((node_attribute_t*)last_token->value)->node_type != TOKEN_OPERATOR || ((node_attribute_t*)last_token->value)->data != OPT_EDGE) {
 			error("Missing ;\n");
 			return ERROR_SEMICOLON;
 		}
@@ -1605,7 +1622,7 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 	//	else if(tmp->node_type == TOKEN_STRING)
 	//		printf("%s\n", tmp->value.ptr_value);
 	//	else
-	//		printf("%d %d\n",tmp->value.int_value,tmp->value_type);
+	//		printf("%d %d\n",tmp->data,tmp->value_type);
 	//}
 	node *root = analysis_data_struct_ptr->expression_final_stack.pop();
 	if(!root) {
@@ -1895,7 +1912,7 @@ int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_ty
 	int ret = ERROR_NO;
 	int mid_code_count;
 	int mid_code_count_of_for;
-	if((token_node.node_type != TOKEN_OPERATOR || token_node.value.int_value != OPT_L_SMALL_BRACKET) && token_node.value.int_value != NONSEQ_KEY_DO && token_node.value.int_value != NONSEQ_KEY_ELSE) {
+	if((token_node.node_type != TOKEN_OPERATOR || token_node.data != OPT_L_SMALL_BRACKET) && token_node.value.int_value != NONSEQ_KEY_DO && token_node.value.int_value != NONSEQ_KEY_ELSE) {
 		error("Lack of bracket\n");
 		return ERROR_NONSEQ_GRAMMER;
 	}
@@ -2101,13 +2118,15 @@ int c_interpreter::get_varity_type(char *str, int &len, char *name, int basic_ty
 	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
 	node_attribute_t *node_attribute = &analysis_data_struct_ptr->node_attribute[0], *stack_top_node_ptr;
 	//解析复杂变量类型///////////////
-	int node_index = 0, v_len = len;
+	int final_stack_count_bak = analysis_data_struct_ptr->expression_final_stack.get_count();
+	int tmp_stack_count_bak = analysis_data_struct_ptr->expression_tmp_stack.get_count();
+	int node_index = final_stack_count_bak + tmp_stack_count_bak, v_len = len;
 	int token_flag = 0, array_flag = 0;
 	int varity_basic_type = 0;
 	list_stack *cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
 	this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
-	this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
-	name[0] = '\d000';
+	this->sentence_analysis_data_struct.last_token.data = OPT_EDGE;
+	name[0] = '\0';
 	while(v_len >= 0) {
 		if(v_len == 0) {
 			token_len = 0;
@@ -2124,39 +2143,39 @@ int c_interpreter::get_varity_type(char *str, int &len, char *name, int basic_ty
 			return ERROR_TOKEN_TYPE;
 		if(node_attribute->node_type == TOKEN_OPERATOR) {
 			stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
-			if(node_attribute->value.int_value == OPT_L_SMALL_BRACKET) {
+			if(node_attribute->data == OPT_L_SMALL_BRACKET) {
 				analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
-			} else if(node_attribute->value.int_value == OPT_R_SMALL_BRACKET) {
+			} else if(node_attribute->data == OPT_R_SMALL_BRACKET) {
 				while(1) {//TODO:确认这里是否需要改token_flag；没有函数指针时不用是可以的，不知道加入以后会不会有问题
 					stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
-					if(stack_top_node_ptr->node_type == TOKEN_OPERATOR && stack_top_node_ptr->value.int_value == OPT_L_SMALL_BRACKET)
+					if(stack_top_node_ptr->node_type == TOKEN_OPERATOR && stack_top_node_ptr->data == OPT_L_SMALL_BRACKET)
 						break;
 					analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
 				}
 				analysis_data_struct_ptr->expression_tmp_stack.pop();
-			} else if(node_attribute->value.int_value == OPT_L_MID_BRACKET) {
+			} else if(node_attribute->data == OPT_L_MID_BRACKET) {
 				array_flag = 1;
-			} else if(node_attribute->value.int_value == OPT_R_MID_BRACKET) {
+			} else if(node_attribute->data == OPT_R_MID_BRACKET) {
 				array_flag = 0;
 				cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
-				node_attribute->value.int_value = OPT_INDEX;
+				node_attribute->data = OPT_INDEX;
 				node_attribute->value_type = this->sentence_analysis_data_struct.last_token.value.int_value;
-			} else if(node_attribute->value.int_value == OPT_MUL) {
+			} else if(node_attribute->data == OPT_MUL) {
 				static node_attribute_t *ptr_node_ptr;
-				if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.value.int_value == OPT_PTR_CONTENT) {
-					ptr_node_ptr->value_type++;
-				} else {
-					cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
-					node_attribute->value.int_value = OPT_PTR_CONTENT;
-					node_attribute->value_type = 1;
-					ptr_node_ptr = node_attribute;
-				}
-			} else if(node_attribute->value.int_value == OPT_COMMA || node_attribute->value.int_value == OPT_EDGE || node_attribute->value.int_value == OPT_ASSIGN) {
+				//if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.data == OPT_PTR_CONTENT) {
+				//	ptr_node_ptr->value_type++;
+				//} else {
+				cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
+				node_attribute->data = OPT_PTR_CONTENT;
+				node_attribute->value_type = 1;
+				ptr_node_ptr = node_attribute;
+				//}
+			} else if(node_attribute->data == OPT_COMMA || node_attribute->data == OPT_EDGE || node_attribute->data == OPT_ASSIGN) {
 varity_end:
-				while(stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value) {
+				while(analysis_data_struct_ptr->expression_tmp_stack.get_count() > tmp_stack_count_bak) {
 					analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
 				}
-				int node_count = analysis_data_struct_ptr->expression_final_stack.get_count();
+				int node_count = analysis_data_struct_ptr->expression_final_stack.get_count() - final_stack_count_bak;
 				PLATFORM_WORD *complex_info = 0, *cur_complex_info_ptr;
 				int basic_info_node_count = 1;
 				if(is_varity_declare == STRUCT)
@@ -2168,10 +2187,10 @@ varity_end:
 					for(int n=0; n<node_count; n++) {
 						head = head->right;
 						node_attribute_t *complex_attribute = (node_attribute_t*)head->value;
-						if(complex_attribute->value.int_value == OPT_INDEX) {
+						if(complex_attribute->data == OPT_INDEX) {
 							*cur_complex_info_ptr = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
-						} else if(complex_attribute->value.int_value == OPT_PTR_CONTENT) {
-							*cur_complex_info_ptr = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
+						} else if(complex_attribute->data == OPT_PTR_CONTENT) {
+							*cur_complex_info_ptr = (COMPLEX_PTR << COMPLEX_TYPE_BIT);
 						}
 						cur_complex_info_ptr--;
 					}
@@ -2179,8 +2198,16 @@ varity_end:
 					if(is_varity_declare == STRUCT) {
 						*cur_complex_info_ptr-- = info->type_info_ptr[1];//TODO:或许有更好办法
 					}
-					analysis_data_struct_ptr->expression_final_stack.reset();//避免后续声明错误及影响生成后序表达式
-					ret_info = complex_info;
+					while(analysis_data_struct_ptr->expression_final_stack.get_count() > final_stack_count_bak)
+						analysis_data_struct_ptr->expression_final_stack.pop();
+					//analysis_data_struct_ptr->expression_final_stack.reset();//避免后续声明错误及影响生成后序表达式
+					int type_index = c_interpreter::varity_type_stack.find(node_count + basic_info_node_count, complex_info);
+					if(type_index >= 0) {
+						ret_info = (PLATFORM_WORD*)c_interpreter::varity_type_stack.type_info_addr[type_index];
+						vfree(complex_info);
+					} else {
+						ret_info = complex_info;
+					}
 				} else {
 					if(is_varity_declare == STRUCT)
 						ret_info = info->type_info_ptr;
@@ -2191,7 +2218,7 @@ varity_end:
 				
 				node_index = 0;
 				this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
-				this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
+				this->sentence_analysis_data_struct.last_token.data = OPT_EDGE;
 				v_len -= token_len;
 				str += token_len;
 				total_len += token_len;
@@ -2252,7 +2279,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 		varity_info *new_varity_ptr;
 		list_stack *cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
 		this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
-		this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
+		this->sentence_analysis_data_struct.last_token.data = OPT_EDGE;
 		while(v_len > 0) {
 			node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
 			analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
@@ -2263,34 +2290,34 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 				return node_attribute->node_type;//TODO:找一个合适的返回值，generate_mid_code也一样
 			if(node_attribute->node_type == TOKEN_OPERATOR) {
 				stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
-				if(node_attribute->value.int_value == OPT_L_SMALL_BRACKET) {
+				if(node_attribute->data == OPT_L_SMALL_BRACKET) {
 					analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
-				} else if(node_attribute->value.int_value == OPT_R_SMALL_BRACKET) {
+				} else if(node_attribute->data == OPT_R_SMALL_BRACKET) {
 					while(1) {
 						stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
-						if(stack_top_node_ptr->node_type == TOKEN_OPERATOR && stack_top_node_ptr->value.int_value == OPT_L_SMALL_BRACKET)
+						if(stack_top_node_ptr->node_type == TOKEN_OPERATOR && stack_top_node_ptr->data == OPT_L_SMALL_BRACKET)
 							break;
 						analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
 					}
 					analysis_data_struct_ptr->expression_tmp_stack.pop();
-				} else if(node_attribute->value.int_value == OPT_L_MID_BRACKET) {
+				} else if(node_attribute->data == OPT_L_MID_BRACKET) {
 					array_flag = 1;
-				} else if(node_attribute->value.int_value == OPT_R_MID_BRACKET) {
+				} else if(node_attribute->data == OPT_R_MID_BRACKET) {
 					array_flag = 0;
 					cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
-					node_attribute->value.int_value = OPT_INDEX;
+					node_attribute->data = OPT_INDEX;
 					node_attribute->value_type = this->sentence_analysis_data_struct.last_token.value.int_value;
-				} else if(node_attribute->value.int_value == OPT_MUL) {
+				} else if(node_attribute->data == OPT_MUL) {
 					static node_attribute_t *ptr_node_ptr;
-					if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.value.int_value == OPT_PTR_CONTENT) {
+					if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.data == OPT_PTR_CONTENT) {
 						ptr_node_ptr->value_type++;
 					} else {
 						cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
-						node_attribute->value.int_value = OPT_PTR_CONTENT;
+						node_attribute->data = OPT_PTR_CONTENT;
 						node_attribute->value_type = 1;
 						ptr_node_ptr = node_attribute;
 					}
-				} else if(node_attribute->value.int_value == OPT_COMMA || node_attribute->value.int_value == OPT_EDGE || node_attribute->value.int_value == OPT_ASSIGN) {
+				} else if(node_attribute->data == OPT_COMMA || node_attribute->data == OPT_EDGE || node_attribute->data == OPT_ASSIGN) {
 					while(stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value) {
 						analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
 					}
@@ -2308,9 +2335,9 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 						for(int n=0; n<node_count; n++) {
 							head = head->right;
 							node_attribute_t *complex_attribute = (node_attribute_t*)head->value;
-							if(complex_attribute->value.int_value == OPT_INDEX) {
+							if(complex_attribute->data == OPT_INDEX) {
 								*cur_complex_info_ptr = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
-							} else if(complex_attribute->value.int_value == OPT_PTR_CONTENT) {
+							} else if(complex_attribute->data == OPT_PTR_CONTENT) {
 								*cur_complex_info_ptr = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
 							}
 							cur_complex_info_ptr--;
@@ -2342,7 +2369,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 						complex_info[0] = 1;//起始引用次数1
 					}
 					////////
-					if(node_attribute->value.int_value == OPT_ASSIGN) {
+					if(node_attribute->data == OPT_ASSIGN) {
 						int exp_len = find_ch_with_bracket_level(str + 1, ',', 0);
 						if(exp_len == -1)
 							exp_len = find_ch_with_bracket_level(str + 1, ';', 0);
@@ -2357,7 +2384,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					}
 					node_index = 0;
 					this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
-					this->sentence_analysis_data_struct.last_token.value.int_value = OPT_EDGE;
+					this->sentence_analysis_data_struct.last_token.data = OPT_EDGE;
 					v_len -= token_len;
 					str += token_len;
 					continue;
@@ -2499,6 +2526,13 @@ extern "C" void run_interpreter(void)
 extern round_queue token_fifo;
 extern "C" void global_init(void)
 {
+	int i;
 	heapinit();
 	token_fifo.init(MAX_TOKEN_BUFLEN);
+	for(i=0; i<sizeof(basic_type_info)/sizeof(basic_type_info[0]); i++) {
+		c_interpreter::varity_type_stack.arg_count[i] = 2;
+		c_interpreter::varity_type_stack.type_info_addr[i] = basic_type_info[i];
+	}
+	c_interpreter::varity_type_stack.arg_count[STRUCT] = 3;
+	c_interpreter::varity_type_stack.count = sizeof(basic_type_info) / sizeof(basic_type_info[0]);
 }

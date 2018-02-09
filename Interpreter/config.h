@@ -2,8 +2,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define TTY_TYPE			0
-#define HEAPSIZE			1048576
+#define TTY_TYPE				0
+#define HEAPSIZE				1048576
+#define MAX_VARITY_TYPE_COUNT	16
 #define DYNAMIC_ARRAY_EN		0
 #define MAX_LABEL_COUNT			3
 #define MAX_LABEL_NAME_LEN		16
