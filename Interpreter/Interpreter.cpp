@@ -405,6 +405,10 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			error("++ operator need left value.\n");
 			return ERROR_NEED_LEFT_VALUE;
 		}
+		if(instruction_ptr->opdb_operand_type == OPERAND_CONST) {
+			error("++ operator cannot used for const.\n");
+			return ERROR_CONST_ASSIGNED;
+		}
 		varity_number = this->mid_varity_stack.get_count();
 		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 		rvarity_ptr->config_complex_info(bvarity_ptr->get_complex_arg_count(), bvarity_ptr->get_complex_ptr());
@@ -2520,6 +2524,7 @@ void c_interpreter::print_code(void)
 
 extern "C" void run_interpreter(void)
 {
+	kprintf("C program language interpreter.\n");
 	myinterpreter.run_interpreter();
 }
 
