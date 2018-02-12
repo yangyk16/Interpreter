@@ -189,8 +189,6 @@ class c_interpreter: public interpreter {
 	stack mid_code_stack;
 	stack mid_varity_stack;
 	stack *cur_mid_code_stack_ptr;
-	char *stack_pointer;
-	char *tmp_varity_stack_pointer;
 	char simulation_stack[STACK_SIZE];
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	bool exec_flag;
@@ -212,16 +210,61 @@ class c_interpreter: public interpreter {
 	int operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int generate_expression_value(stack *code_stack_ptr, node_attribute_t *opt_node_ptr);
 	friend int call_opt_handle(c_interpreter *interpreter_ptr);
-	friend int opt_call_func_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr);
-	friend int sys_stack_step_handle(c_interpreter *interpreter_ptr, int *opda_addr, int *opdb_addr, int *ret_addr);
+	friend int opt_call_func_handle(c_interpreter *interpreter_ptr);
+	friend int sys_stack_step_handle(c_interpreter *interpreter_ptr);
 	int test(char *str, uint len);
 	void print_code(void);
 	int basic_type_check(char *str, int &len, struct_info *&struct_info_ptr);
+	////////////////////////////opt handle////////////////////////
+	static int opt_asl_handle(c_interpreter *interpreter_ptr);
+	static int opt_asr_handle(c_interpreter *interpreter_ptr);
+	static int opt_big_equ_handle(c_interpreter *interpreter_ptr);
+	static int opt_small_equ_handle(c_interpreter *interpreter_ptr);
+	static int opt_equ_handle(c_interpreter *interpreter_ptr);
+	static int opt_not_equ_handle(c_interpreter *interpreter_ptr);
+	static int opt_devide_assign_handle(c_interpreter *interpreter_ptr);
+	static int opt_mul_assign_handle(c_interpreter *interpreter_ptr);
+	static int opt_mod_assign_handle(c_interpreter *interpreter_ptr);
+	static int opt_add_assign_handle(c_interpreter *interpreter_ptr);
+	static int opt_minus_assign_handle(c_interpreter *interpreter_ptr);
+	static int opt_bit_and_assign_handle(c_interpreter *interpreter_ptr);
+	static int opt_xor_assign_handle(c_interpreter *interpreter_ptr);
+	static int opt_bit_or_assign_handle(c_interpreter *interpreter_ptr);
+	static int opt_and_handle(c_interpreter *interpreter_ptr);
+	static int opt_or_handle(c_interpreter *interpreter_ptr);
+	static int opt_member_handle(c_interpreter *interpreter_ptr);
+	static int opt_minus_handle(c_interpreter *interpreter_ptr);
+	static int opt_bit_revert_handle(c_interpreter *interpreter_ptr);
+	static int opt_mul_handle(c_interpreter *interpreter_ptr);
+	static int opt_bit_and_handle(c_interpreter *interpreter_ptr);
+	static int opt_not_handle(c_interpreter *interpreter_ptr);
+	static int opt_divide_handle(c_interpreter *interpreter_ptr);
+	static int opt_mod_handle(c_interpreter *interpreter_ptr);
+	static int opt_plus_handle(c_interpreter *interpreter_ptr);
+	static int opt_big_handle(c_interpreter *interpreter_ptr);
+	static int opt_small_handle(c_interpreter *interpreter_ptr);
+	static int opt_bit_xor_handle(c_interpreter *interpreter_ptr);
+	static int opt_bit_or_handle(c_interpreter *interpreter_ptr);
+	static int opt_assign_handle(c_interpreter *interpreter_ptr);
+	static int opt_negative_handle(c_interpreter *interpreter_ptr);
+	static int opt_positive_handle(c_interpreter *interpreter_ptr);
+	static int opt_ptr_content_handle(c_interpreter *interpreter_ptr);
+	static int opt_address_of_handle(c_interpreter *interpreter_ptr);
+	static int opt_index_handle(c_interpreter *interpreter_ptr);
+	static int opt_call_func_handle(c_interpreter *interpreter_ptr);
+	static int opt_func_comma_handle(c_interpreter *interpreter_ptr);
+	static int ctl_branch_handle(c_interpreter *interpreter_ptr);
+	static int ctl_branch_true_handle(c_interpreter *interpreter_ptr);
+	static int ctl_branch_false_handle(c_interpreter *interpreter_ptr);
+	static int opt_pass_para_handle(c_interpreter *interpreter_ptr);
+	static void handle_init(void);
 	//////////////////////////////////////////////////////////////////////
 	virtual int sentence_analysis(char*, int);
 	virtual int pre_treat(void);
 
 public:
+	char *stack_pointer;
+	char *tmp_varity_stack_pointer;
 	static varity_type_stack_t varity_type_stack;
 	mid_code *pc;
 	void set_break_flag(int flag) {break_flag = flag;}

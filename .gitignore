@@ -19,3 +19,4 @@ Interpreter/Debug/Interpreter.exe.embed.manifest.res
 *.unsuccessfulbuild
 *.lib
 Debug/Interpreter.exp
+Interpreter/jk

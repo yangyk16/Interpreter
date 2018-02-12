@@ -1026,7 +1026,7 @@ int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, register
 			ret = OK_NONSEQ_FINISH;
 		}
 	}
-	if(!try_flag)
+	if(try_flag)
 		this->nonseq_info->non_seq_struct_depth = depth_bak;
 	return ret;
 }
@@ -1131,8 +1131,13 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 		ret = OK_NONSEQ_DEFINE;
 	}
 	if(str[len - 1] == ';') {
-		if(nonseq_info->non_seq_struct_depth)
-			this->sentence_exec(str, len, true, 0);
+		if(nonseq_info->non_seq_struct_depth) {
+			ret = this->sentence_exec(str, len, true, 0);
+			if(ret) {
+				nonseq_info->non_seq_check_ret = nonseq_info->last_non_seq_check_ret;//恢复上一句结果，否则重输正确语句无法结束非顺序结构
+				return ret;
+			}
+		}
 		if(nonseq_info->last_non_seq_check_ret && nonseq_info->non_seq_struct_depth) {// && nonseq_info->brace_depth == 0
 			if(nonseq_info->last_non_seq_check_ret != NONSEQ_KEY_DO)
 				struct_end_flag = 1;

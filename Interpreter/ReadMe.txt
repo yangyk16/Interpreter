@@ -97,6 +97,7 @@
  2.5  重写多个operator handle
  2.7  operators handle修改；修复printf的bug；修复operator+-的一个bug
  2.8-9支持变量类型强制转换运算符
+ 2.12 重写大部分运算符，修复非顺序结构解析bug
  
 
 

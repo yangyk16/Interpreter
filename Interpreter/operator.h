@@ -15,7 +15,7 @@
 #define FLOAT_VALUE(x) (*(float*)(x))
 #define DOUBLE_VALUE(x) (*(double*)(x))
 #define PTR_VALUE(x) (*(void**)(x))
-#define PTR_N_VALUE(x) (*(long*)(x)) //long长度随平台变化，但16bit情况除外
+#define PTR_N_VALUE(x) (*(unsigned long*)(x)) //long长度随平台变化，但16bit情况除外
 
 #define OPERAND_VARITY		0
 #define OPERAND_MEMBER		0
