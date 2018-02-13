@@ -102,8 +102,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 {
 	static varity_info static_varity;
 	register varity_info *avarity_ptr = &static_varity, *bvarity_ptr = &static_varity, *rvarity_ptr;
-	register int opt = ((node_attribute_t*)opt_node_ptr->value)->data;
-	register int varity_scope;
+	int opt = ((node_attribute_t*)opt_node_ptr->value)->data;
+	int varity_scope;
 	register node_attribute_t *node_attribute;
 	register mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 	int varity_number;
@@ -284,9 +284,9 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_DIVIDE:
 		if(opt == OPT_PLUS && instruction_ptr->opda_varity_type >= CHAR && instruction_ptr->opda_varity_type <= U_LONG_LONG && instruction_ptr->opdb_varity_type <= ARRAY && instruction_ptr->opdb_varity_type >= PTR) {
 			char tmp[sizeof(instruction_ptr->opda_addr) + sizeof(instruction_ptr->opda_operand_type) + sizeof(instruction_ptr->double_space1) + sizeof(instruction_ptr->opda_varity_type)];
-			memcpy(tmp, &instruction_ptr->opda_addr, sizeof(tmp));
-			memcpy(&instruction_ptr->opda_addr, &instruction_ptr->opdb_addr, sizeof(tmp));
-			memcpy(&instruction_ptr->opdb_addr, tmp, sizeof(tmp));
+			kmemcpy(tmp, &instruction_ptr->opda_addr, sizeof(tmp));
+			kmemcpy(&instruction_ptr->opda_addr, &instruction_ptr->opdb_addr, sizeof(tmp));
+			kmemcpy(&instruction_ptr->opdb_addr, tmp, sizeof(tmp));
 		}
 		if(opt == OPT_PLUS)
 			ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
@@ -1763,23 +1763,6 @@ int c_interpreter::sentence_analysis(char* str, int len)
 		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack) {
 			this->varity_global_flag = VARITY_SCOPE_LOCAL;
 		}
-		//if(nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth) {
-		//	switch(nonseq_info->row_info_node[nonseq_info->row_num].non_seq_info) {
-		//	case 0:
-		//		this->nonseq_start_gen_mid_code(str, len, nonseq_info->row_info_node[nonseq_info->row_num].nonseq_type);
-		//		break;
-		//	case 1:
-		//		this->nonseq_end_gen_mid_code(nonseq_info->row_info_node[nonseq_info->row_num].row_ptr, nonseq_info->row_info_node[nonseq_info->row_num].row_len);
-		//		break;
-		//	case 2:
-		//		this->nonseq_mid_gen_mid_code(str, len);
-		//		break;
-		//	default:
-		//		break;
-		//	}
-		//} else {
-		//	this->sentence_exec(str, len, true, 0);
-		//}
 		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack && ret2 == OK_NONSEQ_FINISH) {
 			this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 			this->nonseq_info->stack_frame_size = this->varity_declare->local_varity_stack->offset;

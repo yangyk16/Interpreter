@@ -161,7 +161,7 @@ static char * number(char * str, long num, int base, int size, int precision ,in
         return str;
 }
 
-unsigned int strnlen(const char * s, unsigned int count)
+unsigned int kstrnlen(const char * s, unsigned int count)
 {
         const char *sc;
 
@@ -254,7 +254,7 @@ int ksprintf(char *buf, const char *fmt, va_list args)
                         if (!s)
                                 s = "<NULL>";
 
-                        len = strnlen(s, precision);
+                        len = kstrnlen(s, precision);
 
                         if (!(flags & LEFT))
                                 while (len < field_width--)
