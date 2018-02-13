@@ -1,12 +1,11 @@
 #pragma once
 #ifndef STRING_LIB_H
 #define STRING_LIB_H
-#include <string.h>
 #include "varity.h"
 
 #define TOKEN_KEYWORD_TYPE		1
 #define TOKEN_KEYWORD_CTL		2
-#define TOKEN_KEYWORD_BRANCH	3
+#define TOKEN_ARG_LIST			3
 #define TOKEN_KEYWORD_NONSEQ	4
 #define TOKEN_OPERATOR			5
 #define TOKEN_NAME				6

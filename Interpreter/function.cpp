@@ -2,7 +2,6 @@
 #include "config.h"
 #include "error.h"
 #include "varity.h"
-#include <stdio.h>
 #include "config.h"
 #include "interpreter.h"
 #include "cstdlib.h"

@@ -24,4 +24,6 @@ public:
 	virtual int puts(char*);
 };
 #endif
+
+int kfputs(char *str);
 #endif

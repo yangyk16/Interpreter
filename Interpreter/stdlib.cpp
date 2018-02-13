@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include <stdio.h>
+#include "hal.h"
 
 #define ZEROPAD 1               /* pad with zero */
 #define SIGN    2               /* unsigned/signed long */
@@ -345,8 +346,8 @@ int kprintf(const char *fmt, ...)
     va_start(ap,fmt);
     ksprintf(string,fmt,ap);
     va_end(ap);
-    //uart_sendstring(string);
-	printf("%s",string);
+    kfputs(string);
+	//printf("%s",string);
 	return 0;
 }
 
@@ -441,4 +442,60 @@ char *kstrcpy(char *d, const char *s)
 	}
 	d[i] = 0;
 	return d;
+}
+
+double katof(const char* sptr)
+{
+    double temp=10;
+    bool ispnum=true;
+    double ans=0;
+    if(*sptr=='-')//判断是否是负数
+    {
+        ispnum=false;
+        sptr++;
+    }
+    else if(*sptr=='+')//判断是否为正数
+    {
+        sptr++;
+    }
+
+    while(*sptr!='\0')//寻找小数点之前的数
+    {
+        if(*sptr=='.'){ sptr++;break;}
+        ans=ans*10+(*sptr-'0');
+        sptr++;
+    }
+    while(*sptr!='\0')//寻找小数点之后的数
+    {
+        ans=ans+(*sptr-'0')/temp;
+        temp*=10;
+        sptr++;
+    }
+    if(ispnum) return ans;
+    else return ans*(-1);
+}
+
+int katoi(const char* sptr)
+{
+
+    bool ispnum=true;
+    int ans=0;
+    if(*sptr=='-')//判断是否是负数
+    {
+        ispnum=false;
+        sptr++;
+    }
+    else if(*sptr=='+')//判断是否为正数
+    {
+        sptr++;
+    }
+
+    while(*sptr!='\0')//类型转化
+    {
+        ans=ans*10+(*sptr-'0');
+        sptr++;
+    }
+
+    if(ispnum) return ans;
+    else return ans*(-1);
 }

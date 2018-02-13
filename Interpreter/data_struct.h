@@ -4,7 +4,6 @@
 
 #include "type.h"
 #include "config.h"
-#include <string.h>
 #include "cstdlib.h"
 
 class element {

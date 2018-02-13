@@ -1,9 +1,8 @@
 #include "hal.h"
 #include "config.h"
-#include <iostream>
 #include "kmalloc.h"
 #include "cstdlib.h"
-using namespace std;
+#include <stdio.h>
 
 #if TTY_TYPE == 0
 int tty::readline(char* str)//最后必须补0
@@ -23,21 +22,20 @@ int tty::readline(char* str)//最后必须补0
 
 int tty::puts(char* str)
 {
-	cout << str;
+	printf("%s", str);
 	return 0;
 }
 #elif TTY_TYPE == 1
-void uart_getstring(char *str);
-void uart_sendstring(char *str);
+extern "C" void uart_getstring(char *str);
 int uart::readline(char* str)
 {
 	uart_getstring(str);
 	return 0;
 };
-
+extern "C" void UartSendString(char * src );
 int uart::puts(char* str)
 {
-	uart_sendstring(str);
+	UartSendString(str);
 	return 0;
 }
 #endif
@@ -66,4 +64,14 @@ void* vrealloc(void* addr, unsigned int size)
 {
 	debug("realloc %x, %d\n", addr, size);
 	return krealloc(addr, size);
+}
+
+int kfputs(char *str)
+{
+#if TTY_TYPE == 0
+	printf("%s", str);
+#else
+	UartSendString(str);
+#endif
+	return 0;
 }

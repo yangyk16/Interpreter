@@ -1,8 +1,6 @@
 #include "struct.h"
 #include "config.h"
 #include "error.h"
-#include <stdio.h>
-#include <string.h>
 #include "varity.h"
 #include <stdlib.h>
 #include "cstdlib.h"

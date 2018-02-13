@@ -1,5 +1,4 @@
 #include "interpreter.h"
-#include <stdio.h>
 #include "operator.h"
 #include "string_lib.h"
 #include "error.h"
@@ -100,7 +99,7 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 	return x
 int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr)
 {
-	static varity_info static_varity;
+	varity_info static_varity;
 	register varity_info *avarity_ptr = &static_varity, *bvarity_ptr = &static_varity, *rvarity_ptr;
 	int opt = ((node_attribute_t*)opt_node_ptr->value)->data;
 	int varity_scope;
@@ -1295,7 +1294,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 			if(node_ptr.node_type == TOKEN_NAME) {
 				kstrcpy(function_name, node_ptr.value.ptr_value);
 				get_token(str_bak + token_len, &node_ptr);
-				if(node_ptr.node_type == TOKEN_OPERATOR && node_ptr.data == OPT_L_SMALL_BRACKET) {
+				if(node_ptr.node_type == TOKEN_OPERATOR && node_ptr.data == OPT_L_SMALL_BRACKET || node_ptr.node_type == TOKEN_ARG_LIST) {
 					str = str_bak;
 					function_declare_flag = 1;
 					break;
@@ -1942,7 +1941,7 @@ int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_ty
 		ret = this->generate_mid_code(str + nonseq_info->row_info_node[nonseq_info->row_num].post_info_c + 1, third_flag_pos, false);
 		while(this->cur_mid_code_stack_ptr->get_count() > mid_code_count_of_for) {
 			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->pop();
-			memset(mid_code_ptr, 0, sizeof(mid_code));
+			kmemset(mid_code_ptr, 0, sizeof(mid_code));
 		}
 		break;
 	case NONSEQ_KEY_WHILE:
@@ -1964,7 +1963,7 @@ int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_ty
 	if(ret) {
 		while(this->cur_mid_code_stack_ptr->get_count() > mid_code_count) {
 			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->pop();
-			memset(mid_code_ptr, 0, sizeof(mid_code));
+			kmemset(mid_code_ptr, 0, sizeof(mid_code));
 		}
 	}
 	return ret;

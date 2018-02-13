@@ -4,9 +4,6 @@
 #include "varity.h"
 #include "type.h"
 #include "error.h"
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include "cstdlib.h"
 
 #define OPERATOR_TYPE_NUM	128

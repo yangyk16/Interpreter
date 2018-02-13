@@ -1,6 +1,5 @@
 #include "varity.h"
 #include "data_struct.h"
-#include <stdio.h>
 #include "error.h"
 #include "struct.h"
 #include "operator.h"

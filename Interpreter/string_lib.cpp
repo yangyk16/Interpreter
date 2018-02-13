@@ -3,8 +3,6 @@
 #include "varity.h"
 #include "operator.h"
 #include "error.h"
-#include <stdlib.h>
-#include <stdio.h>
 #include "cstdlib.h"
 #include "interpreter.h"
 
@@ -145,20 +143,21 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 					varity_type = basic_type_check(str + i + 1, v_len, struct_info_ptr);
 					total_len = i + 1;
 					if(varity_type > 0) {
+						int i_bak = i;
 						i += v_len + 1;
 						total_len += v_len;
 						varity_len = (len_in_bracket -= v_len) - 1;
 						varity_type = get_varity_type(str + i, varity_len, name, varity_type, struct_info_ptr, complex_info_ptr);
-						if(name[0] != '\0') {
-							error("Convert operator contains varity name.\n");
-							info->node_type = TOKEN_ERROR;
-							return ERROR_TOKEN;
-						}
 						if(varity_type > 0) {
 							total_len += varity_len;
 							i += varity_len;
 							len_in_bracket -= varity_len;
 							if(get_token(str + i, &node) == len_in_bracket) {
+								if(name[0] != '\0') {
+									//error("Convert operator contains varity name.\n");
+									info->node_type = TOKEN_ARG_LIST;
+									return total_len + 1;
+								}
 								info->data = OPT_TYPE_CONVERT;
 								info->value_type = 2;
 								info->value.ptr_value = (char*)complex_info_ptr;
@@ -166,6 +165,7 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 								return total_len + 1;
 							}
 						}
+						i = i_bak;
 					}
 				}
 				return i + opt_str_len[j];
@@ -432,7 +432,7 @@ int sub_replace(char* str, int indexl, int indexr, char* sub_str)
 
 int y_atoi(char* str)
 {
-	return atoi(str);
+	return katoi(str);
 }
 
 int y_atoi(char* str, int size)
@@ -440,14 +440,14 @@ int y_atoi(char* str, int size)
 	int ret;
 	char ch = str[size];
 	str[size] = 0;
-	ret = atoi(str);
+	ret = katoi(str);
 	str[size] = ch;
 	return ret;
 }
 
 double y_atof(char* str)
 {
-	return atof(str);
+	return katof(str);
 }
 
 double y_atof(char* str, int size)
@@ -455,7 +455,7 @@ double y_atof(char* str, int size)
 	double ret;
 	char ch = str[size];
 	str[size] = 0;
-	ret = atof(str);
+	ret = katof(str);
 	str[size] = ch;
 	return ret;
 }
