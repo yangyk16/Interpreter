@@ -2,6 +2,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define SECTION_OPTIMIZE		0
 #define TTY_TYPE				0
 #define HEAPSIZE				1048576
 #define MAX_VARITY_TYPE_COUNT	16
@@ -33,6 +34,14 @@
 #define MAX_MID_CODE_COUNT		1024
 #define STACK_SIZE				131072//128k
 #define TMP_VARITY_STACK_SIZE	(8 * MAX_A_VARITY_NODE)
+
+#if SECTION_OPTIMIZE
+#define ITCM_TEXT __attribute__((section(".itcmcode")))
+#define DTCM_BSS  __attribute__((section(".dtcmdata")))
+#else
+#define ITCM_TEXT
+#define DTCM_BSS
+#endif
 
 #define debug	kprintf
 #define error	kprintf

@@ -2,6 +2,7 @@
 #ifndef OPERATOR_H
 #define OPERATOR_H
 
+#define HWREG(x) (*(volatile int*)(x))
 #define CHAR_VALUE(x) (*(char*)(x))
 #define U_CHAR_VALUE(x) (*(unsigned char*)(x))
 #define SHORT_VALUE(x) (*(short*)(x))

@@ -1728,17 +1728,25 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 		code_stack_ptr->push();
 		return ERROR_NO;
 }
-
-int c_interpreter::exec_mid_code(mid_code *pc, uint count)
+extern int opt_time;
+ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 {
 	int ret;
 	mid_code *end_ptr = pc + count;
 	this->pc = pc;
+	//int tick1, tick2 = HWREG(0x2040018), total1 = 0, total2 = 0;
+	opt_time = 0;
 	while(this->pc < end_ptr) {
+		//tick1 = HWREG(0x2040018);
+		//total1 += tick2 - tick1;
 		ret = call_opt_handle(this);
-		if(ret) return ret;
+		//tick2 = HWREG(0x2040018);
+		//total2 += tick1 - tick2;
+		if(ret)
+			return ret;
 		this->pc++;
 	}
+	//kprintf("t1=%d,t2=%d,ot=%d\n", total1, total2, opt_time);
 	return ERROR_NO;
 }
 
@@ -2511,16 +2519,18 @@ void c_interpreter::print_code(void)
 
 extern "C" void run_interpreter(void)
 {
-	kprintf("C program language interpreter.\n");
+	kprintf("\nC program language interpreter.\n");
 	myinterpreter.run_interpreter();
 }
 
 extern round_queue token_fifo;
+extern "C" void uc_timer_init(unsigned int index);
 extern "C" void global_init(void)
 {
 	int i;
 	heapinit();
 	token_fifo.init(MAX_TOKEN_BUFLEN);
+	//uc_timer_init(1);
 	for(i=0; i<sizeof(basic_type_info)/sizeof(basic_type_info[0]); i++) {
 		c_interpreter::varity_type_stack.arg_count[i] = 2;
 		c_interpreter::varity_type_stack.type_info_addr[i] = basic_type_info[i];

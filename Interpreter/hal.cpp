@@ -2,7 +2,9 @@
 #include "config.h"
 #include "kmalloc.h"
 #include "cstdlib.h"
+#if TTY_TYPE == 0
 #include <stdio.h>
+#endif
 
 #if TTY_TYPE == 0
 int tty::readline(char* str)//×îºó±ØÐë²¹0

@@ -1347,7 +1347,7 @@ int c_interpreter::opt_mod_handle(c_interpreter *interpreter_ptr)
 	return ERROR_NO;
 }
 
-int c_interpreter::opt_plus_handle(c_interpreter *interpreter_ptr)
+ITCM_TEXT int c_interpreter::opt_plus_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
@@ -1401,7 +1401,7 @@ int c_interpreter::opt_big_handle(c_interpreter *interpreter_ptr)
 	return ERROR_NO;
 }
 
-int c_interpreter::opt_small_handle(c_interpreter *interpreter_ptr)
+ITCM_TEXT int c_interpreter::opt_small_handle(c_interpreter *interpreter_ptr)
 {
 	int mid_type;
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
@@ -1446,7 +1446,7 @@ int c_interpreter::opt_bit_or_handle(c_interpreter *interpreter_ptr)
 	return ERROR_NO;
 }
 
-int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
+ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *instruction_ptr = interpreter_ptr->pc;
 	register int converted_type = instruction_ptr->opda_varity_type, converting_type = instruction_ptr->opdb_varity_type;
@@ -1739,7 +1739,7 @@ int c_interpreter::opt_index_handle(c_interpreter *interpreter_ptr)
 	return ERROR_NO;
 }
 
-int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr)
+ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *instruction_ptr = interpreter_ptr->pc, *pc_backup = interpreter_ptr->pc;
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
@@ -1815,14 +1815,14 @@ int c_interpreter::opt_func_comma_handle(c_interpreter *interpreter_ptr)//TODO: 
 	return opt_assign_handle(interpreter_ptr);
 }
 
-int c_interpreter::ctl_branch_handle(c_interpreter *interpreter_ptr)
+ITCM_TEXT int c_interpreter::ctl_branch_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	instruction_ptr += instruction_ptr->opda_addr - 1;
 	return ERROR_NO;
 }
 
-int c_interpreter::ctl_branch_true_handle(c_interpreter *interpreter_ptr)
+ITCM_TEXT int c_interpreter::ctl_branch_true_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	mid_code *last_instruction_ptr = instruction_ptr - 1;
@@ -1833,7 +1833,7 @@ int c_interpreter::ctl_branch_true_handle(c_interpreter *interpreter_ptr)
 	return ERROR_NO;
 }
 
-int c_interpreter::ctl_branch_false_handle(c_interpreter *interpreter_ptr)
+ITCM_TEXT int c_interpreter::ctl_branch_false_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	mid_code *last_instruction_ptr = instruction_ptr - 1;
@@ -1915,19 +1915,24 @@ void c_interpreter::handle_init(void)
 	opt_handle[SYS_STACK_STEP] = sys_stack_step_handle;
 }
 
+int opt_time;
 int call_opt_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	int ret;
+	int tick1, tick2;
 	if(interpreter_ptr->break_flag) {
 		error("Interrupted by break.\n");
 		if(interpreter_ptr->cur_mid_code_stack_ptr = &interpreter_ptr->mid_code_stack)
 			interpreter_ptr->break_flag = 0;
 		return ERROR_CTL_BREAK;
 	}
-	if(opt_handle[instruction_ptr->ret_operator])
+	if(opt_handle[instruction_ptr->ret_operator]) {
+		//tick1 = HWREG(0x2040018);
 		ret = opt_handle[instruction_ptr->ret_operator](interpreter_ptr);
-	else {
+		//tick2 = HWREG(0x2040018);
+		//opt_time += tick1 - tick2;
+	} else {
 		error("no handle for operator %d\n", instruction_ptr->ret_operator);
 		ret = 0;
 	}
