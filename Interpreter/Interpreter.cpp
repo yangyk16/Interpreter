@@ -1544,8 +1544,12 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 		token_len = get_token(str, node_attribute);
 		if(len < token_len)
 			break;
-		if(node_attribute->node_type == TOKEN_ERROR)
-			return node_attribute->node_type;
+		if(node_attribute->node_type == TOKEN_ERROR) {
+			analysis_data_struct_ptr->expression_final_stack.reset();
+			analysis_data_struct_ptr->expression_tmp_stack.reset();
+			error("Wrong symbol.\n");
+			return ERROR_TOKEN;
+		}
 		if(node_attribute->node_type == TOKEN_OPERATOR) {
 			while(1) {
 				is_operator_convert(str, node_attribute->data, token_len, node_attribute->value_type);

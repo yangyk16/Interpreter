@@ -53,6 +53,19 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 		info->node_type = TOKEN_NAME;
 		return i;
 	} else if(is_number(str[i]) || (str[i] == '.' && is_number(str[i + 1]))) {
+		if(str[i] == '0' && (str[i + 1] == 'x' || str[i + 1] == 'X')) {
+			if(!(str[i + 2] >= '0' && str[i + 2] <= '9' || str[i + 2] >= 'a' && str[i + 2] <= 'f' || str[i + 2] >= 'A' && str[i + 2] <= 'F')) {
+				error("Illegal hex number.\n");
+				return ERROR_TOKEN;
+			}
+			i += 2;
+			while(1) {
+				if(!(str[i] >= '0' && str[i] <= '9' || str[i] >= 'a' && str[i] <= 'f' || str[i] >= 'A' && str[i] <= 'F')) {
+					goto int_value_handle;
+				}
+				i++;
+			}
+		}
 		i++;
 		while(is_number(str[i]))i++;
 		if(str[i] == '.') {
@@ -71,8 +84,14 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 			info->node_type = TOKEN_CONST_VALUE;
 			return i;
 		}
-		info->value_type = INT;
+int_value_handle:
 		info->value.int_value = y_atoi(str, i);
+		if(str[i] == 'u') {
+			info->value_type = U_INT;
+			i++;
+		} else {
+			info->value_type = INT;
+		}
 		info->node_type = TOKEN_CONST_VALUE;
 		return i;
 	} else if(str[i] == '"') {

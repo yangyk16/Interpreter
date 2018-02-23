@@ -477,25 +477,37 @@ double katof(const char* sptr)
 
 int katoi(const char* sptr)
 {
-
-    bool ispnum=true;
-    int ans=0;
-    if(*sptr=='-')//判断是否是负数
-    {
-        ispnum=false;
+	bool ispnum=true;
+	int ans=0;
+	if(*sptr=='-') {
+		ispnum=false;
+		sptr++;
+	} else if(*sptr=='+') {
         sptr++;
     }
-    else if(*sptr=='+')//判断是否为正数
-    {
-        sptr++;
-    }
-
-    while(*sptr!='\0')//类型转化
-    {
-        ans=ans*10+(*sptr-'0');
-        sptr++;
-    }
-
-    if(ispnum) return ans;
-    else return ans*(-1);
+	if(sptr[0] == '0' && (sptr[1] == 'x' || sptr[1] == 'X')) {
+		sptr += 2;
+		while(1) {
+			if(*sptr >= '0' && *sptr <= '9')
+				ans = ans * 16 + *sptr - '0';
+			else if(*sptr >= 'a' && *sptr <= 'f')
+				ans = ans * 16 + *sptr - 'a' + 10;
+			else if(*sptr >= 'A' && *sptr <= 'F')
+				ans = ans * 16 + *sptr - 'A' + 10;
+			else
+				break;
+			sptr++;
+		}
+		goto negative_calc;
+	}
+	while(*sptr)//类型转化
+	{
+		ans=ans*10+(*sptr-'0');
+		sptr++;
+	}
+negative_calc:
+	if(ispnum)
+		return ans;
+	else
+		return -ans;
 }
