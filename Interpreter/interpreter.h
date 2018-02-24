@@ -183,7 +183,7 @@ class c_interpreter: public interpreter {
 	int sub_sentence_analysis(char*, uint* size);
 	int key_word_analysis(char*, uint);
 	int label_analysis(char*, int);
-	int sentence_exec(char*, uint, bool, varity_info*);
+	int sentence_exec(char*, uint, bool);
 	//////////////////////////////////////////////////////////////////////
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;
 	stack mid_code_stack;
@@ -210,7 +210,6 @@ class c_interpreter: public interpreter {
 	int operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int generate_expression_value(stack *code_stack_ptr, node_attribute_t *opt_node_ptr);
 	friend int call_opt_handle(c_interpreter *interpreter_ptr);
-	friend int opt_call_func_handle(c_interpreter *interpreter_ptr);
 	friend int sys_stack_step_handle(c_interpreter *interpreter_ptr);
 	int test(char *str, uint len);
 	void print_code(void);

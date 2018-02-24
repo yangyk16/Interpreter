@@ -14,4 +14,6 @@ int kstrcmp(const char *str1, const char *str2);
 char *kstrcpy(char *d, const char *s);
 int katoi(const char* sptr);
 double katof(const char* sptr);
+bool kisdigit(unsigned char ch);
+
 #endif

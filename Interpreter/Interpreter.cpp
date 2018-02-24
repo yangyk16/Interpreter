@@ -298,7 +298,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		varity_number = this->mid_varity_stack.get_count();
 		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 		rvarity_ptr->set_type(ret_type);
-		if(ret_type == PTR) {
+		if(ret_type == PTR || ret_type == INT) {
 			if(instruction_ptr->opda_varity_type >= PTR && instruction_ptr->opdb_varity_type <= VOID) {
 				rvarity_ptr->config_complex_info(avarity_ptr->get_complex_arg_count(), avarity_ptr->get_complex_ptr());
 				instruction_ptr->data = avarity_ptr->get_first_order_sub_struct_size();
@@ -308,10 +308,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			} else if(instruction_ptr->opda_varity_type >= PTR && instruction_ptr->opdb_varity_type >= PTR) {
 				rvarity_ptr->config_complex_info(bvarity_ptr->get_complex_arg_count(), bvarity_ptr->get_complex_ptr());
 				instruction_ptr->data = bvarity_ptr->get_first_order_sub_struct_size();
-			} /* else {
-				error("Wrong varities type for operator. Interpreter.cpp Line:%d\n", __LINE__);
-				return ERROR_ILLEGAL_OPERAND;
-			}*/
+			}
 			array_to_ptr((PLATFORM_WORD*&)rvarity_ptr->get_complex_ptr(), rvarity_ptr->get_complex_arg_count());
 		}
 		this->mid_varity_stack.push();
@@ -355,12 +352,42 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			error("Need int type operand.\n");
 			return ERROR_ILLEGAL_OPERAND;
 		}
+		goto assign_general;
 	case OPT_ASSIGN:
+		ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		if(ret_type < 0)
+			return ret_type;
+		goto assign_general;
 	case OPT_MUL_ASSIGN:
-	case OPT_ADD_ASSIGN:
-	case OPT_MINUS_ASSIGN:
 	case OPT_DEVIDE_ASSIGN:
-		ret_type = instruction_ptr->opda_varity_type;
+		ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		if(ret_type < 0)
+			return ret_type;
+		goto assign_general;
+	case OPT_ADD_ASSIGN:
+		ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		if(ret_type < 0)
+			return ret_type;
+		if(ret_type == PTR) {
+			if(instruction_ptr->opda_varity_type == PTR)
+				goto assign_general;
+			else
+				error("Can't plus assign.\n"); 
+				return ret_type;
+		} else
+			goto assign_general;
+	case OPT_MINUS_ASSIGN:
+		ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		if(ret_type < 0)
+			return ret_type;
+		if(ret_type == instruction_ptr->opda_varity_type)
+			ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, ret_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr());
+		else
+			ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, ret_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		if(ret_type < 0)
+			return ret_type;
+		goto assign_general;
+assign_general:
 		if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY) {
 			error("Assign operator need left value.\n");
 			return ERROR_NEED_LEFT_VALUE;
@@ -369,9 +396,15 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			return ERROR_CONST_ASSIGNED;
 		} else {
 		}
-		ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
-		if(ret_type < 0)
-			return ret_type;
+		if(ret_type == PTR || ret_type == INT) {
+			if(instruction_ptr->opda_varity_type >= PTR && instruction_ptr->opdb_varity_type <= VOID) {
+				instruction_ptr->data = avarity_ptr->get_first_order_sub_struct_size();
+			} else if(instruction_ptr->opda_varity_type <= VOID && instruction_ptr->opdb_varity_type >= PTR) {
+				instruction_ptr->data = bvarity_ptr->get_first_order_sub_struct_size();
+			} else if(instruction_ptr->opda_varity_type >= PTR && instruction_ptr->opdb_varity_type >= PTR) {
+				instruction_ptr->data = bvarity_ptr->get_first_order_sub_struct_size();
+			}
+		}
 		instruction_ptr->ret_addr = instruction_ptr->opda_addr;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type;
@@ -901,13 +934,12 @@ int c_interpreter::pre_treat(void)
 		rptr++;
 	}
 	sentence_buf[wptr] = 0;
-	//this->tty_used->puts(sentence_buf);
-	//this->tty_used->puts("\n");
 	return wptr;
 }
 
 int c_interpreter::run_interpreter(void)
 {
+	int ret;
 	this->init(&stdio);
 	this->generate_compile_func();
 	while(1) {
@@ -920,8 +952,11 @@ int c_interpreter::run_interpreter(void)
 			tty_used->readline(sentence_buf);
 			len = pre_treat();
 		}
-		this->sentence_analysis(sentence_buf, len);
+		ret = this->sentence_analysis(sentence_buf, len);
+		if(ret == OK_FUNC_RETURN)
+			return ret;
 	}
+	return ERROR_NO;
 }
 
 int c_interpreter::init(terminal* tty_used)
@@ -1112,6 +1147,8 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 		if(ret) {
 			error("Nonseq struct error.\n");
 			this->varity_declare->local_varity_stack->dedeep();
+			if(nonseq_info->row_num == 0)
+				this->exec_flag = exec_flag_bak;
 			return ret;
 		}
 		this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] = SET_BRACE(0, nonseq_info->brace_depth);
@@ -1131,7 +1168,7 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 	}
 	if(str[len - 1] == ';') {
 		if(nonseq_info->non_seq_struct_depth) {
-			ret = this->sentence_exec(str, len, true, 0);
+			ret = this->sentence_exec(str, len, true);
 			if(ret) {
 				nonseq_info->non_seq_check_ret = nonseq_info->last_non_seq_check_ret;//恢复上一句结果，否则重输正确语句无法结束非顺序结构
 				return ret;
@@ -1285,10 +1322,6 @@ int c_interpreter::function_analysis(char* str, uint len)
 		node_attribute_t node_ptr;
 		int token_len;
 		int function_declare_flag = 0;
-		if(!this->exec_flag) {
-			error("Cannot define function here.\n");
-			return ERROR_FUNC_DEF_POS;
-		}
 		while(v_len > 0) {
 			token_len = get_token(str_bak, &node_ptr);
 			if(node_ptr.node_type == TOKEN_NAME) {
@@ -1306,6 +1339,10 @@ int c_interpreter::function_analysis(char* str, uint len)
 		int l_bracket_pos = find_ch_with_bracket_level(str, '(', 0);
 		int r_bracket_pos = find_ch_with_bracket_level(str, ')', 1);
 		if(function_declare_flag) {
+			if(!this->exec_flag) {
+				error("Cannot define function here.\n");
+				return ERROR_FUNC_DEF_POS;
+			}
 			int keylen = kstrlen(type_key[ret_function_define]);
 			stack* arg_stack;
 			this->function_flag_set.function_flag = 1;
@@ -1646,7 +1683,6 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 	if(analysis_data_struct_ptr->expression_final_stack.get_count() == 0) {
 		ret = generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
 		if(ret)return ret;
-		//return ERROR_NO;
 	} else {
 		root->link_reset();
 		ret = list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
@@ -1769,7 +1805,7 @@ int c_interpreter::sentence_analysis(char* str, int len)
 	//if(ret != OK_FUNC_NOFUNC)
 	//	return ERROR_NO;
 	ret2 = non_seq_struct_analysis(str, len);
-	debug("nonseqret=%d\n", ret2);
+	//debug("nonseqret=%d\n", ret2);
 	if(ret2 == OK_NONSEQ_FINISH || ret2 == OK_NONSEQ_INPUTING || ret2 == OK_NONSEQ_DEFINE) {
 		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack) {
 			this->varity_global_flag = VARITY_SCOPE_LOCAL;
@@ -1796,7 +1832,7 @@ int c_interpreter::sentence_analysis(char* str, int len)
 	}
 	if(!nonseq_info->non_seq_struct_depth && ret2 != OK_NONSEQ_INPUTING && str[0] != '}' && str[0] != '{' && ret1 != OK_FUNC_DEFINE || ret1 == OK_FUNC_INPUTING && ret2 != OK_NONSEQ_INPUTING && !nonseq_info->non_seq_struct_depth && str[0] != '{') {
 	//if(str[0] != '}') {
-		ret1 = sentence_exec(str, len, true, NULL);
+		ret1 = sentence_exec(str, len, true);
 		return ret1;
 	}
 	return ERROR_NO;
@@ -2412,28 +2448,23 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 	return ERROR_NO;
 }
 
-int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon, varity_info* expression_value)
+int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon)
 {
 	int ret;
 	int total_bracket_depth;
-	//char ch_last = str[len];
-	int source_len = len;
-	//str[source_len] = 0;
 	if(str[0] == '{' || str[0] == '}')
 		return 0;
 	if(str[len-1] != ';' && need_semicolon) {
 		error("Missing ;\n");
-		//str[source_len] = ch_last;
 		return ERROR_SEMICOLON;
 	}
 	total_bracket_depth = get_bracket_depth(str);
-	if(total_bracket_depth < 0)
+	if(total_bracket_depth < 0) {
+		error("Bracket unmatch.\n");
 		return ERROR_BRACKET_UNMATCH;
+	}
 	int key_word_ret = key_word_analysis(str, len);
-	if(key_word_ret) {
-		//str[source_len] = ch_last;
-		//return key_word_ret;
-	} else {
+	if(!key_word_ret) {
 		ret = this->generate_mid_code(str, len, true);
 		if(ret) return ret;
 	}

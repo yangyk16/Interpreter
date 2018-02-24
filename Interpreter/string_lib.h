@@ -59,13 +59,8 @@ inline int get_bracket_depth(char* str)
 typedef struct node_attribute_s node_attribute_t;
 
 int optcmp(char* str);
-int is_type_convert(char* str, varity_info* covert_type_ptr);
 int nonseq_key_cmp(char* str);
 int remove_char(char* str, char ch);
-int remove_substring(char* str, int index1, int index2);//TODO:可删了
-int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type);
-int check_symbol(char* str, int size);
-int sub_replace(char* str, int indexl, int indexr, char* sub_str);//TODO:可删了
 int y_atoi(char* str, int size);
 int y_atoi(char* str);
 double y_atof(char* str, int size);
@@ -78,7 +73,6 @@ int char_count(char* str, char ch);
 int make_align(int value, int align_byte);
 bool is_valid_c_char(unsigned char ch);
 bool is_letter(unsigned char ch);
-bool is_number(unsigned char ch);
 bool is_non_zero(int type, void* addr);
 int find_ch_with_bracket_level(char* str, char ch, int level);
 int get_token(char *str, node_attribute_t *info);

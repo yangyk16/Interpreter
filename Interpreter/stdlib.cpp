@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include "hal.h"
+#include "cstdlib.h"
 
 #define ZEROPAD 1               /* pad with zero */
 #define SIGN    2               /* unsigned/signed long */
@@ -446,39 +447,54 @@ char *kstrcpy(char *d, const char *s)
 
 double katof(const char* sptr)
 {
-    double temp=10;
-    bool ispnum=true;
-    double ans=0;
-    if(*sptr=='-')//判断是否是负数
-    {
-        ispnum=false;
-        sptr++;
-    }
-    else if(*sptr=='+')//判断是否为正数
-    {
-        sptr++;
-    }
-
-    while(*sptr!='\0')//寻找小数点之前的数
-    {
-        if(*sptr=='.'){ sptr++;break;}
-        ans=ans*10+(*sptr-'0');
-        sptr++;
-    }
-    while(*sptr!='\0')//寻找小数点之后的数
-    {
-        ans=ans+(*sptr-'0')/temp;
-        temp*=10;
-        sptr++;
-    }
-    if(ispnum) return ans;
-    else return ans*(-1);
+	double temp = 10;
+	bool ispnum = true;
+	double ans = 0;
+	int index = 0;
+	while(*sptr == ' ' || *sptr == '\t')
+		sptr++;
+	if(*sptr == '-') {
+		ispnum = false;
+		sptr++;
+	} else if(*sptr == '+') {
+		sptr++;
+	}
+	while(kisdigit(*sptr)) {
+		ans = ans * 10 + (*sptr - '0');
+		sptr++;
+	}
+	if(*sptr == '.')
+		sptr++;
+	while(kisdigit(*sptr)) {
+		ans = ans + (*sptr - '0') / temp;
+		temp *= 10;
+		sptr++;
+	}
+	if(*sptr == 'e' || *sptr == 'E')
+		sptr++;
+	else
+		goto negative_calc;
+	index = katoi(sptr);
+	if(index > 0) {
+		for(int n=0; n<index; n++)
+			ans *= 10;
+	} else if(index < 0) {
+		for(int n=0; n>index; n--)
+			ans /= 10;
+	}
+negative_calc:
+	if(ispnum)
+		return ans;
+	else
+		return -ans;
 }
 
 int katoi(const char* sptr)
 {
 	bool ispnum=true;
 	int ans=0;
+	while(*sptr == ' ' || *sptr == '\t')
+		sptr++;
 	if(*sptr=='-') {
 		ispnum=false;
 		sptr++;
@@ -510,4 +526,9 @@ negative_calc:
 		return ans;
 	else
 		return -ans;
+}
+
+bool kisdigit(unsigned char ch)//ctype.h
+{
+	return ch >= '0' && ch <= '9'? true: false;
 }

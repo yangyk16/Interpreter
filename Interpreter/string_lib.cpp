@@ -52,7 +52,7 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 		info->value.ptr_value = symbol_ptr;
 		info->node_type = TOKEN_NAME;
 		return i;
-	} else if(is_number(str[i]) || (str[i] == '.' && is_number(str[i + 1]))) {
+	} else if(kisdigit(str[i]) || (str[i] == '.' && kisdigit(str[i + 1]))) {
 		if(str[i] == '0' && (str[i + 1] == 'x' || str[i + 1] == 'X')) {
 			if(!(str[i + 2] >= '0' && str[i + 2] <= '9' || str[i + 2] >= 'a' && str[i + 2] <= 'f' || str[i + 2] >= 'A' && str[i + 2] <= 'F')) {
 				error("Illegal hex number.\n");
@@ -67,16 +67,18 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 			}
 		}
 		i++;
-		while(is_number(str[i]))i++;
+		while(kisdigit(str[i]))i++;
 		if(str[i] == '.') {
 			i++;
 			float_flag = 1;
-			while(is_number(str[i]))i++;
+			while(kisdigit(str[i]))i++;
 		}
 		if(str[i] == 'e' || str[i] == 'E') {
 			i++;
 			float_flag = 1;
-			while(is_number(str[i]))i++;
+			if(str[i] == '-' || str[i] == '+')
+				i++;
+			while(kisdigit(str[i]))i++;
 		}
 		if(float_flag) {
 			info->value_type = DOUBLE;
@@ -210,27 +212,6 @@ int optcmp(char* str)
 	return -1;
 }
 
-int is_type_convert(char* str, varity_info* covert_type_ptr)
-{
-	int ret, varity_type;
-	varity_type = optcmp(str);
-	if(varity_type >= 0) {
-		int ptr_level = 0;
-		int i = kstrlen(type_key[varity_type]);
-		while(str[i]) {
-			if(str[i] != '*' && str[i] != 0)
-				return 0;
-			else
-				ptr_level++;
-		}
-		if(covert_type_ptr) {
-			covert_type_ptr->set_type(varity_type + ptr_level * BASIC_VARITY_TYPE_COUNT);
-		}
-		return 1;
-	} else 
-		return 0;
-}
-
 int key_match(char* str, int size, int* type)
 {
 	int i, j;
@@ -283,170 +264,6 @@ int remove_char(char* str, char ch)
 	}
 	str[wptr] = 0;
 	return wptr;
-}
-
-int remove_substring(char* str, int index1, int index2)
-{
-	if(index2 < index1)
-		return -1;
-	int wptr = index1, rptr = index2 + 1;
-	for(; str[rptr]; rptr++) {
-		str[wptr++] = str[rptr];
-	}
-	str[wptr] = 0;
-	return index2 - index1 + 1;
-}
-
-int search_opt(char* str, int size, int direction, int* opt_len, int* opt_type)
-{
-	int i, j;
-	if(size <= 0) {
-		*opt_len = 0;
-		return -1;
-	}
-	if(!direction) {
-		//direction=0: left->right; direction=1: right->left;
-		//merge 2 cycles to 1 can save space, but not merge is easily to read.
-		for(i=0; i<size; i++) {
-			for(j=0; j<sizeof(opt_str)/sizeof(opt_str[0]);j++) {
-				if(str[i] == opt_str[j][0]) {
-					if(i < size - 1 && str[i+1] == opt_str[j][1]) {
-						if(i < size - 2 && str[i+2] == opt_str[j][2]) {
-							*opt_len = 3;
-							*opt_type = j;
-							return i;
-						}
-						if(!opt_str[j][2]) {
-							*opt_len = 2;
-							*opt_type = j;
-							return i;
-						}
-					}
-					if(!opt_str[j][1]) {
-						*opt_len = 1;
-						*opt_type = j;
-						if(*opt_type == OPT_PLUS || *opt_type == OPT_MINUS) {
-							if(i != 0 && (str[i-1] == 'e' || str[i-1] == 'E')) {
-								int k;
-								for(k=0; k<i-1; k++) {
-									if(str[k] != '.' && (str[k] < '0' || str[k] > '9')) {
-										break;
-									}
-								}
-								if(k == i-1) {
-									for(k=i+1; is_valid_c_char(str[k]); k++) {
-										if(str[k] != '.' && (str[k] < '0' || str[k] > '9')) {
-											error("float const is invalid\n");
-											return ERROR_ILLEGAL_OPERAND;
-										}
-									}
-									break;
-								}
-							}
-						} else if(*opt_type == OPT_MEMBER) {
-							int k;
-							for(k=0; k<i; k++) {
-								if(str[k] != '.' && (str[k] < '0' || str[k] > '9')) {
-									break;
-								}
-							}
-							if(k == i) {
-								for(k=i+1; is_valid_c_char(str[k]) || str[k]=='.'; k++) {
-									if((str[k] < '0' || str[k] > '9') && (str[k] != 'e' && str[k] != 'E')) {
-										error("float const is invalid\n");
-										return ERROR_ILLEGAL_OPERAND;
-									}
-								}
-								if(str[k-1] == 'e' || str[k-1] == 'E') {
-									error("float const is invalid\n");
-									return ERROR_ILLEGAL_OPERAND;
-								}
-								break;
-							}
-						}
-						return i;
-					}
-				}
-			}
-		}
-		*opt_len = 0;
-		*opt_type = OPT_EDGE;
-		return size;
-	} else {
-		for(i=size-1; i>=0; i--)
-			for(j=0; j<sizeof(opt_str)/sizeof(opt_str[0]);j++) {
-				if(str[i] == opt_str[j][0]) {
-					if(i < size - 1 && str[i+1] == opt_str[j][1]) {
-						if(i < size - 2 && str[i+2] == opt_str[j][2]) {
-							*opt_len = 3;
-							*opt_type = j;
-							return i;
-						}
-						if(!opt_str[j][2]) {
-							*opt_len = 2;
-							*opt_type = j;
-							return i;
-						}
-					}
-					if(!opt_str[j][1]) {
-						*opt_len = 1;
-						*opt_type = j;
-						return i;
-					}
-				}
-			}
-		if(i == -1) {
-			*opt_len = 0;
-			*opt_type = OPT_EDGE;
-			return 0;
-		}
-	}
-	return -1;
-}
-
-int check_symbol(char* str, int size)
-{
-	int ret = OPERAND_INTEGER;
-	for(int i=0; i<size && str[i]; i++)
-		if(str[i] == '.') {
-			if(ret == OPERAND_INTEGER)
-				ret = OPERAND_FLOAT;
-			else if(ret == OPERAND_FLOAT) {
-				error("float const error\n");
-				return ERROR_ILLEGAL_OPERAND;
-			}
-		} else if((str[i] > '9' || str[i] < '0') && str[i] != '.') {
-			if(str[i] == 'e' || str[i] == 'E') {
-				if(i == size - 1) {
-					error("float const error\n");
-					return ERROR_ILLEGAL_OPERAND;
-				}
-				for(int j=i+1; j<size && str[j]; j++) {
-					if((str[j] > '9' || str[j] < '0') && str[j] != '+' && str[j] != '-') {
-						error("float const error\n");
-						return ERROR_ILLEGAL_OPERAND;
-					}
-				}
-				ret = OPERAND_FLOAT;
-				break;
-			} else {
-				ret = OPERAND_VARITY;
-				break;
-			}
-		}
-	return ret;
-}
-
-int sub_replace(char* str, int indexl, int indexr, char* sub_str)
-{
-	int sub_str_len = kstrlen(sub_str);
-	if(sub_str_len <= indexr - indexl + 1) {
-		kmemcpy(str + indexl, sub_str, sub_str_len);
-		kstrcpy(str + indexl + sub_str_len, str + indexr + 1);
-	} else {
-		debug("complete code,string_lib.cpp, %d" ,__LINE__);
-	}
-	return sub_str_len - (indexr - indexl + 1);
 }
 
 int y_atoi(char* str)
@@ -555,13 +372,6 @@ bool is_valid_c_char(unsigned char ch)
 bool is_letter(unsigned char ch)
 {
 	if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch == '_')
-		return true;
-	return false;
-}
-
-bool is_number(unsigned char ch)
-{
-	if(ch >= '0' && ch <= '9')
 		return true;
 	return false;
 }
