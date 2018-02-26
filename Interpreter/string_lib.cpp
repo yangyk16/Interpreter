@@ -49,6 +49,12 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 				return i;
 			}
 		}
+		if(!kstrcmp(symbol_ptr, "sizeof")) {
+			info->node_type = TOKEN_OPERATOR;
+			info->data = OPT_SIZEOF;
+			info->value_type = 2;
+			return i;
+		}
 		info->value.ptr_value = symbol_ptr;
 		info->node_type = TOKEN_NAME;
 		return i;

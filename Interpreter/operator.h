@@ -78,6 +78,7 @@
 #define OPT_L_MINUS_MINUS		52//no mid code
 #define OPT_R_MINUS_MINUS		53//no mid code
 #define OPT_TYPE_CONVERT		54
+#define OPT_SIZEOF				55
 
 #define CTL_BRANCH				100
 #define CTL_BRANCH_TRUE			101

@@ -22,7 +22,7 @@ const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
 char opt_str[43][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
 char opt_str_len[] = {3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,1,1,17,1,4,2,3,8,2,3,3,4,6,6,9,10,13,13,14,15,16};
-char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1,1};
+char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1,1,1};
 char tmp_varity_name[MAX_A_VARITY_NODE][3];
 char link_varity_name[MAX_A_VARITY_NODE][3];
 
@@ -57,9 +57,9 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 			function_info *function_ptr = this->function_declare->find(((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
 			if(!function_ptr) {
 				error("Function not found.\n");
-				return ERROR_VARITY_NONEXIST; //TODO: 找一个合适的错误码
+				return ERROR_NO_FUNCTION;
 			}
-			if(function_ptr->arg_list->get_count() == 1) {
+			if(function_ptr->arg_list->get_count() == 1) {//无参数函数
 				tree_node->left = last_node;
 				tree_node->right = 0;
 				return ERROR_NO;
@@ -140,7 +140,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				if(opt != OPT_CALL_FUNC) {
 					avarity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
 					if(!avarity_ptr) {
-						error("Varity not exist\n");
+						error("Varity not exist.\n");
 						return ERROR_VARITY_NONEXIST;
 					}
 					if(varity_scope == VARITY_SCOPE_GLOBAL)
@@ -184,7 +184,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				if(opt != OPT_MEMBER && opt != OPT_REFERENCE) {
 					bvarity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
 					if(!bvarity_ptr) {
-						error("Varity not exist\n");
+						error("Varity not exist.\n");
 						return ERROR_VARITY_NONEXIST;
 					}
 					if(varity_scope == VARITY_SCOPE_GLOBAL)
@@ -702,6 +702,32 @@ assign_general:
 	case OPT_EDGE:
 		error("Extra ;\n");
 		return ERROR_SEMICOLON;
+	case OPT_SIZEOF:
+		--this->sentence_analysis_data_struct.sizeof_depth;
+		while(this->cur_mid_code_stack_ptr->get_count() > this->sentence_analysis_data_struct.sizeof_code_count[this->sentence_analysis_data_struct.sizeof_depth]) {
+			this->cur_mid_code_stack_ptr->pop();
+		}
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_CONST_VALUE;
+		((node_attribute_t*)opt_node_ptr->value)->value_type = U_INT;
+		if(((node_attribute_t*)opt_node_ptr->right->value)->node_type == TOKEN_NAME) {
+			if(((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value[0] == TMP_VAIRTY_PREFIX || ((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {
+				varity_number = ((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value[1];
+				rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+			} else
+				rvarity_ptr = (varity_info*)this->varity_declare->find(((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value, PRODUCED_DECLARE);
+			if(rvarity_ptr) {
+				((node_attribute_t*)opt_node_ptr->value)->value.int_value = get_varity_size(0, rvarity_ptr->get_complex_ptr(), rvarity_ptr->get_complex_arg_count());
+			} else {
+				error("Varity not exist.\n");
+				RETURN(ERROR_VARITY_NONEXIST);
+			}
+		} else if(((node_attribute_t*)opt_node_ptr->right->value)->node_type == TOKEN_CONST_VALUE) {
+
+		} else {
+			error("Wrong use of sizeof.\n");
+			RETURN(ERROR_SIZEOF);
+		}
+		RETURN(ERROR_NO);
 	default:
 		error("what??\n");
 		break;
@@ -730,10 +756,6 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		break;
 	case OPT_CALL_FUNC:
 		this->call_func_info.function_ptr[this->call_func_info.function_depth] = this->function_declare->find(((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value);
-		if(!this->call_func_info.function_ptr[this->call_func_info.function_depth]) {
-			error("Function not found.\n");
-			return ERROR_VARITY_NONEXIST; //TODO: 找一个合适的错误码
-		}
 		this->call_func_info.arg_count[this->call_func_info.function_depth] = this->call_func_info.function_ptr[this->call_func_info.function_depth]->arg_list->get_count();
 		this->call_func_info.cur_arg_number[this->call_func_info.function_depth] = 0;
 		this->call_func_info.offset[this->call_func_info.function_depth] = 0;
@@ -765,7 +787,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					int varity_scope;
 					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
 					if(!varity_ptr) {
-						error("Varity not exist\n");
+						error("Varity not exist.\n");
 						return ERROR_VARITY_NONEXIST;
 					}
 					if(varity_scope == VARITY_SCOPE_GLOBAL)
@@ -867,6 +889,9 @@ int c_interpreter::operator_pre_handle(stack *code_stack_ptr, node *opt_node_ptr
 			error("? && : unmatch.\n");
 			return ERROR_TERNARY_UNMATCH;
 		}
+	case OPT_SIZEOF:
+		this->sentence_analysis_data_struct.sizeof_code_count[this->sentence_analysis_data_struct.sizeof_depth++] = this->cur_mid_code_stack_ptr->get_count();
+		break;
 	}
 	return ERROR_NO;
 }
@@ -975,6 +1000,7 @@ int c_interpreter::init(terminal* tty_used)
 		this->struct_declare = &c_interpreter::language_elment_space.c_struct;
 		this->nonseq_info->nonseq_begin_stack_ptr = 0;
 		this->sentence_analysis_data_struct.short_depth = 0;
+		this->sentence_analysis_data_struct.sizeof_depth = 0;
 		this->sentence_analysis_data_struct.label_count = 0;
 		for(int i=0; i<MAX_A_VARITY_NODE; i++) {
 			link_varity_name[i][0] = LINK_VARITY_PREFIX;
@@ -1749,7 +1775,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
 					if(!varity_ptr) {
 						this->mid_varity_stack.pop();
-						error("Varity not exist\n");
+						error("Varity not exist.\n");
 						return ERROR_VARITY_NONEXIST;
 					}
 					if(varity_scope == VARITY_SCOPE_GLOBAL)

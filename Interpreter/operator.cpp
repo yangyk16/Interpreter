@@ -1614,6 +1614,8 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 				INT_VALUE(converted_ptr) = (int)converting_ptr;
 			} else if(converting_type == PTR) {
 				INT_VALUE(converted_ptr) = (int)PTR_VALUE(converting_ptr);
+			} else if(converting_type == U_INT) {
+				INT_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
 			}
 			break;
 		case U_SHORT:

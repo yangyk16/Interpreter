@@ -348,7 +348,6 @@ int kprintf(const char *fmt, ...)
     ksprintf(string,fmt,ap);
     va_end(ap);
     kfputs(string);
-	//printf("%s",string);
 	return 0;
 }
 

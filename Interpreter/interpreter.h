@@ -114,7 +114,9 @@ typedef struct sentence_analysis_data_struct_s {
 	node *tree_root;
 	PLATFORM_WORD short_calc_stack[MAX_LOGIC_DEPTH];
 	char short_depth;
-	void* label_addr[MAX_LABEL_COUNT];
+	char sizeof_depth;
+	uint sizeof_code_count[MAX_SIZEOF_DEPTH];
+	void *label_addr[MAX_LABEL_COUNT];
 	char label_name[MAX_LABEL_COUNT][MAX_LABEL_NAME_LEN];
 	int label_count;
 } sentence_analysis_data_struct_t;
