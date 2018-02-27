@@ -2060,8 +2060,8 @@ int c_interpreter::nonseq_start_gen_mid_code(char *str, uint len, int non_seq_ty
 	int key_len = get_token(str, &token_node), first_flag_pos, second_flag_pos, third_flag_pos;
 	int begin_pos = get_token(str + key_len, &token_node);
 	int ret = ERROR_NO;
-	int mid_code_count;
-	int mid_code_count_of_for;
+	uint mid_code_count;
+	uint mid_code_count_of_for;
 	if((token_node.node_type != TOKEN_OPERATOR || token_node.data != OPT_L_SMALL_BRACKET) && token_node.value.int_value != NONSEQ_KEY_DO && token_node.value.int_value != NONSEQ_KEY_ELSE) {
 		error("Lack of bracket\n");
 		return ERROR_NONSEQ_GRAMMER;
@@ -2226,7 +2226,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 int c_interpreter::basic_type_check(char *str, int &len, struct_info *&struct_info_ptr)
 {
 	int is_varity_declare, token_len, total_token_len = 0;
-	char varity_name[MAX_VARITY_NAME_LEN], struct_name[MAX_VARITY_NAME_LEN];
+	char struct_name[MAX_VARITY_NAME_LEN];
 	node_attribute_t node_attribute;
 	token_len = get_token(str, &node_attribute);
 	str += token_len;
@@ -2562,18 +2562,18 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon)
 {
 	int ret;
-	int total_bracket_depth;
+	//int total_bracket_depth;
 	if(str[0] == '{' || str[0] == '}')
 		return 0;
 	if(str[len-1] != ';' && need_semicolon) {
 		error("Missing ;\n");
 		return ERROR_SEMICOLON;
 	}
-	total_bracket_depth = get_bracket_depth(str);
-	if(total_bracket_depth < 0) {
-		error("Bracket unmatch.\n");
-		return ERROR_BRACKET_UNMATCH;
-	}
+	//total_bracket_depth = get_bracket_depth(str);
+	//if(total_bracket_depth < 0) {
+	//	error("Bracket unmatch.\n");
+	//	return ERROR_BRACKET_UNMATCH;
+	//}
 	int key_word_ret = key_word_analysis(str, len);
 	if(!key_word_ret) {
 		ret = this->generate_mid_code(str, len, true);
@@ -2606,7 +2606,7 @@ void c_interpreter::print_code(void)
 		} else if(ptr->ret_operand_type == OPERAND_LINK_VARITY) {
 			debug("#%d=", ptr->ret_addr / 8);
 		} else if(ptr->ret_operand_type == OPERAND_G_VARITY) {
-			for(int i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
+			for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
 				if(this->language_elment_space.g_varity_node[i].get_content_ptr() == (void*)ptr->ret_addr) {
 					debug("%s=",this->language_elment_space.g_varity_node[i].get_name());
 					break;
@@ -2620,7 +2620,7 @@ void c_interpreter::print_code(void)
 		} else if(ptr->opda_operand_type == OPERAND_LINK_VARITY) {
 			debug("#%d ", ptr->opda_addr / 8);
 		} else if(ptr->opda_operand_type == OPERAND_G_VARITY) {
-			for(int i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
+			for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
 				if(this->language_elment_space.g_varity_node[i].get_content_ptr() == (void*)ptr->opda_addr) {
 					debug("%s ",this->language_elment_space.g_varity_node[i].get_name());
 					break;
@@ -2643,7 +2643,7 @@ void c_interpreter::print_code(void)
 		} else if(ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
 			debug("#%d", ptr->opdb_addr / 8);
 		} else if(ptr->opdb_operand_type == OPERAND_G_VARITY) {
-			for(int i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
+			for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
 				if(this->language_elment_space.g_varity_node[i].get_content_ptr() == (void*)ptr->opdb_addr) {
 					debug("%s",this->language_elment_space.g_varity_node[i].get_name());
 					break;

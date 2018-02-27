@@ -28,11 +28,10 @@ int tty::puts(char* str)
 	return 0;
 }
 #elif TTY_TYPE == 1
-extern "C" void uart_getstring(char *str);
+extern "C" int uart_getstring(char *str);
 int uart::readline(char* str)
 {
-	uart_getstring(str);
-	return 0;
+	return uart_getstring(str);
 };
 extern "C" void UartSendString(char * src );
 int uart::puts(char* str)

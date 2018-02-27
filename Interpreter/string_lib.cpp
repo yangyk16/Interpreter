@@ -22,6 +22,7 @@ int get_escape_char(char *str, char &ch) {
 	case 0:
 		return -1;
 	}
+	return 0;
 }
 
 int c_interpreter::get_token(char *str, node_attribute_t *info)
@@ -402,6 +403,7 @@ bool is_non_zero(int type, void* addr)
 	case U_LONG_LONG:
 		return LONG_LONG_VALUE(addr) != 0;
 	}
+	return true;
 }
 
 int find_ch_with_bracket_level(char* str, char ch, int level)

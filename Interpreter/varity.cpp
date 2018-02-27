@@ -36,7 +36,7 @@ void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag)
 int destroy_varity_stack(stack *stack_ptr)//仅限局部变量和参数表
 {
 	varity_info *varity_ptr = (varity_info*)stack_ptr->get_base_addr();
-	for(int i=0; i<stack_ptr->get_count(); i++, varity_ptr++) {
+	for(uint i=0; i<stack_ptr->get_count(); i++, varity_ptr++) {
 		dec_varity_ref(varity_ptr, true);
 		vfree(varity_ptr->get_name());
 	}
@@ -68,6 +68,7 @@ int varity_attribute::get_type(void)
 			return ARRAY;
 		}
 	}
+	return INT;
 }
 
 void varity_info::config_complex_info(int complex_arg_count, PLATFORM_WORD* info_ptr)
@@ -400,6 +401,8 @@ void *get_basic_info(int basic_type, void *info_ptr, struct_define *struct_defin
 		struct_info *struct_info_ptr = struct_define_ptr->find_info(info_ptr);
 		if(struct_info_ptr)
 			return struct_info_ptr->type_info_ptr;
+		else
+			return 0;
 	} else {
 		return 0;
 	}

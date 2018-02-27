@@ -350,13 +350,13 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 				DOUBLE_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
 				break; \
 			case U_INT: \
-				DOUBLE_VALUE(converted_ptr) x U_INT_VALUE(converting_ptr); \
+				DOUBLE_VALUE(converted_ptr) x (double)U_INT_VALUE(converting_ptr); \
 				break; \
 			case INT: \
 				DOUBLE_VALUE(converted_ptr) x INT_VALUE(converting_ptr); \
 				break; \
 			case U_LONG: \
-				DOUBLE_VALUE(converted_ptr) x U_LONG_VALUE(converting_ptr); \
+				DOUBLE_VALUE(converted_ptr) x (double)U_LONG_VALUE(converting_ptr); \
 				break; \
 			case LONG: \
 				DOUBLE_VALUE(converted_ptr) x LONG_VALUE(converting_ptr); \
@@ -365,10 +365,10 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 				DOUBLE_VALUE(converted_ptr) x FLOAT_VALUE(converting_ptr); \
 				break; \
 			case U_LONG_LONG: \
-				DOUBLE_VALUE(converted_ptr) x U_LONG_LONG_VALUE(converting_ptr); \
+				DOUBLE_VALUE(converted_ptr) x (double)U_LONG_LONG_VALUE(converting_ptr); \
 				break; \
 			case LONG_LONG: \
-				DOUBLE_VALUE(converted_ptr) x LONG_LONG_VALUE(converting_ptr); \
+				DOUBLE_VALUE(converted_ptr) x (double)LONG_LONG_VALUE(converting_ptr); \
 				break; \
 			} \
 			break; \
@@ -387,22 +387,22 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 				FLOAT_VALUE(converted_ptr) x SHORT_VALUE(converting_ptr); \
 				break; \
 			case U_INT: \
-				FLOAT_VALUE(converted_ptr) x U_INT_VALUE(converting_ptr); \
+				FLOAT_VALUE(converted_ptr) x (float)U_INT_VALUE(converting_ptr); \
 				break; \
 			case INT: \
-				FLOAT_VALUE(converted_ptr) x INT_VALUE(converting_ptr); \
+				FLOAT_VALUE(converted_ptr) x (float)INT_VALUE(converting_ptr); \
 				break; \
 			case U_LONG: \
-				FLOAT_VALUE(converted_ptr) x U_LONG_VALUE(converting_ptr); \
+				FLOAT_VALUE(converted_ptr) x (float)U_LONG_VALUE(converting_ptr); \
 				break; \
 			case LONG: \
-				FLOAT_VALUE(converted_ptr) x LONG_VALUE(converting_ptr); \
+				FLOAT_VALUE(converted_ptr) x (float)LONG_VALUE(converting_ptr); \
 				break; \
 			case U_LONG_LONG: \
-				FLOAT_VALUE(converted_ptr) x U_LONG_LONG_VALUE(converting_ptr); \
+				FLOAT_VALUE(converted_ptr) x (float)U_LONG_LONG_VALUE(converting_ptr); \
 				break; \
 			case LONG_LONG: \
-				FLOAT_VALUE(converted_ptr) x LONG_LONG_VALUE(converting_ptr); \
+				FLOAT_VALUE(converted_ptr) x (float)LONG_LONG_VALUE(converting_ptr); \
 				break; \
 			} \
 			break; \
@@ -419,7 +419,7 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 			} else if(converting_type == FLOAT) { \
 				INT_VALUE(converted_ptr) x (int)FLOAT_VALUE(converting_ptr); \
 			} else if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) { \
-				INT_VALUE(converted_ptr) x LONG_LONG_VALUE(converting_ptr); \
+				INT_VALUE(converted_ptr) x (int)LONG_LONG_VALUE(converting_ptr); \
 			} \
 			break; \
 		case U_SHORT: \
@@ -459,7 +459,7 @@ int get_ret_type(int a, int b)//TODO:ÄÚÁª
 	} else if(a >= PTR && b >= PTR) {
 		return INT;
 	}
-
+	return INT;
 }
 
 int get_varity_size(int type)
@@ -528,10 +528,10 @@ inline int varity_convert(void *converted_ptr, int converted_type, void *convert
 				DOUBLE_VALUE(converted_ptr) = FLOAT_VALUE(converting_ptr);
 				break;
 			case U_LONG_LONG:
-				DOUBLE_VALUE(converted_ptr) = U_LONG_LONG_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = (double)U_LONG_LONG_VALUE(converting_ptr);
 				break;
 			case LONG_LONG:
-				DOUBLE_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = (double)LONG_LONG_VALUE(converting_ptr);
 				break;
 			}
 			break;
@@ -550,22 +550,22 @@ inline int varity_convert(void *converted_ptr, int converted_type, void *convert
 				FLOAT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
 				break;
 			case U_INT:
-				FLOAT_VALUE(converted_ptr) = U_INT_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)U_INT_VALUE(converting_ptr);
 				break;
 			case INT:
-				FLOAT_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)INT_VALUE(converting_ptr);
 				break;
 			case U_LONG:
-				FLOAT_VALUE(converted_ptr) = U_LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)U_LONG_VALUE(converting_ptr);
 				break;
 			case LONG:
-				FLOAT_VALUE(converted_ptr) = LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)LONG_VALUE(converting_ptr);
 				break;
 			case U_LONG_LONG:
-				FLOAT_VALUE(converted_ptr) = U_LONG_LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)U_LONG_LONG_VALUE(converting_ptr);
 				break;
 			case LONG_LONG:
-				FLOAT_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)LONG_LONG_VALUE(converting_ptr);
 				break;
 			}
 			break;
@@ -593,7 +593,7 @@ inline int varity_convert(void *converted_ptr, int converted_type, void *convert
 			} else if(converting_type == FLOAT) {
 				INT_VALUE(converted_ptr) = (int)FLOAT_VALUE(converting_ptr);
 			} else if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) {
-				INT_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr);
+				INT_VALUE(converted_ptr) = (int)LONG_LONG_VALUE(converting_ptr);
 			}
 			break;
 		case U_SHORT:
@@ -926,7 +926,7 @@ int c_interpreter::opt_add_assign_handle(c_interpreter *interpreter_ptr)
 			} else if(converting_type == FLOAT) {
 				INT_VALUE(converted_ptr) += (int)FLOAT_VALUE(converting_ptr);
 			} else if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) {
-				INT_VALUE(converted_ptr) += LONG_LONG_VALUE(converting_ptr);
+				INT_VALUE(converted_ptr) += (int)LONG_LONG_VALUE(converting_ptr);
 			}
 			break;
 		case U_SHORT:
@@ -1111,7 +1111,7 @@ int c_interpreter::opt_minus_assign_handle(c_interpreter *interpreter_ptr)
 			} else if(converting_type == FLOAT) {
 				INT_VALUE(converted_ptr) -= (int)FLOAT_VALUE(converting_ptr);
 			} else if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) {
-				INT_VALUE(converted_ptr) -= LONG_LONG_VALUE(converting_ptr);
+				INT_VALUE(converted_ptr) -= (int)LONG_LONG_VALUE(converting_ptr);
 			}
 			break;
 		case U_SHORT:
@@ -1205,6 +1205,7 @@ int c_interpreter::opt_or_handle(c_interpreter *interpreter_ptr)
 		return ERROR_TYPE_CONVERT;
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, converted_varityb);
 	last_ret_abs_addr = ret_addr;
+	return ERROR_NO;
 }
 
 int c_interpreter::opt_member_handle(c_interpreter *interpreter_ptr)
@@ -1542,10 +1543,10 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 				DOUBLE_VALUE(converted_ptr) = FLOAT_VALUE(converting_ptr);
 				break;
 			case U_LONG_LONG:
-				DOUBLE_VALUE(converted_ptr) = U_LONG_LONG_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = (double)U_LONG_LONG_VALUE(converting_ptr);
 				break;
 			case LONG_LONG:
-				DOUBLE_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = (double)LONG_LONG_VALUE(converting_ptr);
 				break;
 			}
 			break;
@@ -1564,22 +1565,22 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 				FLOAT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
 				break;
 			case U_INT:
-				FLOAT_VALUE(converted_ptr) = U_INT_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)U_INT_VALUE(converting_ptr);
 				break;
 			case INT:
-				FLOAT_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)INT_VALUE(converting_ptr);
 				break;
 			case U_LONG:
-				FLOAT_VALUE(converted_ptr) = U_LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)U_LONG_VALUE(converting_ptr);
 				break;
 			case LONG:
-				FLOAT_VALUE(converted_ptr) = LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)LONG_VALUE(converting_ptr);
 				break;
 			case U_LONG_LONG:
-				FLOAT_VALUE(converted_ptr) = U_LONG_LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)U_LONG_LONG_VALUE(converting_ptr);
 				break;
 			case LONG_LONG:
-				FLOAT_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(converted_ptr) = (float)LONG_LONG_VALUE(converting_ptr);
 				break;
 			}
 			break;
@@ -1591,7 +1592,7 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 			} else if(converting_type == SHORT || converting_type == U_SHORT) {
 				PTR_N_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
 			} else if(converting_type == LONG_LONG || converting_type ==  U_LONG_LONG) {
-				PTR_N_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr);
+				PTR_N_VALUE(converted_ptr) = (PLATFORM_WORD)LONG_LONG_VALUE(converting_ptr);
 			}
 			break;
 		}
@@ -1609,7 +1610,7 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 			} else if(converting_type == FLOAT) {
 				INT_VALUE(converted_ptr) = (int)FLOAT_VALUE(converting_ptr);
 			} else if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) {
-				INT_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr);
+				INT_VALUE(converted_ptr) = (int)LONG_LONG_VALUE(converting_ptr);
 			} else if(converting_type == ARRAY) {
 				INT_VALUE(converted_ptr) = (int)converting_ptr;
 			} else if(converting_type == PTR) {

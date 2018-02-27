@@ -353,7 +353,7 @@ int kprintf(const char *fmt, ...)
 
 void* kmemcpy(void *d, const void *s, unsigned int size)
 {//TODO：加入空指针检查？可能不需要
-	int i, j, remain;
+	unsigned int i, j, remain;
 	if(size < 64 || (long)d & 1 || (long)s & 1) {
 		for(i=0; i<size; i++) {
 			*(char*)((long)d + i) = *(char*)((long)s + i);
@@ -382,7 +382,7 @@ void* kmemcpy(void *d, const void *s, unsigned int size)
 
 void* kmemset(register void *d, int ch, register unsigned int size)
 {
-	register int i, j;
+	register int unsigned i, j;
 	int block, remain;
 	if(size < 64 || (long)d & 1) {
 		for(i=0; i<size; i++) {
@@ -402,8 +402,8 @@ void* kmemset(register void *d, int ch, register unsigned int size)
 				*(char*)((long)d + j) = ch;
 		} else if(!((long)d & 1)) {
 			remain = size & 3;
-			*(char*)block = ch;
-			*(char*)((unsigned long)block + 1) = ch;
+			*(char*)&block = ch;
+			*(char*)((unsigned long)&block + 1) = ch;
 			for(i=0; i<size; i+=2) {
 				*(short*)((unsigned long)d + i) = (short)block;
 			}
