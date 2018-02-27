@@ -1438,7 +1438,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 			if(node_ptr.node_type == TOKEN_NAME) {
 				kstrcpy(function_name, node_ptr.value.ptr_value);
 				get_token(str_bak + token_len, &node_ptr);
-				if(node_ptr.node_type == TOKEN_OPERATOR && node_ptr.data == OPT_L_SMALL_BRACKET || node_ptr.node_type == TOKEN_ARG_LIST) {
+				if(node_ptr.node_type == TOKEN_OPERATOR && (node_ptr.data == OPT_L_SMALL_BRACKET || node_ptr.data == OPT_TYPE_CONVERT) || node_ptr.node_type == TOKEN_ARG_LIST) {
 					str = str_bak;
 					function_declare_flag = 1;
 					break;
@@ -1798,6 +1798,10 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 		root->link_reset();
 		ret = list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
 		if(ret)return ret;
+		if(analysis_data_struct_ptr->expression_final_stack.get_count()) {
+			error("Exist extra token.\n");
+			return ERROR_OPERAND_SURPLUS;
+		}
 		//root->middle_visit();
 		ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
 		if(ret) {

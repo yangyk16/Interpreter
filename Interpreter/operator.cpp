@@ -573,9 +573,9 @@ inline int varity_convert(void *converted_ptr, int converted_type, void *convert
 			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG) {
 				PTR_VALUE(converted_ptr) = (void*)INT_VALUE(converting_ptr);
 			} else if(converting_type == CHAR || converting_type == U_CHAR) {
-				PTR_VALUE(converted_ptr) = (void*)CHAR_VALUE(converting_ptr);
+				PTR_VALUE(converted_ptr) = (void*)(PLATFORM_WORD)CHAR_VALUE(converting_ptr);
 			} else if(converting_type == SHORT || converting_type == U_SHORT) {
-				PTR_VALUE(converted_ptr) = (void*)SHORT_VALUE(converting_ptr);
+				PTR_VALUE(converted_ptr) = (void*)(PLATFORM_WORD)SHORT_VALUE(converting_ptr);
 			} else if(converting_type > CHAR) {
 				PTR_VALUE(converted_ptr) = (void*)INT_VALUE(converting_ptr);
 			}

@@ -24,11 +24,11 @@
 #define ATTRIBUTE_RIGHT_VALUE	(1 << 4)
 #define ATTRIBUTE_REFERENCE		(1 << 5)
 
-#define COMPLEX_ARRAY	1
-#define COMPLEX_PTR		2
-#define COMPLEX_ARG		3
-#define COMPLEX_COMPLEX	4
-#define COMPLEX_BASIC	5
+#define COMPLEX_ARRAY	1u
+#define COMPLEX_PTR		2u
+#define COMPLEX_ARG		3u
+#define COMPLEX_COMPLEX	4u
+#define COMPLEX_BASIC	5u
 
 #define COMPLEX_TYPE_BIT	29
 #define COMPLEX_DATA_BIT_MASK	(~(0xFFFFFFFFu >> COMPLEX_TYPE_BIT << COMPLEX_TYPE_BIT))
@@ -51,19 +51,19 @@
 #define LONG_LONG 8
 #define U_LONG 9
 #endif
-#define STRUCT	14
-#define VOID 13
-#define DOUBLE 12
-#define FLOAT 11
-#define U_LONG_LONG 10
-#define INT 5
-#define U_SHORT 4
-#define SHORT 3
-#define U_CHAR 2
-#define CHAR 1
-#define COMPLEX	0
-#define PTR 16
-#define ARRAY 17
+#define STRUCT	14u
+#define VOID 13u
+#define DOUBLE 12u
+#define FLOAT 11u
+#define U_LONG_LONG 10u
+#define INT 5u
+#define U_SHORT 4u
+#define SHORT 3u
+#define U_CHAR 2u
+#define CHAR 1u
+#define COMPLEX	0u
+#define PTR 16u
+#define ARRAY 17u
 #define PLATFORM_TYPE LONG
 typedef unsigned long PLATFORM_WORD;
 
