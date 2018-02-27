@@ -261,7 +261,7 @@ class c_interpreter: public interpreter {
 	static void handle_init(void);
 	//////////////////////////////////////////////////////////////////////
 	virtual int sentence_analysis(char*, int);
-	virtual int pre_treat(void);
+	virtual int pre_treat(uint);
 
 public:
 	char *stack_pointer;

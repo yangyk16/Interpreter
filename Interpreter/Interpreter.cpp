@@ -41,6 +41,9 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 		last_node_attribute = (node_attribute_t*)last_node->value;
 		tree_node->right = last_node;
 		if(last_node_attribute->node_type == TOKEN_OPERATOR) {
+			if(last_node_attribute->data == OPT_TYPE_CONVERT && ((node_attribute_t*)tree_node->value)->data == OPT_SIZEOF) {
+				return ERROR_NO;
+			}
 			ret = list_stack_to_tree(last_node, post_order_stack);
 			if(ret)
 				return ret;
@@ -208,12 +211,12 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		if(opt == OPT_MEMBER) {
 			if(avarity_ptr->get_type() != STRUCT) {
 				error("Only struct can use member operator.\n");
-				return ERROR_ILLEGAL_OPERAND;
+				RETURN(ERROR_ILLEGAL_OPERAND);
 			}
 		} else {
 			if(avarity_ptr->get_complex_arg_count() != 3 || GET_COMPLEX_DATA(((PLATFORM_WORD*)avarity_ptr->get_complex_ptr())[2]) != STRUCT || GET_COMPLEX_TYPE(((PLATFORM_WORD*)avarity_ptr->get_complex_ptr())[3]) != COMPLEX_PTR) {
 				error("Only pointer to struct can use reference operator.\n");
-				return ERROR_ILLEGAL_OPERAND;			
+				RETURN(ERROR_ILLEGAL_OPERAND);
 			}
 		}
 		//ret_type = get_ret_type(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
@@ -221,7 +224,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		member_varity_ptr = (varity_info*)struct_info_ptr->varity_stack_ptr->find(node_attribute->value.ptr_value);
 		if(!member_varity_ptr) {
 			error("No member in struct.\n");
-			return ERROR_STRUCT_MEMBER;
+			RETURN(ERROR_STRUCT_MEMBER);
 		}
 		avarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 		avarity_ptr->config_complex_info(member_varity_ptr->get_complex_arg_count(), member_varity_ptr->get_complex_ptr());
@@ -273,7 +276,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
 		} else {
 			error("No array or ptr varity for using [].\n");
-			return ERROR_USED_INDEX;
+			RETURN(ERROR_USED_INDEX);
 		}
 		break;
 	}
@@ -293,8 +296,9 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
 		else
 			ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
-		if(ret_type < 0)
-			return ret_type;
+		if(ret_type < 0) {
+			RETURN(ret_type);
+		}
 		varity_number = this->mid_varity_stack.get_count();
 		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 		rvarity_ptr->set_type(ret_type);
@@ -327,8 +331,9 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_BIG:
 	case OPT_SMALL:
 		ret_type = try_call_opt_handle(OPT_EQU, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
-		if(ret_type < 0)
-			return ret_type;
+		if(ret_type < 0) {
+			RETURN(ret_type);
+		}
 		ret_type = INT;
 		varity_number = this->mid_varity_stack.get_count();
 		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
@@ -350,50 +355,56 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_BIT_OR_ASSIGN:
 		if(instruction_ptr->opda_varity_type > U_LONG_LONG || instruction_ptr->opdb_varity_type > U_LONG_LONG) {
 			error("Need int type operand.\n");
-			return ERROR_ILLEGAL_OPERAND;
+			RETURN(ERROR_ILLEGAL_OPERAND);
 		}
 		goto assign_general;
 	case OPT_ASSIGN:
 		ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
-		if(ret_type < 0)
-			return ret_type;
+		if(ret_type < 0) {
+			RETURN(ret_type);
+		}
 		goto assign_general;
 	case OPT_MUL_ASSIGN:
 	case OPT_DEVIDE_ASSIGN:
 		ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
-		if(ret_type < 0)
-			return ret_type;
+		if(ret_type < 0) {
+			RETURN(ret_type);
+		}
 		goto assign_general;
 	case OPT_ADD_ASSIGN:
 		ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
-		if(ret_type < 0)
-			return ret_type;
+		if(ret_type < 0) {
+			RETURN(ret_type);
+		}
 		if(ret_type == PTR) {
 			if(instruction_ptr->opda_varity_type == PTR)
 				goto assign_general;
-			else
+			else {
 				error("Can't plus assign.\n"); 
-				return ret_type;
+				RETURN(ret_type);
+			}
 		} else
 			goto assign_general;
 	case OPT_MINUS_ASSIGN:
 		ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
-		if(ret_type < 0)
-			return ret_type;
+		if(ret_type < 0) {
+			RETURN(ret_type);
+		}
 		if(ret_type == instruction_ptr->opda_varity_type)
 			ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, ret_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr());
 		else
 			ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, ret_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
-		if(ret_type < 0)
-			return ret_type;
+		if(ret_type < 0) {
+			RETURN(ret_type);
+		}
 		goto assign_general;
 assign_general:
 		if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY) {
 			error("Assign operator need left value.\n");
-			return ERROR_NEED_LEFT_VALUE;
+			RETURN(ERROR_NEED_LEFT_VALUE);
 		} else if(instruction_ptr->opda_operand_type == OPERAND_CONST) {
 			error("Const value assigned.\n");
-			return ERROR_CONST_ASSIGNED;
+			RETURN(ERROR_CONST_ASSIGNED);
 		} else {
 		}
 		if(ret_type == PTR || ret_type == INT) {
@@ -416,7 +427,7 @@ assign_general:
 	case OPT_L_MINUS_MINUS:
 		if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
 			error("++ operator need left value.\n");
-			return ERROR_NEED_LEFT_VALUE;
+			RETURN(ERROR_NEED_LEFT_VALUE);
 		}
 		instruction_ptr->opda_addr = instruction_ptr->opdb_addr;
 		instruction_ptr->opda_operand_type = instruction_ptr->opdb_operand_type;
@@ -435,11 +446,11 @@ assign_general:
 	case OPT_R_MINUS_MINUS:
 		if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
 			error("++ operator need left value.\n");
-			return ERROR_NEED_LEFT_VALUE;
+			RETURN(ERROR_NEED_LEFT_VALUE);
 		}
 		if(instruction_ptr->opdb_operand_type == OPERAND_CONST) {
 			error("++ operator cannot used for const.\n");
-			return ERROR_CONST_ASSIGNED;
+			RETURN(ERROR_CONST_ASSIGNED);
 		}
 		varity_number = this->mid_varity_stack.get_count();
 		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
@@ -513,8 +524,9 @@ assign_general:
 	case OPT_ASL:
 	case OPT_ASR:
 		ret_type = try_call_opt_handle(OPT_MOD, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
-		if(ret_type < 0)
-			return ret_type;
+		if(ret_type < 0) {
+			RETURN(ret_type);
+		}
 	case OPT_NOT:
 	case OPT_BIT_REVERT:
 	case OPT_POSITIVE:
@@ -605,7 +617,7 @@ assign_general:
 		root_attribute_ptr->node_type = node_attribute->node_type;
 		root_attribute_ptr->value = node_attribute->value;
 		root_attribute_ptr->value_type = node_attribute->value_type;
-		return ERROR_NO;
+		RETURN(ERROR_NO);
 	}
 	case OPT_CALL_FUNC:
 	case OPT_FUNC_COMMA:
@@ -619,7 +631,7 @@ assign_general:
 				if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
 					if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
 						error("Too many parameters\n");
-						return ERROR_FUNC_ARGS;
+						RETURN(ERROR_FUNC_ARGS);
 					} else {
 						if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] == this->call_func_info.arg_count[this->call_func_info.function_depth - 1]) {
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
@@ -701,7 +713,7 @@ assign_general:
 		break;
 	case OPT_EDGE:
 		error("Extra ;\n");
-		return ERROR_SEMICOLON;
+		RETURN(ERROR_SEMICOLON);
 	case OPT_SIZEOF:
 		--this->sentence_analysis_data_struct.sizeof_depth;
 		while(this->cur_mid_code_stack_ptr->get_count() > this->sentence_analysis_data_struct.sizeof_code_count[this->sentence_analysis_data_struct.sizeof_depth]) {
@@ -723,6 +735,8 @@ assign_general:
 			}
 		} else if(((node_attribute_t*)opt_node_ptr->right->value)->node_type == TOKEN_CONST_VALUE) {
 
+		} else if(((node_attribute_t*)opt_node_ptr->right->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)opt_node_ptr->right->value)->data == OPT_TYPE_CONVERT) {
+			((node_attribute_t*)opt_node_ptr->value)->value.int_value = get_varity_size(0, (PLATFORM_WORD*)((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value, ((node_attribute_t*)opt_node_ptr->right->value)->count);
 		} else {
 			error("Wrong use of sizeof.\n");
 			RETURN(ERROR_SIZEOF);
@@ -939,10 +953,12 @@ int c_interpreter::test(char *str, uint len)
 	return 0;
 }
 
-int c_interpreter::pre_treat(void)
+int c_interpreter::pre_treat(uint len)
 {
 	int spacenum = 0;
 	int rptr = 0, wptr = 0, first_word = 1, space_flag = 0;
+	int string_flag = 0;
+	char bracket_stack[32], bracket_depth = 0;
 	char nowchar;
 	while(nowchar = sentence_buf[rptr]) {
 		if(IsSpace(nowchar)) {
@@ -952,11 +968,77 @@ int c_interpreter::pre_treat(void)
 				space_flag = 1;
 			}
 		} else {
+			switch(nowchar) {
+			case '(':
+			case '[':
+				if(!string_flag) {
+					bracket_stack[bracket_depth++] = nowchar;
+				}
+				break;
+			case ')':
+				if(!string_flag) {
+					if(bracket_depth-- > 0 && bracket_stack[bracket_depth] == '(') {
+					} else {
+						error("Bracket unmatch.\n");
+						return ERROR_BRACKET_UNMATCH;
+					}
+				}
+				break;
+			case ']':
+				if(!string_flag) {
+					if(bracket_depth-- > 0 && bracket_stack[bracket_depth] == '[') {
+					} else {
+						error("Bracket unmatch.\n");
+						return ERROR_BRACKET_UNMATCH;
+					}
+				}
+				break;
+			case '"':
+				if(!string_flag) {
+					string_flag = '"';
+				} else if(string_flag == '"') {
+					if(sentence_buf[rptr - 1] != '\\') {
+						string_flag = 0;
+					}
+				}
+				break;
+			case '\'':
+				if(!string_flag) {
+					string_flag = '\'';
+				} else if(string_flag == '\'') {
+					if(sentence_buf[rptr - 1] != '\\') {
+						string_flag = 0;
+					}
+				}
+				break;
+			case '{':
+			case '}':
+				if(!bracket_depth && !string_flag) {
+					if(rptr) {
+						this->row_pretreat_fifo.write(sentence_buf + rptr, len - rptr);
+						sentence_buf[rptr] = 0;
+					} else {
+						this->row_pretreat_fifo.write(sentence_buf + rptr + 1, len - rptr - 1);
+						sentence_buf[rptr + 1] = 0;
+					}
+				}
+				break;
+			case ';':
+				if(!bracket_depth && !string_flag) {
+					this->row_pretreat_fifo.write(sentence_buf + rptr + 1, len - rptr - 1);
+					sentence_buf[rptr + 1] = 0;
+				}
+			}
+
 			space_flag = 0;
 			first_word = 0;
 			sentence_buf[wptr++] = sentence_buf[rptr];
 		}
 		rptr++;
+	}
+	if(bracket_depth) {
+		error("Bracket unmatch.\n");
+		return ERROR_BRACKET_UNMATCH;
 	}
 	sentence_buf[wptr] = 0;
 	return wptr;
@@ -968,15 +1050,17 @@ int c_interpreter::run_interpreter(void)
 	this->init(&stdio);
 	this->generate_compile_func();
 	while(1) {
-		uint len;
-		kprintf(">>> ");
+		int len;
 		len = this->row_pretreat_fifo.readline(sentence_buf);
 		if(len > 0) {
 
 		} else {
-			tty_used->readline(sentence_buf);
-			len = pre_treat();
+			kprintf(">>> ");
+			len = tty_used->readline(sentence_buf);
 		}
+		len = pre_treat(len);
+		if(len < 0)
+			continue;
 		ret = this->sentence_analysis(sentence_buf, len);
 		if(ret == OK_FUNC_RETURN)
 			return ret;
@@ -1013,6 +1097,7 @@ int c_interpreter::init(terminal* tty_used)
 	this->tty_used = tty_used;
 	this->row_pretreat_fifo.set_base(this->pretreat_buf);
 	this->row_pretreat_fifo.set_length(sizeof(this->pretreat_buf));
+	this->row_pretreat_fifo.set_element_size(1);
 	this->non_seq_code_fifo.set_base(this->non_seq_tmp_buf);
 	this->non_seq_code_fifo.set_length(sizeof(this->non_seq_tmp_buf));
 	this->non_seq_code_fifo.set_element_size(1);

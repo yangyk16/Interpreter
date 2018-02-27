@@ -146,9 +146,10 @@ int round_queue::readline(char* buf)
 	char* base = (char*)this->bottom_addr;
 	while(1)
 	{
-		if(count > 0)
+		if(count > 0) {
 			buf[i++] = base[rptr];
-		else 
+			count--;
+		} else 
 			return i;
 		rptr = (rptr + 1) % length;
 		if(buf[i - 1] == '\n' || buf[i - 1] == 0)

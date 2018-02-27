@@ -1965,6 +1965,8 @@ int try_assign_handle(int opda_type, int opdb_type, int opda_complex_count, int 
 				}
 			}
 		}
+	} else if(opda_type == ARRAY) {
+		goto wrong;
 	} else {
 		if(opdb_type < CHAR || opdb_type > DOUBLE)
 			goto wrong;
