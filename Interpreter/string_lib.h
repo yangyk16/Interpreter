@@ -15,46 +15,6 @@
 #define TOKEN_ERROR				10
 
 inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
-//need a bracket stack save outer bracket
-inline int get_bracket_depth(char* str)
-{
-	char bracket_type_stack[MAX_BRACKET_DEPTH];
-	int max_depth = 0;
-	int current_depth = 0;//parentheses
-	int current_depth_m = 0;//bracket
-	int len = kstrlen(str);
-
-	for(int i=0; i<len; i++) {
-		if(str[i] == '(') {
-			bracket_type_stack[current_depth + current_depth_m] = 0;
-			current_depth++;
-			if(current_depth + current_depth_m > max_depth)
-				max_depth = current_depth + current_depth_m;
-		} else if(str[i] == ')') {
-			current_depth--;
-			if(bracket_type_stack[current_depth + current_depth_m] != 0)
-				return -4;
-			if(current_depth < 0)
-				return -1;
-		}
-		if(str[i] == '[') {
-			bracket_type_stack[current_depth + current_depth_m] = 1;
-			current_depth_m++;
-			if(current_depth + current_depth_m > max_depth)
-				max_depth = current_depth + current_depth_m;
-		} else if(str[i] == ']') {
-			current_depth_m--;
-			if(bracket_type_stack[current_depth + current_depth_m] != 1)
-				return -5;
-			if(current_depth_m < 0)
-				return -2;
-		}
-	}
-	if(current_depth != 0 || current_depth_m != 0)
-		return -3;
-	else
-		return max_depth;
-}
 
 typedef struct node_attribute_s node_attribute_t;
 

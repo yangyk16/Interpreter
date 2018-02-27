@@ -164,9 +164,10 @@ public:
 };
 
 class c_interpreter: public interpreter {
+	static language_elment_space_t language_elment_space;
+	static varity_type_stack_t varity_type_stack;
 	char pretreat_buf[MAX_PRETREAT_BUFLEN];
 	round_queue row_pretreat_fifo;
-	static language_elment_space_t language_elment_space;
 	nonseq_info_struct* nonseq_info;
 	struct_info_struct struct_info_set;
 	function_flag_struct function_flag_set;
@@ -176,6 +177,17 @@ class c_interpreter: public interpreter {
 	int varity_global_flag;
 	int break_flag;
 	unsigned int analysis_buf_inc_stack[MAX_FUNCTION_DEPTH];
+	sentence_analysis_data_struct_t sentence_analysis_data_struct;
+	char *stack_pointer;
+	char *tmp_varity_stack_pointer;
+	mid_code *pc;
+	stack mid_code_stack;
+	stack mid_varity_stack;
+	stack *cur_mid_code_stack_ptr;
+	char simulation_stack[STACK_SIZE];
+	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
+	bool exec_flag;
+	call_func_info_t call_func_info;
 	int save_sentence(char*, uint);
 	int non_seq_struct_check(char* str);
 	int function_analysis(char*, uint);
@@ -186,15 +198,6 @@ class c_interpreter: public interpreter {
 	int key_word_analysis(char*, uint);
 	int label_analysis(char*, int);
 	int sentence_exec(char*, uint, bool);
-	//////////////////////////////////////////////////////////////////////
-	sentence_analysis_data_struct_t sentence_analysis_data_struct;
-	stack mid_code_stack;
-	stack mid_varity_stack;
-	stack *cur_mid_code_stack_ptr;
-	char simulation_stack[STACK_SIZE];
-	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
-	bool exec_flag;
-	call_func_info_t call_func_info;
 	int get_varity_type(char *str, int &len, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info);
 	int generate_arg_list(char *str, int count, stack &arg_list_ptr);
 	int generate_compile_func(void);
@@ -211,8 +214,6 @@ class c_interpreter: public interpreter {
 	int operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int generate_expression_value(stack *code_stack_ptr, node_attribute_t *opt_node_ptr);
-	friend int call_opt_handle(c_interpreter *interpreter_ptr);
-	friend int sys_stack_step_handle(c_interpreter *interpreter_ptr);
 	int test(char *str, uint len);
 	void print_code(void);
 	int basic_type_check(char *str, int &len, struct_info *&struct_info_ptr);
@@ -258,19 +259,17 @@ class c_interpreter: public interpreter {
 	static int ctl_branch_true_handle(c_interpreter *interpreter_ptr);
 	static int ctl_branch_false_handle(c_interpreter *interpreter_ptr);
 	static int opt_pass_para_handle(c_interpreter *interpreter_ptr);
+	static int ctl_return_handle(c_interpreter *interpreter_ptr);
+	static int sys_stack_step_handle(c_interpreter *interpreter_ptr);
 	static void handle_init(void);
+	static int call_opt_handle(c_interpreter *interpreter_ptr);
 	//////////////////////////////////////////////////////////////////////
 	virtual int sentence_analysis(char*, int);
 	virtual int pre_treat(uint);
 
 public:
-	char *stack_pointer;
-	char *tmp_varity_stack_pointer;
-	static varity_type_stack_t varity_type_stack;
-	mid_code *pc;
 	void set_break_flag(int flag) {break_flag = flag;}
 	int init(terminal*);
-	//c_interpreter(terminal*, varity*, nonseq_info_struct*, function*, struct_define*);
 	virtual int run_interpreter(void);
 };
 

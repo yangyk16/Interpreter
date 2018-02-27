@@ -1071,6 +1071,12 @@ int c_interpreter::run_interpreter(void)
 int c_interpreter::init(terminal* tty_used)
 {
 	if(!c_interpreter::language_elment_space.init_done) {
+		for(int i=0; i<sizeof(basic_type_info)/sizeof(basic_type_info[0]); i++) {
+			c_interpreter::varity_type_stack.arg_count[i] = 2;
+			c_interpreter::varity_type_stack.type_info_addr[i] = basic_type_info[i];
+		}
+		c_interpreter::varity_type_stack.arg_count[STRUCT] = 3;
+		c_interpreter::varity_type_stack.count = sizeof(basic_type_info) / sizeof(basic_type_info[0]);
 		c_interpreter::language_elment_space.l_varity_list.init(sizeof(varity_info), c_interpreter::language_elment_space.l_varity_node, MAX_L_VARITY_NODE);
 		c_interpreter::language_elment_space.g_varity_list.init(sizeof(varity_info), c_interpreter::language_elment_space.g_varity_node, MAX_G_VARITY_NODE);
 		c_interpreter::language_elment_space.c_varity.init(&c_interpreter::language_elment_space.g_varity_list, &c_interpreter::language_elment_space.l_varity_list);
@@ -1786,7 +1792,7 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 	//}
 	node *root = analysis_data_struct_ptr->expression_final_stack.pop();
 	if(!root) {
-		error("No token found.\n");
+		warning("No token found.\n");
 		return 0;//TODO:找个合适的返回值
 	}
 	this->sentence_analysis_data_struct.tree_root = root;
@@ -2677,14 +2683,7 @@ extern round_queue token_fifo;
 extern "C" void uc_timer_init(unsigned int index);
 extern "C" void global_init(void)
 {
-	int i;
 	heapinit();
 	token_fifo.init(MAX_TOKEN_BUFLEN);
 	//uc_timer_init(1);
-	for(i=0; i<sizeof(basic_type_info)/sizeof(basic_type_info[0]); i++) {
-		c_interpreter::varity_type_stack.arg_count[i] = 2;
-		c_interpreter::varity_type_stack.type_info_addr[i] = basic_type_info[i];
-	}
-	c_interpreter::varity_type_stack.arg_count[STRUCT] = 3;
-	c_interpreter::varity_type_stack.count = sizeof(basic_type_info) / sizeof(basic_type_info[0]);
 }

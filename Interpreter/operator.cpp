@@ -1856,14 +1856,14 @@ int c_interpreter::opt_pass_para_handle(c_interpreter *interpreter_ptr)
 	return opt_assign_handle(interpreter_ptr);
 }
 
-int ctl_return_handle(c_interpreter *interpreter_ptr)
+int c_interpreter::ctl_return_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	instruction_ptr += instruction_ptr->opda_addr - 1;
 	return ERROR_NO;
 }
 
-int sys_stack_step_handle(c_interpreter *interpreter_ptr)
+int c_interpreter::sys_stack_step_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	interpreter_ptr->stack_pointer += (int)instruction_ptr->opda_addr;
@@ -1923,7 +1923,7 @@ void c_interpreter::handle_init(void)
 }
 
 int opt_time;
-int call_opt_handle(c_interpreter *interpreter_ptr)
+int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	int ret;
@@ -1943,7 +1943,6 @@ int call_opt_handle(c_interpreter *interpreter_ptr)
 		error("no handle for operator %d\n", instruction_ptr->ret_operator);
 		ret = 0;
 	}
-	//last_ret_abs_addr = ret_addr;
 	return ret;
 }
 
