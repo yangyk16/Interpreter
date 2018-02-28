@@ -172,7 +172,7 @@ unsigned int kstrnlen(const char * s, unsigned int count)
         return sc - s;
 }
 /*stdlib interface*/
-int ksprintf(char *buf, const char *fmt, va_list args)
+static int kvsprintf(char *buf, const char *fmt, va_list args)
 {
         int len;
         unsigned long num;
@@ -342,12 +342,21 @@ int ksprintf(char *buf, const char *fmt, va_list args)
 
 int kprintf(const char *fmt, ...)
 {
-    va_list ap; 
-    char string[0x400]; 
-    va_start(ap,fmt);
-    ksprintf(string,fmt,ap);
-    va_end(ap);
-    kfputs(string);
+	va_list ap; 
+	char string[0x400]; 
+	va_start(ap,fmt);
+	kvsprintf(string,fmt,ap);
+	va_end(ap);
+	kfputs(string);
+	return 0;
+}
+
+int ksprintf(char *buf, const char *fmt, ...)
+{
+	va_list ap; 
+	va_start(ap,fmt);
+	kvsprintf(buf,fmt,ap);
+	va_end(ap);
 	return 0;
 }
 

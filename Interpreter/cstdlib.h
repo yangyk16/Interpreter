@@ -6,9 +6,9 @@
 
 #define NULL 0
 int kprintf(const char *fmt, ...);
+int ksprintf(char *buf, const char *fmt, ...);
 void* kmemcpy(void *d, const void *s, unsigned int size);
 void* kmemset(void *d, int ch, unsigned int size);
-int ksprintf(char *buf, const char *fmt, va_list args);
 unsigned int kstrlen(const char *str);
 int kstrcmp(const char *str1, const char *str2);
 char *kstrcpy(char *d, const char *s);
