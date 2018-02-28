@@ -55,7 +55,6 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && opt_number[((node_attribute_t*)tree_node->value)->data] == 1) {//单目运算符
 			return ERROR_NO;
 		}
-		//TODO: 函数查参数个数, 避免使用全局function数组，应把全局量改为类的静态成员变量
 		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)tree_node->value)->data == OPT_CALL_FUNC) {
 			function_info *function_ptr = this->function_declare->find(((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
 			if(!function_ptr) {
@@ -422,6 +421,10 @@ assign_general:
 		instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = ((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value;
+		if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY || instruction_ptr->opda_operand_type == OPERAND_LINK_VARITY) {
+			inc_varity_ref(avarity_ptr);
+			this->mid_varity_stack.push();
+		}
 		break;
 	case OPT_L_PLUS_PLUS:
 	case OPT_L_MINUS_MINUS:
@@ -1325,7 +1328,7 @@ int c_interpreter::generate_compile_func(void)
 	this->function_declare->add_compile_func("memcpy", (void*)kmemcpy, &memcpy_stack, 0);
 	static stack memset_stack;
 	this->generate_arg_list("void*,void*,int,unsigned int;", 4, memset_stack);
-	this->function_declare->add_compile_func("kmemset", (void*)kmemset, &memset_stack, 0);
+	this->function_declare->add_compile_func("memset", (void*)kmemset, &memset_stack, 0);
 	static stack printf_stack;
 	this->generate_arg_list("int,char*;", 2, printf_stack);
 	this->function_declare->add_compile_func("printf", (void*)kprintf, &printf_stack, 1);
@@ -2181,7 +2184,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 				remain_len -= type_len;
 				while(remain_len > 0) {
 					token_len = get_token(str, &node);
-					if(token_len > remain_len || token_len == ERROR_TOKEN) {//TODO:增加NO_TOKEN
+					if(token_len > remain_len || node.node_type == TOKEN_ERROR) {//TODO:增加NO_TOKEN
 						break;
 					}
 					type_len = remain_len;
@@ -2205,27 +2208,27 @@ int c_interpreter::struct_analysis(char* str, uint len)
 		}
 	}
 	if(is_varity_declare == STRUCT) {
-		int space_count = char_count(str + token_len, ' ');
-		if(space_count == 1) {//1:define 2+:declare
+		char struct_name[32];
+		token_len += get_token(str + token_len, &node);
+		if(node.node_type != TOKEN_NAME) {
+			error("Wrong struct define.\n");
+			return ERROR_STRUCT_NAME;
+		}
+		kstrcpy(struct_name, node.value.ptr_value);
+		token_len += get_token(str + token_len, &node);
+		if(node.node_type == TOKEN_ERROR) {//1:define 2+:declare
 			int symbol_begin_pos, ptr_level = 0;
 			int keylen = kstrlen(type_key[is_varity_declare]);
 			stack* arg_stack;
-			char struct_name[32];
 			this->struct_info_set.declare_flag = 1;
 			this->struct_info_set.struct_begin_flag = 1;
 			this->struct_info_set.current_offset = 0;
 			int i = keylen + 1;
 			symbol_begin_pos = i;
-			for(int j=symbol_begin_pos; str[j]=='*'; j++)
-				ptr_level++;
-			symbol_begin_pos += ptr_level;
-			kmemcpy(struct_name, str + symbol_begin_pos, len - symbol_begin_pos);
-			struct_name[len - symbol_begin_pos] = 0;
 			varity_attribute* arg_node_ptr = (varity_attribute*)vmalloc(sizeof(varity_info) * MAX_VARITY_COUNT_IN_STRUCT);
 			arg_stack = (stack*)vmalloc(sizeof(stack));
 			stack tmp_stack(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
 			kmemcpy(arg_stack, &tmp_stack, sizeof(stack));
-			//arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
 			this->struct_declare->declare(struct_name, arg_stack);
 			return OK_STRUCT_INPUTING;
 		}

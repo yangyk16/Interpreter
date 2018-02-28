@@ -149,11 +149,15 @@ int round_queue::readline(char* buf)
 		if(count > 0) {
 			buf[i++] = base[rptr];
 			count--;
-		} else 
+		} else {
+			buf[i] = 0;
 			return i;
+		}
 		rptr = (rptr + 1) % length;
-		if(buf[i - 1] == '\n' || buf[i - 1] == 0)
+		if(buf[i - 1] == '\n' || buf[i - 1] == 0) {
+			buf[i] = 0;
 			return i;
+		}
 	}
 	return -1;
 }
