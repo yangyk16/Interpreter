@@ -3,6 +3,7 @@
 #define CONFIG_H
 
 #define SECTION_OPTIMIZE		0
+#define CALL_CONVENTION			1//0:ARM 1:X86
 #define TTY_TYPE				0
 #define HEAPSIZE				1048576
 #define MAX_VARITY_TYPE_COUNT	16

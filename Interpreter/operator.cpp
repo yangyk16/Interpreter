@@ -1458,37 +1458,38 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
 	GET_OPDA_ADDR();
 	GET_OPDB_ADDR();
-	register void *converted_ptr = (void*)opda_addr, *converting_ptr = (void*)opdb_addr;
+	double align_varity;
+	int *converted_ptr;
 	if(converted_type == converting_type) { 
 		switch(converted_type) { 
 		case INT: 
 		case U_INT: 
-			INT_VALUE(converted_ptr) = INT_VALUE(converting_ptr); 
+			INT_VALUE(opda_addr) = INT_VALUE(opdb_addr); 
 			break; 
 		case LONG: 
 		case U_LONG: 
-			LONG_VALUE(converted_ptr) = LONG_VALUE(converting_ptr); 
+			LONG_VALUE(opda_addr) = LONG_VALUE(opdb_addr); 
 			break; 
 		case LONG_LONG: 
 		case U_LONG_LONG : 
-			LONG_LONG_VALUE(converted_ptr) = LONG_LONG_VALUE(converting_ptr); 
+			LONG_LONG_VALUE(opda_addr) = LONG_LONG_VALUE(opdb_addr); 
 			break; 
 		case SHORT:
 		case U_SHORT:
-			SHORT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
+			SHORT_VALUE(opda_addr) = SHORT_VALUE(opdb_addr);
 			break;
 		case CHAR:
 		case U_CHAR:
-			CHAR_VALUE(converted_ptr) = U_CHAR_VALUE(converting_ptr);
+			CHAR_VALUE(opda_addr) = U_CHAR_VALUE(opdb_addr);
 			break;
 		case FLOAT:
-			FLOAT_VALUE(converted_ptr) = FLOAT_VALUE(converting_ptr);
+			FLOAT_VALUE(opda_addr) = FLOAT_VALUE(opdb_addr);
 			break;
 		case DOUBLE:
-			DOUBLE_VALUE(converted_ptr) = DOUBLE_VALUE(converting_ptr);
+			DOUBLE_VALUE(opda_addr) = DOUBLE_VALUE(opdb_addr);
 			break;
 		case PTR:
-			PTR_VALUE(converted_ptr) = PTR_VALUE(converting_ptr);
+			PTR_VALUE(opda_addr) = PTR_VALUE(opdb_addr);
 		}
 	} else if(converted_type > converting_type) {
 		switch(converted_type) {
@@ -1497,162 +1498,171 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 		case LONG:
 		case U_LONG:
 			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG || converting_type == LONG_LONG || converting_type == U_LONG_LONG)
-				INT_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
+				INT_VALUE(opda_addr) = INT_VALUE(opdb_addr);
 			else if(converting_type == SHORT || converting_type == U_SHORT)
-				INT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
+				INT_VALUE(opda_addr) = SHORT_VALUE(opdb_addr);
 			else if(converting_type == CHAR || converting_type == U_CHAR)
-				INT_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
+				INT_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
 			break;
 		case U_SHORT:
 		case SHORT:
 			if(converting_type == U_SHORT || converting_type == SHORT)
-				SHORT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
+				SHORT_VALUE(opda_addr) = SHORT_VALUE(opdb_addr);
 			else if(converting_type == CHAR || converting_type == U_CHAR)
-				SHORT_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
+				SHORT_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
 			break;
 		case U_CHAR:
-			CHAR_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
+			CHAR_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
 			break;
 		case DOUBLE:
+		{
+			if((PLATFORM_WORD)opda_addr & 7) {
+				converted_ptr = (int*)&align_varity;
+			} else {
+				converted_ptr = opda_addr;
+			}
 			switch(converting_type) {
 			case U_CHAR:
-				DOUBLE_VALUE(converted_ptr) = U_CHAR_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = U_CHAR_VALUE(opdb_addr);
 				break;
 			case CHAR:
-				DOUBLE_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = CHAR_VALUE(opdb_addr);
 				break;
 			case U_SHORT:
-				DOUBLE_VALUE(converted_ptr) = U_SHORT_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = U_SHORT_VALUE(opdb_addr);
 				break;
 			case SHORT:
-				DOUBLE_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = SHORT_VALUE(opdb_addr);
 				break;
 			case U_INT:
-				DOUBLE_VALUE(converted_ptr) = U_INT_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = U_INT_VALUE(opdb_addr);
 				break;
 			case INT:
-				DOUBLE_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = INT_VALUE(opdb_addr);
 				break;
 			case U_LONG:
-				DOUBLE_VALUE(converted_ptr) = U_LONG_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = U_LONG_VALUE(opdb_addr);
 				break;
 			case LONG:
-				DOUBLE_VALUE(converted_ptr) = LONG_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = LONG_VALUE(opdb_addr);
 				break;
 			case FLOAT:
-				DOUBLE_VALUE(converted_ptr) = FLOAT_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = FLOAT_VALUE(opdb_addr);
 				break;
 			case U_LONG_LONG:
-				DOUBLE_VALUE(converted_ptr) = (double)U_LONG_LONG_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = (double)U_LONG_LONG_VALUE(opdb_addr);
 				break;
 			case LONG_LONG:
-				DOUBLE_VALUE(converted_ptr) = (double)LONG_LONG_VALUE(converting_ptr);
+				DOUBLE_VALUE(converted_ptr) = (double)LONG_LONG_VALUE(opdb_addr);
 				break;
 			}
+			if((PLATFORM_WORD)opda_addr & 7)
+				kmemcpy(opda_addr, converted_ptr, 8);
 			break;
+		}
 		case FLOAT:
 			switch(converting_type) {
 			case U_CHAR:
-				FLOAT_VALUE(converted_ptr) = U_CHAR_VALUE(converting_ptr);
+				FLOAT_VALUE(opda_addr) = U_CHAR_VALUE(opdb_addr);
 				break;
 			case CHAR:
-				FLOAT_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
+				FLOAT_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
 				break;
 			case U_SHORT:
-				FLOAT_VALUE(converted_ptr) = U_SHORT_VALUE(converting_ptr);
+				FLOAT_VALUE(opda_addr) = U_SHORT_VALUE(opdb_addr);
 				break;
 			case SHORT:
-				FLOAT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
+				FLOAT_VALUE(opda_addr) = SHORT_VALUE(opdb_addr);
 				break;
 			case U_INT:
-				FLOAT_VALUE(converted_ptr) = (float)U_INT_VALUE(converting_ptr);
+				FLOAT_VALUE(opda_addr) = (float)U_INT_VALUE(opdb_addr);
 				break;
 			case INT:
-				FLOAT_VALUE(converted_ptr) = (float)INT_VALUE(converting_ptr);
+				FLOAT_VALUE(opda_addr) = (float)INT_VALUE(opdb_addr);
 				break;
 			case U_LONG:
-				FLOAT_VALUE(converted_ptr) = (float)U_LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(opda_addr) = (float)U_LONG_VALUE(opdb_addr);
 				break;
 			case LONG:
-				FLOAT_VALUE(converted_ptr) = (float)LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(opda_addr) = (float)LONG_VALUE(opdb_addr);
 				break;
 			case U_LONG_LONG:
-				FLOAT_VALUE(converted_ptr) = (float)U_LONG_LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(opda_addr) = (float)U_LONG_LONG_VALUE(opdb_addr);
 				break;
 			case LONG_LONG:
-				FLOAT_VALUE(converted_ptr) = (float)LONG_LONG_VALUE(converting_ptr);
+				FLOAT_VALUE(opda_addr) = (float)LONG_LONG_VALUE(opdb_addr);
 				break;
 			}
 			break;
 		case PTR:
 			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG) {
-				PTR_N_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
+				PTR_N_VALUE(opda_addr) = INT_VALUE(opdb_addr);
 			} else if(converting_type == CHAR || converting_type == U_CHAR) {
-				PTR_N_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
+				PTR_N_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
 			} else if(converting_type == SHORT || converting_type == U_SHORT) {
-				PTR_N_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
+				PTR_N_VALUE(opda_addr) = SHORT_VALUE(opdb_addr);
 			} else if(converting_type == LONG_LONG || converting_type ==  U_LONG_LONG) {
-				PTR_N_VALUE(converted_ptr) = (PLATFORM_WORD)LONG_LONG_VALUE(converting_ptr);
+				PTR_N_VALUE(opda_addr) = (PLATFORM_WORD)LONG_LONG_VALUE(opdb_addr);
 			}
 			break;
 		}
 	} else if(converted_type < converting_type) {
 		switch(converted_type) {
 		case FLOAT:
-			FLOAT_VALUE(converted_ptr) = (float)DOUBLE_VALUE(converting_ptr);
+			FLOAT_VALUE(opda_addr) = (float)DOUBLE_VALUE(opdb_addr);
 			break;
 		case INT:
 		case U_INT:
 		case LONG:
 		case U_LONG:
 			if(converting_type == DOUBLE) {
-				INT_VALUE(converted_ptr) = (int)DOUBLE_VALUE(converting_ptr);
+				INT_VALUE(opda_addr) = (int)DOUBLE_VALUE(opdb_addr);
 			} else if(converting_type == FLOAT) {
-				INT_VALUE(converted_ptr) = (int)FLOAT_VALUE(converting_ptr);
+				INT_VALUE(opda_addr) = (int)FLOAT_VALUE(opdb_addr);
 			} else if(converting_type == U_LONG_LONG || converting_type == LONG_LONG) {
-				INT_VALUE(converted_ptr) = (int)LONG_LONG_VALUE(converting_ptr);
+				INT_VALUE(opda_addr) = (int)LONG_LONG_VALUE(opdb_addr);
 			} else if(converting_type == ARRAY) {
-				INT_VALUE(converted_ptr) = (int)converting_ptr;
+				INT_VALUE(opda_addr) = (int)opdb_addr;
 			} else if(converting_type == PTR) {
-				INT_VALUE(converted_ptr) = (int)PTR_VALUE(converting_ptr);
+				INT_VALUE(opda_addr) = (int)PTR_VALUE(opdb_addr);
 			} else if(converting_type == U_INT) {
-				INT_VALUE(converted_ptr) = INT_VALUE(converting_ptr);
+				INT_VALUE(opda_addr) = INT_VALUE(opdb_addr);
 			}
 			break;
 		case U_SHORT:
 		case SHORT:
 			if(converting_type == DOUBLE) {
-				SHORT_VALUE(converted_ptr) = (short)DOUBLE_VALUE(converting_ptr);
+				SHORT_VALUE(opda_addr) = (short)DOUBLE_VALUE(opdb_addr);
 			} else if(converting_type == FLOAT) {
-				SHORT_VALUE(converted_ptr) = (short)FLOAT_VALUE(converting_ptr);
+				SHORT_VALUE(opda_addr) = (short)FLOAT_VALUE(opdb_addr);
 			} else {
-				SHORT_VALUE(converted_ptr) = SHORT_VALUE(converting_ptr);
+				SHORT_VALUE(opda_addr) = SHORT_VALUE(opdb_addr);
 			}
 			break;
 		case U_CHAR:
 		case CHAR:
 			if(converting_type == DOUBLE) {
-				CHAR_VALUE(converted_ptr) = (char)DOUBLE_VALUE(converting_ptr);
+				CHAR_VALUE(opda_addr) = (char)DOUBLE_VALUE(opdb_addr);
 			} else if(converting_type == FLOAT) {
-				CHAR_VALUE(converted_ptr) = (char)FLOAT_VALUE(converting_ptr);
+				CHAR_VALUE(opda_addr) = (char)FLOAT_VALUE(opdb_addr);
 			} else {
-				CHAR_VALUE(converted_ptr) = CHAR_VALUE(converting_ptr);
+				CHAR_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
 			}
 			break;
 		case LONG_LONG:
 		case U_LONG_LONG:
 			if(converting_type == DOUBLE) {
-				LONG_LONG_VALUE(converted_ptr) = (long long)DOUBLE_VALUE(converting_ptr);
+				LONG_LONG_VALUE(opda_addr) = (long long)DOUBLE_VALUE(opdb_addr);
 			} else if(converting_type == FLOAT) {
-				LONG_LONG_VALUE(converted_ptr) = (long long)FLOAT_VALUE(converting_ptr);
+				LONG_LONG_VALUE(opda_addr) = (long long)FLOAT_VALUE(opdb_addr);
 			} else if(converting_type == ARRAY) {
-				LONG_LONG_VALUE(converted_ptr) = (long long)converting_ptr;
+				LONG_LONG_VALUE(opda_addr) = (long long)opdb_addr;
 			} else if(converting_type == PTR) {
-				LONG_LONG_VALUE(converted_ptr) = (long long)PTR_VALUE(converting_ptr);
+				LONG_LONG_VALUE(opda_addr) = (long long)PTR_VALUE(opdb_addr);
 			}
 			break;
 		case PTR:
-			PTR_N_VALUE(converted_ptr) = (PLATFORM_WORD)converting_ptr;
+			PTR_N_VALUE(opda_addr) = (PLATFORM_WORD)opdb_addr;
 		}
 	}
 	last_ret_abs_addr = opda_addr;
