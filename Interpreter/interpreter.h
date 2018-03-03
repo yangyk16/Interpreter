@@ -195,7 +195,7 @@ class c_interpreter: public interpreter {
 	int struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
 	int non_seq_struct_analysis(char*, uint);
 	int sub_sentence_analysis(char*, uint* size);
-	int key_word_analysis(char*, uint);
+	int varity_declare_analysis(char*, uint);
 	int label_analysis(char*, int);
 	int sentence_exec(char*, uint, bool);
 	int get_varity_type(char *str, int &len, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info);

@@ -695,6 +695,8 @@ assign_general:
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + arg_varity_ptr->get_size();
 						break;
 					}
+#else
+					this->call_func_info.offset[this->call_func_info.function_depth - 1] += arg_varity_ptr->get_size();
 #endif
 					instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
 				}
@@ -856,7 +858,9 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 			varity_info *arg_varity_ptr;
 			instruction_ptr->ret_operator = OPT_PASS_PARA;
 			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
+#if CALL_CONVENTION
 			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+#endif
 			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
 				if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
 					error("Too many parameters\n");
@@ -865,24 +869,64 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] == this->call_func_info.arg_count[this->call_func_info.function_depth - 1]) {
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
 					}
-					if(instruction_ptr->opdb_varity_type <= U_LONG && instruction_ptr->opdb_varity_type >= CHAR) {//TODO:平台相关，应该换掉
+					if(instruction_ptr->opdb_varity_type <= U_LONG && instruction_ptr->opdb_varity_type >= CHAR) {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = INT;
+#if !CALL_CONVENTION
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 4;
+#else
+						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 4;
+#endif
 					} else if(instruction_ptr->opdb_varity_type == FLOAT || instruction_ptr->opdb_varity_type == DOUBLE) {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = DOUBLE;
+#if !CALL_CONVENTION
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8);
+						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + 8;
+#else
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
-					} else if(instruction_ptr->opdb_varity_type == PTR) {
+#endif
+					} else if(instruction_ptr->opdb_varity_type == PTR || instruction_ptr->opdb_varity_type == ARRAY) {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = PLATFORM_TYPE;
+#if !CALL_CONVENTION
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
+#else
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] += PLATFORM_WORD_LEN;
+#endif
 					} else {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = LONG_LONG;
+#if !CALL_CONVENTION
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8);
+						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + 8;
+#else
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
+#endif
 					}
 				}
 			} else {
 				arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
-				instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
+#if !CALL_CONVENTION
+				switch(instruction_ptr->opdb_varity_type) {
+				case DOUBLE:
+				case LONG_LONG:
+				case U_LONG_LONG:
+					instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8);
+					this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + arg_varity_ptr->get_size();
+					break;
+				case PTR:
+				case ARRAY:
+					instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+					this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + arg_varity_ptr->get_size();
+					break;
+				default:
+					instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+					this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + arg_varity_ptr->get_size();
+					break;
+				}
+#else
 				this->call_func_info.offset[this->call_func_info.function_depth - 1] += arg_varity_ptr->get_size();
+#endif
+				instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = arg_varity_ptr->get_type();
 			}
 			this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]++;
 			code_stack_ptr->push();
@@ -2360,7 +2404,7 @@ int c_interpreter::get_varity_type(char *str, int &len, char *name, int basic_ty
 				array_flag = 0;
 				cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
 				node_attribute->data = OPT_INDEX;
-				node_attribute->value_type = this->sentence_analysis_data_struct.last_token.value.int_value;
+				node_attribute->value.int_value = this->sentence_analysis_data_struct.last_token.value.int_value;
 			} else if(node_attribute->data == OPT_MUL) {
 				static node_attribute_t *ptr_node_ptr;
 				//if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.data == OPT_PTR_CONTENT) {
@@ -2389,7 +2433,7 @@ varity_end:
 						head = head->right;
 						node_attribute_t *complex_attribute = (node_attribute_t*)head->value;
 						if(complex_attribute->data == OPT_INDEX) {
-							*cur_complex_info_ptr = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
+							*cur_complex_info_ptr = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value.int_value;
 						} else if(complex_attribute->data == OPT_PTR_CONTENT) {
 							*cur_complex_info_ptr = (COMPLEX_PTR << COMPLEX_TYPE_BIT);
 						}
@@ -2445,7 +2489,7 @@ varity_end:
 	return ERROR_NO_VARITY_FOUND;
 }
 
-int c_interpreter::key_word_analysis(char* str, uint len)
+int c_interpreter::varity_declare_analysis(char* str, uint len)
 {
 	int is_varity_declare;
 	is_varity_declare = optcmp(str);
@@ -2507,7 +2551,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 					array_flag = 0;
 					cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
 					node_attribute->data = OPT_INDEX;
-					node_attribute->value_type = this->sentence_analysis_data_struct.last_token.value.int_value;
+					node_attribute->value.int_value = this->sentence_analysis_data_struct.last_token.value.int_value;
 				} else if(node_attribute->data == OPT_MUL) {
 					static node_attribute_t *ptr_node_ptr;
 					if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.data == OPT_PTR_CONTENT) {
@@ -2537,7 +2581,7 @@ int c_interpreter::key_word_analysis(char* str, uint len)
 							head = head->right;
 							node_attribute_t *complex_attribute = (node_attribute_t*)head->value;
 							if(complex_attribute->data == OPT_INDEX) {
-								*cur_complex_info_ptr = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
+								*cur_complex_info_ptr = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value.int_value;
 							} else if(complex_attribute->data == OPT_PTR_CONTENT) {
 								*cur_complex_info_ptr = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
 							}
@@ -2625,7 +2669,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon)
 	//	error("Bracket unmatch.\n");
 	//	return ERROR_BRACKET_UNMATCH;
 	//}
-	int key_word_ret = key_word_analysis(str, len);
+	int key_word_ret = varity_declare_analysis(str, len);
 	if(!key_word_ret) {
 		ret = this->generate_mid_code(str, len, true);
 		if(ret) return ret;
