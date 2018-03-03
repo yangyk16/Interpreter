@@ -708,15 +708,17 @@ assign_general:
 			}
 		}
 		if(opt == OPT_CALL_FUNC) {
+			varity_info *return_varity_ptr;
 			if(opt_node_ptr->right && !(node_attribute->data == OPT_FUNC_COMMA && node_attribute->node_type == TOKEN_OPERATOR))
 				code_stack_ptr->push();
 			function_info *function_ptr;
 			instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
 			function_ptr = this->function_declare->find(node_attribute->value.ptr_value);
+			return_varity_ptr = (varity_info*)function_ptr->arg_list->visit_element_by_index(0);
 			instruction_ptr->opda_addr = (int)function_ptr;
 			instruction_ptr->ret_operator = opt;
-			instruction_ptr->ret_varity_type = ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type();
+			instruction_ptr->ret_varity_type = return_varity_ptr->get_type();
 			varity_number = this->mid_varity_stack.get_count();
 			instruction_ptr->ret_addr = varity_number * 8;
 			if(!function_ptr->variable_para_flag) {
@@ -729,7 +731,7 @@ assign_general:
 			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 			rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
-			rvarity_ptr->set_type(instruction_ptr->ret_varity_type);
+			rvarity_ptr->config_complex_info(return_varity_ptr->get_complex_arg_count(), return_varity_ptr->get_complex_ptr());
 			inc_varity_ref(rvarity_ptr);
 			this->mid_varity_stack.push();
 			this->call_func_info.function_depth--;
