@@ -2463,7 +2463,7 @@ varity_end:
 				
 				node_index = 0;
 				this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
-				this->sentence_analysis_data_struct.last_token.data = OPT_EDGE;
+				this->sentence_analysis_data_struct.last_token.data = node_attribute->data;
 				v_len -= token_len;
 				str += token_len;
 				total_len += token_len;
@@ -2491,163 +2491,60 @@ varity_end:
 
 int c_interpreter::varity_declare_analysis(char* str, uint len)
 {
-	int is_varity_declare;
-	is_varity_declare = optcmp(str);
-	char struct_name[32];
+	int is_varity_declare, key_len, token_len, ret;
+	node_attribute_t node;
+	char varity_name[32];
 	struct_info* struct_node_ptr = 0;
+	is_varity_declare = basic_type_check(str, key_len, struct_node_ptr);	
 	if(is_varity_declare >= 0) {
-		int key_len = kstrlen(type_key[is_varity_declare]);
-		if(is_varity_declare != STRUCT)
-			len = remove_char(str + key_len + 1, ' ') + key_len + 1;
-		else {//TODO: 处理结构名后接*的情况
-			int space_2nd_pos = str_find(str + key_len + 1, len - key_len - 1, ' ') + key_len + 1;
-			if(str[space_2nd_pos - 1] == '*')
-				space_2nd_pos--;
-			kmemcpy(struct_name, str + key_len + 1, space_2nd_pos - key_len - 1);
-			struct_name[space_2nd_pos - key_len - 1] = 0;
-			struct_node_ptr = this->struct_declare->find(struct_name);
-			if(!struct_node_ptr) {
-				error("There is no struct called %s.\n", struct_name);
-				return ERROR_STRUCT_NONEXIST;
-			}
-			len = remove_char(str + space_2nd_pos + 1, ' ') + space_2nd_pos + 1;
-			key_len = space_2nd_pos;
-		}
 		str += key_len;
-		//解析复杂变量类型///////////////
-		char varity_name[32];
-		node_attribute_t *node_attribute, *stack_top_node_ptr;
-		sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
-		int node_index = 0, token_len, v_len = len - key_len;
-		int token_flag = 0, array_flag = 0, ptr_level = 0;
-		int varity_basic_type = 0, varity_size, ret;
+		int type, type_len, remain_len = len - key_len, complex_node_count, varity_size, align_size;
+		PLATFORM_WORD *varity_complex_ptr;
 		varity_info *new_varity_ptr;
-		list_stack *cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
-		this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
-		this->sentence_analysis_data_struct.last_token.data = OPT_EDGE;
-		while(v_len > 0) {
-			node_attribute = &analysis_data_struct_ptr->node_attribute[node_index];
-			analysis_data_struct_ptr->node_struct[node_index].value = node_attribute;
-			token_len = get_token(str, node_attribute);
-			//if(v_len < token_len) //error
-			//	break;
-			if(node_attribute->node_type == TOKEN_ERROR)
-				return node_attribute->node_type;//TODO:找一个合适的返回值，generate_mid_code也一样
-			if(node_attribute->node_type == TOKEN_OPERATOR) {
-				stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
-				if(node_attribute->data == OPT_L_SMALL_BRACKET) {
-					analysis_data_struct_ptr->expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[node_index]);
-				} else if(node_attribute->data == OPT_R_SMALL_BRACKET) {
-					while(1) {
-						stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value;
-						if(stack_top_node_ptr->node_type == TOKEN_OPERATOR && stack_top_node_ptr->data == OPT_L_SMALL_BRACKET)
-							break;
-						analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
-					}
-					analysis_data_struct_ptr->expression_tmp_stack.pop();
-				} else if(node_attribute->data == OPT_L_MID_BRACKET) {
-					array_flag = 1;
-				} else if(node_attribute->data == OPT_R_MID_BRACKET) {
-					array_flag = 0;
-					cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
-					node_attribute->data = OPT_INDEX;
-					node_attribute->value.int_value = this->sentence_analysis_data_struct.last_token.value.int_value;
-				} else if(node_attribute->data == OPT_MUL) {
-					static node_attribute_t *ptr_node_ptr;
-					if(this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR && this->sentence_analysis_data_struct.last_token.data == OPT_PTR_CONTENT) {
-						ptr_node_ptr->value_type++;
-					} else {
-						cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[node_index]);
-						node_attribute->data = OPT_PTR_CONTENT;
-						node_attribute->value_type = 1;
-						ptr_node_ptr = node_attribute;
-					}
-				} else if(node_attribute->data == OPT_COMMA || node_attribute->data == OPT_EDGE || node_attribute->data == OPT_ASSIGN) {
-					while(stack_top_node_ptr = (node_attribute_t*)analysis_data_struct_ptr->expression_tmp_stack.get_lastest_element()->value) {
-						analysis_data_struct_ptr->expression_final_stack.push(analysis_data_struct_ptr->expression_tmp_stack.pop());
-					}
-					int node_count = analysis_data_struct_ptr->expression_final_stack.get_count();
-					PLATFORM_WORD *complex_info = 0, *cur_complex_info_ptr;
-					int basic_info_node_count = 1;
-					if(is_varity_declare == STRUCT)
-						basic_info_node_count++;
-					if(node_count) {
-						if(ptr_level)
-							node_count++;
-						complex_info = (PLATFORM_WORD*)vmalloc((node_count + 1 + basic_info_node_count) * sizeof(int)); //+基本类型
-						cur_complex_info_ptr = complex_info + node_count + basic_info_node_count;
-						node *head = analysis_data_struct_ptr->expression_final_stack.get_head();
-						for(int n=0; n<node_count; n++) {
-							head = head->right;
-							node_attribute_t *complex_attribute = (node_attribute_t*)head->value;
-							if(complex_attribute->data == OPT_INDEX) {
-								*cur_complex_info_ptr = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value.int_value;
-							} else if(complex_attribute->data == OPT_PTR_CONTENT) {
-								*cur_complex_info_ptr = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | complex_attribute->value_type;
-							}
-							cur_complex_info_ptr--;
-						}
-						if(ptr_level)
-							*cur_complex_info_ptr-- = (COMPLEX_PTR << COMPLEX_TYPE_BIT) | ptr_level;
-						*cur_complex_info_ptr-- = (COMPLEX_BASIC << COMPLEX_TYPE_BIT) | is_varity_declare;
-						if(is_varity_declare == STRUCT) {
-							*cur_complex_info_ptr-- = struct_node_ptr->type_info_ptr[1];//TODO:或许有更好办法
-						}
-						analysis_data_struct_ptr->expression_final_stack.reset();//避免后续声明错误及影响生成后序表达式
-					}
-					////////
-					varity_basic_type = is_varity_declare + ptr_level * BASIC_VARITY_TYPE_COUNT;
-					if(node_count)
-						varity_basic_type = COMPLEX;
-					else
-						complex_info = (PLATFORM_WORD*)get_basic_info(varity_basic_type, struct_node_ptr, this->struct_declare);
-					varity_size = get_varity_size(varity_basic_type, complex_info, node_count + basic_info_node_count);
-					if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
-						ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_basic_type, varity_size, node_count + basic_info_node_count, complex_info);
-						new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
-					} else {
-						ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, varity_basic_type, varity_size, node_count + basic_info_node_count, complex_info);
-						new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
-					}
-					if(node_count) {
-						//new_varity_ptr->config_complex_info(node_count + 1, complex_info);
-						complex_info[0] = 1;//起始引用次数1
-					}
-					////////
-					if(node_attribute->data == OPT_ASSIGN) {
-						int exp_len = find_ch_with_bracket_level(str + 1, ',', 0);
-						if(exp_len == -1)
-							exp_len = find_ch_with_bracket_level(str + 1, ';', 0);
-						generate_mid_code(str + 1, exp_len, false);
-						mid_code *code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - 1;
-						code_ptr->ret_addr = (int)new_varity_ptr->get_content_ptr();//TODO:避免数组被赋值
-						code_ptr->ret_operand_type = this->varity_global_flag;
-						code_ptr->ret_varity_type = new_varity_ptr->get_type();
-						code_ptr->data = new_varity_ptr->get_element_size();
-						str += exp_len + 1;
-						v_len -= exp_len + 1;
-					}
-					node_index = 0;
-					this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
-					this->sentence_analysis_data_struct.last_token.data = OPT_EDGE;
-					v_len -= token_len;
-					str += token_len;
-					continue;
-				} else {
-#if !DYNAMIC_ARRAY_EN
-					error("Not allowed to use dynamic array.\n");
-#endif
-				}
-			} else if(node_attribute->node_type == TOKEN_NAME) {
-				token_flag = 1;
-				cur_stack_ptr = &analysis_data_struct_ptr->expression_final_stack;
-				kstrcpy(varity_name, node_attribute->value.ptr_value);
+		while(remain_len > 0) {
+			token_len = get_token(str, &node);
+			if(token_len > remain_len || node.node_type == TOKEN_ERROR) {//TODO:增加NO_TOKEN
+				break;
 			}
-			this->sentence_analysis_data_struct.last_token = *node_attribute;
-			cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
-			v_len -= token_len;
-			str += token_len;
-			node_index++;
+			type_len = remain_len;
+			complex_node_count = get_varity_type(str, type_len, varity_name, is_varity_declare, struct_node_ptr, varity_complex_ptr);
+			if(is_varity_declare == STRUCT)
+				align_size = PLATFORM_WORD_LEN;//TODO:struct内最长对齐长度
+			else
+				align_size = get_element_size(complex_node_count, varity_complex_ptr);
+			varity_size = get_varity_size(0, varity_complex_ptr, complex_node_count);
+
+			if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
+				ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare, varity_size, complex_node_count, varity_complex_ptr);
+				new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
+			} else {
+				ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, is_varity_declare, varity_size, complex_node_count, varity_complex_ptr);
+				new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
+			}
+			if(!varity_complex_ptr[0]) {
+				varity_complex_ptr[0] = 1;//起始引用次数1
+			}
+			str += type_len;
+			remain_len -= type_len;
+			if(this->sentence_analysis_data_struct.last_token.data == OPT_ASSIGN) {
+				int exp_len = find_ch_with_bracket_level(str, ',', 0);
+				if(exp_len == -1)
+					exp_len = find_ch_with_bracket_level(str, ';', 0);
+				if(new_varity_ptr->get_type() != ARRAY) {
+					generate_mid_code(str, exp_len, false);
+					mid_code *code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+					kmemcpy(&code_ptr->opdb_addr, &(code_ptr - 1)->opda_addr, sizeof(code_ptr->opda_addr) + sizeof(code_ptr->opda_operand_type) + sizeof(code_ptr->double_space1) + sizeof(code_ptr->opda_varity_type));
+					code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_content_ptr();
+					code_ptr->ret_operand_type = code_ptr->opda_operand_type = this->varity_global_flag;
+					code_ptr->ret_varity_type = code_ptr->opda_varity_type = new_varity_ptr->get_type();
+					code_ptr->data = new_varity_ptr->get_element_size();
+					code_ptr->ret_operator = OPT_ASSIGN;
+					this->cur_mid_code_stack_ptr->push();
+				} else {//数组赋值
+				}
+				str += exp_len + 1;
+				remain_len -= exp_len + 1;
+			}
 		}
 		return OK_VARITY_DECLARE;
 	}
