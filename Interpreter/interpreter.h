@@ -27,6 +27,8 @@
 #define OPERAND_LINK_VARITY	(1 << 2)
 #define OPERAND_CONST   	(1 << 3)
 
+#define EXEC_FLAG_TRUE	true
+#define EXEC_FLAG_FALSE	false
 
 #define C_OPT_PRIO_COUNT		15
 class c_interpreter;

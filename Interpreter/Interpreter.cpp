@@ -251,11 +251,10 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		}
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
-		((node_attribute_t*)opt_node_ptr->value)->value_type = VARITY_SCOPE_ANALYSIS;
 		break;
 	}
 	case OPT_INDEX:
-	{//TODO:set_type也需要重写与声明统一
+	{
 		varity_number = this->mid_varity_stack.get_count();
 		PLATFORM_WORD *complex_info_ptr = avarity_ptr->get_complex_ptr();
 		int complex_arg_count = avarity_ptr->get_complex_arg_count();
@@ -513,7 +512,7 @@ assign_general:
 		this->mid_varity_stack.push();
 		inc_varity_ref(rvarity_ptr);
 		instruction_ptr->ret_addr = varity_number * 8;
-		instruction_ptr->ret_varity_type = rvarity_ptr->get_type();//TODO：考察所有指针在生成中间代码时置为void*的可行性
+		instruction_ptr->ret_varity_type = rvarity_ptr->get_type();
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = OPERAND_LINK_VARITY;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
@@ -629,7 +628,7 @@ assign_general:
 			if(node_attribute->node_type == TOKEN_NAME || node_attribute->node_type == TOKEN_CONST_VALUE || node_attribute->node_type == TOKEN_STRING) {
 				stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
 				instruction_ptr->ret_operator = OPT_PASS_PARA;
-				instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;//TODO:保证传进double时对齐到8Byte，否则data abort
+				instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
 #if CALL_CONVENTION
 				instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
 #endif
@@ -1204,7 +1203,7 @@ int c_interpreter::init(terminal* tty_used)
 	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
 	this->mid_varity_stack.init(sizeof(varity_info), this->tmp_varity_stack_pointer, MAX_A_VARITY_NODE);//TODO: 设置node最大count
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack;
-	this->exec_flag = true;
+	this->exec_flag = EXEC_FLAG_TRUE;
 	return 0;
 	///////////
 }
@@ -1260,6 +1259,7 @@ int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, register
 			if(!try_flag) {
 				nonseq_info->non_seq_exec = 1;
 				this->exec_flag = exec_flag_bak;
+				this->varity_global_flag = exec_flag_bak;
 			}
 			ret = OK_NONSEQ_FINISH;
 		}
@@ -1344,15 +1344,20 @@ int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 	if(nonseq_info->non_seq_check_ret) {
 		if(nonseq_info->row_num == 0) {
 			exec_flag_bak = this->exec_flag;
-			this->exec_flag = 0;
+			if(exec_flag_bak == true) {
+				this->varity_global_flag = VARITY_SCOPE_LOCAL;
+			}
+			this->exec_flag = EXEC_FLAG_FALSE;
 		}
 		this->varity_declare->local_varity_stack->endeep();
 		ret = nonseq_start_gen_mid_code(str, len, nonseq_info->non_seq_check_ret);
 		if(ret) {
 			error("Nonseq struct error.\n");
 			this->varity_declare->local_varity_stack->dedeep();
-			if(nonseq_info->row_num == 0)
+			if(nonseq_info->row_num == 0) {
 				this->exec_flag = exec_flag_bak;
+				this->varity_global_flag = exec_flag_bak;
+			}
 			return ret;
 		}
 		this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] = SET_BRACE(0, nonseq_info->brace_depth);
@@ -1459,7 +1464,7 @@ int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)/
 	vfree(arg_stack); \
 	this->varity_declare->destroy_local_varity(); \
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack; \
-	this->exec_flag = true; \
+	this->exec_flag = EXEC_FLAG_TRUE; \
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL; \
 	return x
 int c_interpreter::function_analysis(char* str, uint len)
@@ -1506,10 +1511,10 @@ int c_interpreter::function_analysis(char* str, uint len)
 				this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 				current_function_ptr->stack_frame_size = this->varity_declare->local_varity_stack->offset;
 				current_function_ptr->size_adapt();
-				this->exec_flag = true;
+				this->exec_flag = EXEC_FLAG_TRUE;
 				this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 				this->varity_declare->destroy_local_varity();
-				this->sentence_analysis_data_struct.label_count = 0;//TODO:清理工作在失败时做彻底
+				this->sentence_analysis_data_struct.label_count = 0;
 				return OK_FUNC_FINISH;
 			}
 		}
@@ -1554,7 +1559,7 @@ int c_interpreter::function_analysis(char* str, uint len)
 			varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);
 			arg_stack = (stack*)vmalloc(sizeof(stack));
 			arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
-			arg_node_ptr->arg_init("", ret_function_define, sizeof_type[ret_function_define], 0);//TODO:加上offset
+			arg_node_ptr->arg_init("", ret_function_define, sizeof_type[ret_function_define], 0);
 			arg_stack->push(arg_node_ptr++);
 			bool void_flag = false;
 			int offset = 0;
@@ -1947,7 +1952,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 				instruction_ptr->opdb_operand_type = OPERAND_T_VARITY;
 				instruction_ptr->opdb_addr = 8 * node_attribute->value.ptr_value[1];
 				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
-			} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {//TODO:检查一遍operand_type
+			} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {
 				instruction_ptr->opdb_operand_type = OPERAND_LINK_VARITY;
 				instruction_ptr->opdb_addr = (int)((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
 				instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
@@ -2015,9 +2020,6 @@ int c_interpreter::sentence_analysis(char* str, int len)
 	ret2 = non_seq_struct_analysis(str, len);
 	//debug("nonseqret=%d\n", ret2);
 	if(ret2 == OK_NONSEQ_FINISH || ret2 == OK_NONSEQ_INPUTING || ret2 == OK_NONSEQ_DEFINE) {
-		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack) {
-			this->varity_global_flag = VARITY_SCOPE_LOCAL;
-		}
 		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack && ret2 == OK_NONSEQ_FINISH) {
 			this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 			this->nonseq_info->stack_frame_size = this->varity_declare->local_varity_stack->offset;
@@ -2083,7 +2085,7 @@ int c_interpreter::nonseq_end_gen_mid_code(int row_num, char *str_try, int len_t
 	mid_code *mid_code_ptr;
 	node_attribute_t cur_node;
 	key_len = get_token(str, &cur_node);
-	if(cur_node.node_type != TOKEN_KEYWORD_NONSEQ && str[0] != '}') {//TODO：do while 检测bug
+	if(cur_node.node_type != TOKEN_KEYWORD_NONSEQ && str[0] != '}') {
 		if(!nonseq_info->row_info_node[nonseq_info->row_num].finish_flag) {
 			nonseq_info->row_info_node[nonseq_info->row_num].finish_flag = 1;
 		}
@@ -2537,7 +2539,10 @@ int c_interpreter::varity_declare_analysis(char* str, uint len)
 					mid_code *code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 					kmemcpy(&code_ptr->opdb_addr, &(code_ptr - 1)->opda_addr, sizeof(code_ptr->opda_addr) + sizeof(code_ptr->opda_operand_type) + sizeof(code_ptr->double_space1) + sizeof(code_ptr->opda_varity_type));
 					code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_content_ptr();
-					code_ptr->ret_operand_type = code_ptr->opda_operand_type = this->varity_global_flag;
+					if(this->varity_global_flag == VARITY_SCOPE_LOCAL)
+						code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_L_VARITY;
+					else
+						code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_G_VARITY;
 					code_ptr->ret_varity_type = code_ptr->opda_varity_type = new_varity_ptr->get_type();
 					code_ptr->data = new_varity_ptr->get_element_size();
 					code_ptr->ret_operator = OPT_ASSIGN;
