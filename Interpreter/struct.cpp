@@ -13,6 +13,7 @@ int struct_info::init(char* name, stack* varity_list)
 	this->varity_stack_ptr = varity_list;
 	kmemcpy(this->type_info_ptr, basic_type_info[STRUCT], sizeof(int) * 3);
 	this->type_info_ptr[1] = (uint)this;
+	this->type_info_ptr[0] = 1;//初始引用次数为1
 	return 0;
 }
 

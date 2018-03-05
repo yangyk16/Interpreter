@@ -479,7 +479,7 @@ assign_general:
 		(instruction_ptr + 1)->opdb_operand_type = OPERAND_CONST;
 		(instruction_ptr + 1)->opdb_varity_type = INT;
 		break;
-	case OPT_ADDRESS_OF://TODO:变量声明时，基本变量也设置complex_info，增加complex_info最大容限，避免无限取地址出错，在声明时可预留1次取地址扩展，取址时先验证扩展位是否为0再扩展，否则覆盖其他变量类型。
+	case OPT_ADDRESS_OF://TODO:取址时先验证扩展位是否为0再扩展，否则覆盖其他变量类型。
 	{
 		varity_number = this->mid_varity_stack.get_count();
 		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
@@ -1440,8 +1440,8 @@ int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)/
 			if(node.data == OPT_MUL) {
 				ptr_flag = 1;
 			} else {
-				varity_info::init_varity(varity_ptr, 0, type, 4);
-				varity_ptr++->config_complex_info(1 + ptr_flag, basic_type_info[type]);
+				varity_info::init_varity(varity_ptr, 0, type, 4, 1 + ptr_flag, basic_type_info[type]);
+				varity_ptr++;
 				arg_list_ptr.push();
 				ptr_flag = 0;
 			}

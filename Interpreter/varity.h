@@ -41,15 +41,15 @@
 #define BASIC_TYPE_SET(x)		((x) | COMPLEX_BASIC << COMPLEX_TYPE_BIT)
 
 #if PLATFORM_WORD_LEN == 4
-#define LONG 6
-#define U_INT 7
-#define U_LONG 8
-#define LONG_LONG 9
+#define LONG 6u
+#define U_INT 7u
+#define U_LONG 8u
+#define LONG_LONG 9u
 #elif PLATFORM_WORD_LEN == 8
-#define U_INT 6
-#define LONG 7
-#define LONG_LONG 8
-#define U_LONG 9
+#define U_INT 6u
+#define LONG 7u
+#define LONG_LONG 8u
+#define U_LONG 9u
 #endif
 #define STRUCT	14u
 #define VOID 13u
@@ -69,7 +69,7 @@ typedef unsigned long PLATFORM_WORD;
 
 class varity_attribute: public element {
 protected:
-	char type;
+	char type;//TODO:已经没用了，移除相关代码及相关函数定义中的多余参数
 	char attribute;
 	uint size;
 	PLATFORM_WORD* comlex_info_ptr;
@@ -85,7 +85,7 @@ protected:
 	void*	content_ptr;
 public:
 	static bool en_echo;
-	static void init_varity(void*, char*, char, uint);
+	static void init_varity(void*, char*, char, uint, int, PLATFORM_WORD*);
 	void arg_init(char*, char, uint, void*);
 	void config_varity(char, void* = 0);
 	void config_complex_info(int, PLATFORM_WORD*);

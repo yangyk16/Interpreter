@@ -109,7 +109,7 @@ void varity_info::arg_init(char* name, char type, uint size, void* offset)
 	}
 }
 
-void varity_info::init_varity(void* addr, char* name, char type, uint size)
+void varity_info::init_varity(void *addr, char *name, char type, uint size, int arg_count, PLATFORM_WORD *complex_ptr)
 {
 	varity_info* varity_ptr = (varity_info*)addr;
 	if(name) {
@@ -122,13 +122,9 @@ void varity_info::init_varity(void* addr, char* name, char type, uint size)
 	varity_ptr->content_ptr = 0;
 	varity_ptr->attribute = 0;
 	if(type != COMPLEX) {
-		varity_ptr->comlex_info_ptr = basic_type_info[type];
+		varity_ptr->comlex_info_ptr = complex_ptr;
+		varity_ptr->complex_arg_count = arg_count;
 		inc_varity_ref(varity_ptr);
-		if(type != STRUCT) {
-			varity_ptr->complex_arg_count = 1;
-		} else {
-			varity_ptr->complex_arg_count = 2;
-		}
 	}
 }
 
@@ -252,9 +248,9 @@ int varity::declare(int scope_flag, char *name, char type, uint size, int comple
 		return ERROR_VARITY_COUNT_MAX;
 	}
 	varity_ptr = (varity_info*)varity_stack->get_current_ptr();
-	varity_info::init_varity(varity_ptr, name, type, size);
-	if(complex_arg_count && complex_info_ptr)
-		varity_ptr->config_complex_info(complex_arg_count, complex_info_ptr);
+	varity_info::init_varity(varity_ptr, name, type, size, complex_arg_count, complex_info_ptr);
+	//if(complex_arg_count && complex_info_ptr)
+	//	varity_ptr->config_complex_info(complex_arg_count, complex_info_ptr);
 	if(scope_flag == VARITY_SCOPE_GLOBAL) {
 		ret = varity_ptr->apply_space();
 		if(ret) {
