@@ -199,8 +199,14 @@ int_value_handle:
 				return i + opt_str_len[j];
 			}
 		}
-		info->node_type = TOKEN_ERROR;
-		return ERROR_TOKEN;
+		for(;str[i];i++) {
+			if(str[i] != ' ' || str[i] != '\t') {
+				info->node_type = TOKEN_ERROR;
+				return ERROR_TOKEN;
+			}
+		}
+		info->node_type = TOKEN_NONEXIST;
+		return 0;
 	}
 	return 0;
 }

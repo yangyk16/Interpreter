@@ -1401,7 +1401,7 @@ struct_end_check:
 		nonseq_info->row_num++;
 	}
 	if(!ret) {
-		if(len == 0)
+		if(len == 0 && !nonseq_info->row_num)
 			ret = OK_NONSEQ_INPUTING;
 		if(nonseq_info->non_seq_struct_depth)
 			ret = OK_NONSEQ_INPUTING;
@@ -1704,7 +1704,7 @@ int c_interpreter::label_analysis(char *str, int len)
 		if(node.node_type == TOKEN_OPERATOR && node.data == OPT_TERNARY_C) {
 			str += token_len;
 			token_len = get_token(str, &node);
-			if(node.node_type == TOKEN_ERROR) {
+			if(node.node_type == TOKEN_NONEXIST) {
 				if(this->cur_mid_code_stack_ptr == &this->mid_code_stack) {
 					error("Label & \"goto\" cannot be used in main function.\n");
 					return ERROR_GOTO_POSITION;
@@ -2235,6 +2235,8 @@ int c_interpreter::struct_analysis(char* str, uint len)
 	token_len = get_token(str, &node);
 	if(node.node_type == TOKEN_KEYWORD_TYPE)
 		is_varity_declare = node.value.int_value;
+	else if(node.node_type == TOKEN_NONEXIST)
+		return OK_STRUCT_NOSTRUCT;
 	else
 		is_varity_declare = 0;
 	if(this->struct_info_set.declare_flag) {
@@ -2270,7 +2272,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 				remain_len -= type_len;
 				while(remain_len > 0) {
 					token_len = get_token(str, &node);
-					if(token_len > remain_len || node.node_type == TOKEN_ERROR) {//TODO:增加NO_TOKEN
+					if(token_len > remain_len || node.node_type == TOKEN_NONEXIST) {
 						break;
 					}
 					type_len = remain_len;
@@ -2302,7 +2304,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 		}
 		kstrcpy(struct_name, node.value.ptr_value);
 		token_len += get_token(str + token_len, &node);
-		if(node.node_type == TOKEN_ERROR) {//1:define 2+:declare
+		if(node.node_type == TOKEN_NONEXIST) {//1:define 2+:declare
 			int symbol_begin_pos, ptr_level = 0;
 			int keylen = kstrlen(type_key[is_varity_declare]);
 			stack* arg_stack;
@@ -2502,12 +2504,12 @@ int c_interpreter::varity_declare_analysis(char* str, uint len)
 	is_varity_declare = basic_type_check(str, key_len, struct_node_ptr);	
 	if(is_varity_declare >= 0) {
 		str += key_len;
-		int type, type_len, remain_len = len - key_len, complex_node_count, varity_size, align_size;
+		int type_len, remain_len = len - key_len, complex_node_count, varity_size, align_size;
 		PLATFORM_WORD *varity_complex_ptr;
 		varity_info *new_varity_ptr;
 		while(remain_len > 0) {
 			token_len = get_token(str, &node);
-			if(token_len > remain_len || node.node_type == TOKEN_ERROR) {//TODO:增加NO_TOKEN
+			if(token_len > remain_len || node.node_type == TOKEN_NONEXIST) {//TODO:增加NO_TOKEN
 				break;
 			}
 			type_len = remain_len;

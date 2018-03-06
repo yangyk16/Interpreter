@@ -13,6 +13,7 @@
 #define TOKEN_STRING			8
 #define TOKEN_OTHER				9
 #define TOKEN_ERROR				10
+#define TOKEN_NONEXIST			11
 
 inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
 
