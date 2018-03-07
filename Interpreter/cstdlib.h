@@ -16,4 +16,7 @@ int katoi(const char* sptr);
 double katof(const char* sptr);
 bool kisdigit(unsigned char ch);
 
+void *vmalloc(unsigned int size);
+void vfree(void*);
+void* vrealloc(void* addr, unsigned int size);
 #endif

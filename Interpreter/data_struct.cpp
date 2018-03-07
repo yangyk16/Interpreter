@@ -188,11 +188,11 @@ void node::middle_visit(void)
 	if(this->left)
 		this->left->middle_visit();
 	node_attribute_t *tmp = (node_attribute_t*)this->value;
-	kprintf("%d ",tmp->node_type);
+	debug("%d ",tmp->node_type);
 	if(tmp->node_type == TOKEN_NAME)
-		kprintf("%s\n",tmp->value.ptr_value);
+		debug("%s\n",tmp->value.ptr_value);
 	else
-		kprintf("%d\n",tmp->value.int_value);
+		debug("%d\n",tmp->value.int_value);
 	if(this->right)
 		this->right->middle_visit();
 }

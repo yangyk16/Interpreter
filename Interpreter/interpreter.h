@@ -196,7 +196,6 @@ class c_interpreter: public interpreter {
 	int struct_analysis(char*, uint);
 	int struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
 	int non_seq_struct_analysis(char*, uint);
-	int sub_sentence_analysis(char*, uint* size);
 	int varity_declare_analysis(char*, uint);
 	int label_analysis(char*, int);
 	int sentence_exec(char*, uint, bool);
@@ -206,7 +205,7 @@ class c_interpreter: public interpreter {
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, char &type, int &opt_len, char &prio);
 	int generate_mid_code(char *str, int len, bool need_semicolon);
-	int list_stack_to_tree(node* tree_node, list_stack* post_order_stack);
+	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int exec_mid_code(mid_code *pc, uint count);
 	int nonseq_start_gen_mid_code(char *str, uint len, int non_seq_type);
 	int nonseq_mid_gen_mid_code(char *str, uint len);

@@ -26,7 +26,7 @@ char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2
 char tmp_varity_name[MAX_A_VARITY_NODE][3];
 char link_varity_name[MAX_A_VARITY_NODE][3];
 
-int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_stack)
+int c_interpreter::list_to_tree(node* tree_node, list_stack* post_order_stack)
 {
 	node *last_node;
 	node_attribute_t *last_node_attribute;
@@ -44,7 +44,7 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 			if(last_node_attribute->data == OPT_TYPE_CONVERT && ((node_attribute_t*)tree_node->value)->data == OPT_SIZEOF) {
 				return ERROR_NO;
 			}
-			ret = list_stack_to_tree(last_node, post_order_stack);
+			ret = list_to_tree(last_node, post_order_stack);
 			if(ret)
 				return ret;
 		} else if(last_node_attribute->node_type == TOKEN_NAME || last_node_attribute->node_type == TOKEN_CONST_VALUE || last_node_attribute->node_type == TOKEN_STRING) {
@@ -78,7 +78,7 @@ int c_interpreter::list_stack_to_tree(node* tree_node, list_stack* post_order_st
 		last_node_attribute = (node_attribute_t*)last_node->value;
 		tree_node->left = last_node;
 		if(last_node_attribute->node_type == TOKEN_OPERATOR) {
-			ret = list_stack_to_tree(last_node, post_order_stack);
+			ret = list_to_tree(last_node, post_order_stack);
 			if(ret)
 				return ret;
 		} else if(last_node_attribute->node_type == TOKEN_NAME || last_node_attribute->node_type == TOKEN_CONST_VALUE || last_node_attribute->node_type == TOKEN_STRING) {
@@ -998,7 +998,7 @@ int c_interpreter::operator_pre_handle(stack *code_stack_ptr, node *opt_node_ptr
 
 int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 {
-	register int ret;
+	int ret;
 	if(((node_attribute_t*)tree->value)->node_type == TOKEN_OPERATOR) {	//需要先序处理的运算符：TERNERY_C
 		ret = this->operator_pre_handle(code_stack, tree);
 		if(ret)
@@ -1024,7 +1024,7 @@ int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 		if(ret)
 			return ret;
 	}
-	return 0;
+	return ERROR_NO;
 }
 
 int c_interpreter::test(char *str, uint len)
@@ -1894,7 +1894,7 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 		if(ret)return ret;
 	} else {
 		root->link_reset();
-		ret = list_stack_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
+		ret = list_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//二叉树完成
 		if(ret)return ret;
 		if(analysis_data_struct_ptr->expression_final_stack.get_count()) {
 			error("Exist extra token.\n");

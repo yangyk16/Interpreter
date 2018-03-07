@@ -10,7 +10,6 @@ class function_info: public element {
 public:
 	char variable_para_flag;
 	char compile_func_flag;
-	char compile_arg_count;
 	void* func_addr;
 	stack mid_code_stack;
 	int row_line;

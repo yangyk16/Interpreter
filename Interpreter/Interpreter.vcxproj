@@ -99,7 +99,7 @@
     <ClCompile Include="interpreter.cpp" />
     <ClCompile Include="data_struct.cpp" />
     <ClCompile Include="hal.cpp" />
-    <ClCompile Include="kmalloc.cpp" />
+    <ClCompile Include="mempool.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="operator.cpp" />
     <ClCompile Include="stdlib.cpp" />

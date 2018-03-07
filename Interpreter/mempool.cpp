@@ -139,3 +139,29 @@ void heapinit(void) {
 	head->last = 0;
 	head->next = 0;
 }
+
+void* vmalloc(unsigned int size)
+{
+	unsigned int a_size = size&7?size+(8-(size&7)):size;
+	void* ret = kmalloc(a_size);
+	if(ret) {
+		//size = size&7?size+(8-size&7):size;
+		debug("malloc %x, %d\n", ret, size);
+		kmemset(ret, 0, size);
+		return ret;
+	} else {
+		return NULL;
+	}
+}
+
+void vfree(void *ptr)
+{
+	kfree(ptr);
+	debug("free %x\n", ptr);
+}
+
+void* vrealloc(void* addr, unsigned int size)
+{
+	debug("realloc %x, %d\n", addr, size);
+	return krealloc(addr, size);
+}
