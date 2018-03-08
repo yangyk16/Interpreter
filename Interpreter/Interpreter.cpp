@@ -1957,17 +1957,20 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 			return ERROR_OPERAND_SURPLUS;
 		}
 		//root->middle_visit();
+		int current_code_count = this->cur_mid_code_stack_ptr->get_count();
 		ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
 		if(ret) {
 			while(this->mid_varity_stack.get_count()) {
 				varity_info *tmp_varity_ptr = (varity_info*)this->mid_varity_stack.pop();
 				dec_varity_ref(tmp_varity_ptr, true);
 			}
+			this->cur_mid_code_stack_ptr->del_element_to(current_code_count);
 			return ret;
 		}
 		if(this->sentence_analysis_data_struct.short_depth) {
 			error("? && : unmatch.\n");
 			this->sentence_analysis_data_struct.short_depth = 0;
+			this->cur_mid_code_stack_ptr->del_element_to(current_code_count);
 			return ERROR_TERNARY_UNMATCH;
 		}
 	}

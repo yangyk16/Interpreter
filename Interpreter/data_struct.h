@@ -61,6 +61,7 @@ public:
 	void* get_current_ptr(void) {return (char*)this->bottom_addr + top;}
 	void* get_lastest_element(void) {return this->count? (char*)get_current_ptr() - this->element_size: 0;}
 	void* visit_element_by_index(int);
+	void del_element_to(int count) {while(this->count > count) this->pop();}
 };
 
 class indexed_stack: public stack {
