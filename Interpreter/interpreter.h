@@ -261,6 +261,7 @@ class c_interpreter: public interpreter {
 	static int ctl_branch_false_handle(c_interpreter *interpreter_ptr);
 	static int opt_pass_para_handle(c_interpreter *interpreter_ptr);
 	static int ctl_return_handle(c_interpreter *interpreter_ptr);
+	static int ctl_bxlr_handle(c_interpreter *interpreter_ptr);
 	static int sys_stack_step_handle(c_interpreter *interpreter_ptr);
 	static void handle_init(void);
 	static int call_opt_handle(c_interpreter *interpreter_ptr);

@@ -342,22 +342,24 @@ static int kvsprintf(char *buf, const char *fmt, va_list args)
 
 int kprintf(const char *fmt, ...)
 {
+	int len;
 	va_list ap; 
 	char string[0x400]; 
 	va_start(ap,fmt);
-	kvsprintf(string,fmt,ap);
+	len = kvsprintf(string,fmt,ap);
 	va_end(ap);
 	kfputs(string);
-	return 0;
+	return len;
 }
 
 int ksprintf(char *buf, const char *fmt, ...)
 {
+	int len;
 	va_list ap; 
 	va_start(ap,fmt);
-	kvsprintf(buf,fmt,ap);
+	len = kvsprintf(buf,fmt,ap);
 	va_end(ap);
-	return 0;
+	return len;
 }
 
 void* kmemcpy(void *d, const void *s, unsigned int size)

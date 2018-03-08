@@ -738,7 +738,7 @@ assign_general:
 				code_stack_ptr->push();
 				instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 				instruction_ptr->ret_operator = SYS_STACK_STEP;
-				instruction_ptr->opda_addr = - make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+				instruction_ptr->opda_addr = - make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) - PLATFORM_WORD_LEN;
 			}
 		}
 		break;
@@ -819,7 +819,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		this->call_func_info.offset[this->call_func_info.function_depth] = 0;
 		if(this->call_func_info.function_depth) {
 			instruction_ptr->ret_operator = SYS_STACK_STEP;
-			instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+			instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + PLATFORM_WORD_LEN;
 			code_stack_ptr->push();
 		}
 		this->call_func_info.function_depth++;
@@ -1198,7 +1198,7 @@ int c_interpreter::init(terminal* tty_used)
 	///////////
 	handle_init();
 	this->break_flag = 0;
-	this->stack_pointer = this->simulation_stack;
+	this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
 	this->tmp_varity_stack_pointer = this->tmp_varity_stack;
 	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
 	this->mid_varity_stack.init(sizeof(varity_info), this->tmp_varity_stack_pointer, MAX_A_VARITY_NODE);//TODO: ÉèÖÃnode×î´ócount
@@ -1486,6 +1486,8 @@ int c_interpreter::function_analysis(char* str, uint len)
 			if(!this->function_flag_set.brace_depth) {
 				function_info *current_function_ptr = this->function_declare->get_current_node();
 				mid_code *mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr(), *code_end_ptr = mid_code_ptr;
+				mid_code_ptr->ret_operator = CTL_BXLR;
+				this->cur_mid_code_stack_ptr->push();
 				while(--mid_code_ptr >= (mid_code*)current_function_ptr->mid_code_stack.get_base_addr()) {
 					if(mid_code_ptr->ret_operator == CTL_RETURN)
 						mid_code_ptr->opda_addr = code_end_ptr - mid_code_ptr;
@@ -1989,7 +1991,7 @@ ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 	this->pc = pc;
 	//int tick1, tick2 = HWREG(0x2040018), total1 = 0, total2 = 0;
 	opt_time = 0;
-	while(this->pc < end_ptr) {
+	while(this->pc != end_ptr) {
 		//tick1 = HWREG(0x2040018);
 		//total1 += tick2 - tick1;
 		ret = call_opt_handle(this);
