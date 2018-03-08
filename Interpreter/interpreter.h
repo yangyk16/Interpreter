@@ -271,6 +271,7 @@ class c_interpreter: public interpreter {
 
 public:
 	void set_break_flag(int flag) {break_flag = flag;}
+	int print_call_stack(void);
 	int init(terminal*);
 	virtual int run_interpreter(void);
 };

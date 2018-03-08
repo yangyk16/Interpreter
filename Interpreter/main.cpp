@@ -15,6 +15,7 @@ extern c_interpreter myinterpreter;
 void ouch(int sig)
 {
 	myinterpreter.set_break_flag(1);
+	myinterpreter.print_call_stack();
 }
 
 int _tmain(int argc, _TCHAR* argv[])

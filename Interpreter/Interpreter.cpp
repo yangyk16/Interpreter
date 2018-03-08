@@ -1039,6 +1039,55 @@ int c_interpreter::test(char *str, uint len)
 	return 0;
 }
 
+int c_interpreter::print_call_stack(void)
+{
+	char *stack_ptr = this->stack_pointer;
+	mid_code *pc, *func_pc;
+	int func_code_count;
+	function_info *cur_func_ptr;
+	pc = this->pc;
+	if(pc >= (mid_code*)this->mid_code_stack.get_base_addr() && pc < (mid_code*)this->mid_code_stack.get_base_addr() + MAX_MID_CODE_COUNT) {
+		gdbout("main + %d\n", pc - (mid_code*)this->mid_code_stack.get_base_addr());
+	} else {
+		int i;
+		for(i=0; i<this->language_elment_space.function_list.get_count(); i++) {
+			func_pc = (mid_code*)this->language_elment_space.function_node[i].mid_code_stack.get_base_addr();
+			func_code_count = this->language_elment_space.function_node[i].mid_code_stack.get_count();
+			if(pc >= func_pc && pc < func_pc + func_code_count) {
+				gdbout("%s + %d\n", this->language_elment_space.function_node[i].get_name(), pc - func_pc);
+				break;
+			}
+		}
+		if(i == this->language_elment_space.function_list.get_count()) {
+			error("stack broken.\n");
+			return ERROR_NO;
+		}
+	}
+	while(stack_ptr > this->simulation_stack + PLATFORM_WORD_LEN) {
+		pc = (mid_code*)PTR_N_VALUE(stack_ptr - PLATFORM_WORD_LEN);
+		if(pc >= (mid_code*)this->mid_code_stack.get_base_addr() && pc < (mid_code*)this->mid_code_stack.get_base_addr() + MAX_MID_CODE_COUNT) {
+			gdbout("main + %d\n", pc - (mid_code*)this->mid_code_stack.get_base_addr());
+			break;
+		} else {
+			int i;
+			for(i=0; i<this->language_elment_space.function_list.get_count(); i++) {
+				func_pc = (mid_code*)this->language_elment_space.function_node[i].mid_code_stack.get_base_addr();
+				func_code_count = this->language_elment_space.function_node[i].mid_code_stack.get_count();
+				if(pc >= func_pc && pc < func_pc + func_code_count) {
+					gdbout("%s + %d\n", this->language_elment_space.function_node[i].get_name(), pc - func_pc);
+					stack_ptr -= this->language_elment_space.function_node[i].stack_frame_size + PLATFORM_WORD_LEN;
+					break;
+				}
+			}
+			if(i == this->language_elment_space.function_list.get_count()) {
+				error("stack broken.\n");
+				break;
+			}
+		}
+	}
+	return ERROR_NO;
+}
+
 int c_interpreter::pre_treat(uint len)
 {
 	int spacenum = 0;
@@ -1047,7 +1096,7 @@ int c_interpreter::pre_treat(uint len)
 	char bracket_stack[32], bracket_depth = 0;
 	char nowchar;
 	while(nowchar = sentence_buf[rptr]) {
-		if(IsSpace(nowchar)) {
+		if(IsSpace(nowchar) && !string_flag) {
 			if(!first_word) {
 				if(!space_flag)
 					sentence_buf[wptr++] = ' ';
@@ -1102,10 +1151,12 @@ int c_interpreter::pre_treat(uint len)
 				if(!bracket_depth && !string_flag) {
 					if(rptr) {
 						this->row_pretreat_fifo.write(sentence_buf + rptr, len - rptr);
-						sentence_buf[rptr] = 0;
+						sentence_buf[wptr] = 0;
+						return wptr;
 					} else {
 						this->row_pretreat_fifo.write(sentence_buf + rptr + 1, len - rptr - 1);
-						sentence_buf[rptr + 1] = 0;
+						sentence_buf[wptr + 1] = 0;
+						return wptr + 1;
 					}
 				}
 				break;
@@ -1792,6 +1843,9 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 		token_len = get_token(str, node_attribute);
 		if(len < token_len)
 			break;
+		if(node_attribute->node_type == TOKEN_NONEXIST) {
+			break;
+		}
 		if(node_attribute->node_type == TOKEN_ERROR) {
 			analysis_data_struct_ptr->expression_final_stack.reset();
 			analysis_data_struct_ptr->expression_tmp_stack.reset();
