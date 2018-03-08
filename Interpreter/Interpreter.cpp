@@ -88,10 +88,6 @@ int c_interpreter::list_to_tree(node* tree_node, list_stack* post_order_stack)
 		}
 	}
 	return ERROR_NO;
-	//if(tree_node->right && ((node_attribute_t*)tree_node->right->value)->node_type == TOKEN_NAME
-	//	&& tree_node->left && ((node_attribute_t*)tree_node->left->value)->node_type == TOKEN_NAME) {
-	//		return ERROR_NO;
-	//}
 }
 
 #define RETURN(x) if(avarity_use_flag && !PTR_N_VALUE(avarity_ptr->get_complex_ptr())) \
@@ -566,9 +562,9 @@ assign_general:
 		code_stack_ptr->push();
 		instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 		instruction_ptr->ret_operator = CTL_BRANCH;
-		mid_code *&ternary_code_ptr = (mid_code*&)this->sentence_analysis_data_struct.short_calc_stack[--this->sentence_analysis_data_struct.short_depth];
+		mid_code *&ternary_code_ptr = (mid_code*&)this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth - 1];
 		ternary_code_ptr->opda_addr = ++instruction_ptr - ternary_code_ptr;
-		this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth] = (PLATFORM_WORD)(instruction_ptr - 1);
+		this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth - 1] = (PLATFORM_WORD)(instruction_ptr - 1);
 		break;
 	}
 	case OPT_TERNARY_C:
@@ -585,7 +581,7 @@ assign_general:
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		//code_stack_ptr->push();
-		mid_code *&ternary_code_ptr = (mid_code*&)this->sentence_analysis_data_struct.short_calc_stack[this->sentence_analysis_data_struct.short_depth];
+		mid_code *&ternary_code_ptr = (mid_code*&)this->sentence_analysis_data_struct.short_calc_stack[--this->sentence_analysis_data_struct.short_depth];
 		ternary_code_ptr->opda_addr = instruction_ptr + 1 - ternary_code_ptr;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
@@ -1953,6 +1949,7 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 		ret = list_to_tree(root, &analysis_data_struct_ptr->expression_final_stack);//¶þ²æÊ÷Íê³É
 		if(ret)return ret;
 		if(analysis_data_struct_ptr->expression_final_stack.get_count()) {
+			analysis_data_struct_ptr->expression_final_stack.reset();
 			error("Exist extra token.\n");
 			return ERROR_OPERAND_SURPLUS;
 		}
@@ -1965,12 +1962,18 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 				dec_varity_ref(tmp_varity_ptr, true);
 			}
 			this->cur_mid_code_stack_ptr->del_element_to(current_code_count);
+			this->call_func_info.function_depth = 0;
 			return ret;
 		}
 		if(this->sentence_analysis_data_struct.short_depth) {
 			error("? && : unmatch.\n");
 			this->sentence_analysis_data_struct.short_depth = 0;
+			while(this->mid_varity_stack.get_count()) {
+				varity_info *tmp_varity_ptr = (varity_info*)this->mid_varity_stack.pop();
+				dec_varity_ref(tmp_varity_ptr, true);
+			}
 			this->cur_mid_code_stack_ptr->del_element_to(current_code_count);
+			this->call_func_info.function_depth = 0;
 			return ERROR_TERNARY_UNMATCH;
 		}
 	}
