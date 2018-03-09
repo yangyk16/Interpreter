@@ -1762,11 +1762,11 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
 	GET_RET_ADDR();
 	function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;
-	if(interpreter_ptr->call_func_info.function_depth == 0)
-		interpreter_ptr->stack_pointer += interpreter_ptr->nonseq_info->stack_frame_size + PLATFORM_WORD_LEN;
-	else
-		interpreter_ptr->stack_pointer += interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + PLATFORM_WORD_LEN;
 	if(!function_ptr->compile_func_flag) {
+		if(interpreter_ptr->call_func_info.function_depth == 0)
+			interpreter_ptr->stack_pointer += interpreter_ptr->nonseq_info->stack_frame_size + PLATFORM_WORD_LEN;
+		else
+			interpreter_ptr->stack_pointer += interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + PLATFORM_WORD_LEN;
 		int code_count = function_ptr->mid_code_stack.get_count();
 		PTR_N_VALUE(interpreter_ptr->stack_pointer - PLATFORM_WORD_LEN) = (PLATFORM_WORD)interpreter_ptr->pc;
 		interpreter_ptr->tmp_varity_stack_pointer += (int)instruction_ptr->opdb_addr;
@@ -1776,7 +1776,11 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 		return ERROR_NO;
 	} 
 	long long ret;
-	PLATFORM_WORD *arg_ptr = (PLATFORM_WORD*)interpreter_ptr->stack_pointer;
+	PLATFORM_WORD *arg_ptr;
+	if(interpreter_ptr->call_func_info.function_depth == 0)
+		arg_ptr = (PLATFORM_WORD*)(interpreter_ptr->stack_pointer + interpreter_ptr->nonseq_info->stack_frame_size + PLATFORM_WORD_LEN);
+	else
+		arg_ptr = (PLATFORM_WORD*)(interpreter_ptr->stack_pointer + interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + PLATFORM_WORD_LEN);
 	switch(instruction_ptr->data) {
 	case 1:
 		func1_ptr = (func1)function_ptr->func_addr;
