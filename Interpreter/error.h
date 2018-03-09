@@ -61,4 +61,5 @@
 #define OK_FUNC_DEFINE			12
 #define OK_LABEL_DEFINE			13
 #define OK_FUNC_RETURN			14
+#define OK_CTL_NOT_FOUND		15
 #endif

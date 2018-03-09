@@ -18,6 +18,7 @@ language_elment_space_t c_interpreter::language_elment_space;
 c_interpreter myinterpreter;
 
 char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
+char ctl_key[][9] = {"break", "continue", "goto", "return"};
 const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
 char opt_str[43][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
 char opt_str_len[] = {3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
@@ -1321,11 +1322,13 @@ int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, register
 int c_interpreter::non_seq_struct_analysis(char* str, uint len)
 {
 	static bool exec_flag_bak;
+	node_attribute_t token_node;
 	int struct_end_flag = 0;
 	int ret = ERROR_NO;
 	int current_brace_level = 0;
 	nonseq_info->last_non_seq_check_ret = nonseq_info->non_seq_check_ret;
-	nonseq_info->non_seq_check_ret = non_seq_struct_check(str);
+	get_token(str, &token_node);
+	nonseq_info->non_seq_check_ret = token_node.node_type == TOKEN_KEYWORD_NONSEQ ? token_node.value.int_value : 0;
 	current_brace_level = nonseq_info->brace_depth;
 	if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
 		if(nonseq_info->brace_depth == 0) {
@@ -1867,62 +1870,74 @@ int c_interpreter::post_order_expression(char *str, int len)
 	return ERROR_NO;
 }
 
+int c_interpreter::ctl_analysis(char *str, int len)
+{
+	node_attribute_t token_node;
+	get_token(str, &token_node);
+	mid_code *mid_code_ptr;
+	if(token_node.node_type == TOKEN_KEYWORD_CTL) {
+		if(token_node.value.int_value == CTL_KEY_RETURN) {
+			int ret;
+			if(this->cur_mid_code_stack_ptr == &this->mid_code_stack)
+				return OK_FUNC_RETURN;
+			ret = this->generate_mid_code(str + 7, len - 7, true);//下一句貌似重复了，所以注释掉。
+			if(ret)
+				return ret;
+			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+			mid_code_ptr->ret_operator = CTL_RETURN;
+			this->cur_mid_code_stack_ptr->push();
+			return ERROR_NO;
+		} else if(token_node.value.int_value == CTL_KEY_BREAK) {
+			if(this->nonseq_info->row_num > 0) {
+				int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth;
+				for(int i=read_seq_depth; i>0; i--) {
+					if(this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_FOR || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_WHILE || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_DO) {
+						mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+						mid_code_ptr->ret_operator = CTL_BREAK;
+						this->cur_mid_code_stack_ptr->push();
+						return ERROR_NO;
+					}
+				}
+			}
+			error("no nonseq struct for using break.\n");
+			return ERROR_NONSEQ_CTL;
+		} else if(token_node.value.int_value == CTL_KEY_CONTINUE) {
+			if(this->nonseq_info->row_num > 0) {
+				int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth;
+				for(int i=read_seq_depth; i>0; i--) {
+					if(this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_FOR || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_WHILE || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_DO) {
+						mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+						mid_code_ptr->ret_operator = CTL_CONTINUE;
+						this->cur_mid_code_stack_ptr->push();
+						return ERROR_NO;
+					}
+				}
+			}
+			error("no nonseq struct for using continue.\n");
+			return ERROR_NONSEQ_CTL;
+		} else if(token_node.value.int_value == CTL_KEY_GOTO) {
+			get_token(str + 5, this->sentence_analysis_data_struct.node_attribute);
+			if(this->sentence_analysis_data_struct.node_attribute->node_type != TOKEN_NAME) {
+				error("There must be a label after goto.\n");
+				return ERROR_GOTO_LABEL;
+			}
+			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+			mid_code_ptr->ret_operator = CTL_GOTO;
+			kstrcpy((char*)&mid_code_ptr->ret_addr, this->sentence_analysis_data_struct.node_attribute->value.ptr_value);
+			this->cur_mid_code_stack_ptr->push();
+			return ERROR_NO;
+		}		
+	}
+	return OK_CTL_NOT_FOUND;
+}
+
 int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//TODO:所有uint len统统改int，否则传个-1进来
 {
 	if(len == 0 || str[0] == '{' || str[0] == '}')return ERROR_NO;
-
-	mid_code *mid_code_ptr;
-	if(!strmcmp(str, "return ", 7)) {
-		int ret;
-		if(this->cur_mid_code_stack_ptr == &this->mid_code_stack)
-			return OK_FUNC_RETURN;
-		ret = this->generate_mid_code(str + 7, len - 7, true);//下一句貌似重复了，所以注释掉。
-		//this->generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)this->sentence_analysis_data_struct.tree_root->value);
-		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		mid_code_ptr->ret_operator = CTL_RETURN;
-		this->cur_mid_code_stack_ptr->push();
-		return ret;
-	} else if(!strmcmp(str, "break;", 6)) {
-		if(this->nonseq_info->row_num > 0) {
-			int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth;
-			for(int i=read_seq_depth; i>0; i--) {
-				if(this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_FOR || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_WHILE || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_DO) {
-					mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-					mid_code_ptr->ret_operator = CTL_BREAK;
-					this->cur_mid_code_stack_ptr->push();
-					return ERROR_NO;
-				}
-			}
-		}
-		error("no nonseq struct for using break.\n");
-		return ERROR_NONSEQ_CTL;
-	} else if(!strmcmp(str, "continue;", 9)) {
-		if(this->nonseq_info->row_num > 0) {
-			int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth;
-			for(int i=read_seq_depth; i>0; i--) {
-				if(this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_FOR || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_WHILE || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_DO) {
-					mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-					mid_code_ptr->ret_operator = CTL_CONTINUE;
-					this->cur_mid_code_stack_ptr->push();
-					return ERROR_NO;
-				}
-			}
-		}
-		error("no nonseq struct for using continue.\n");
-		return ERROR_NONSEQ_CTL;
-	} else if(!strmcmp(str, "goto ", 5)) {
-		get_token(str + 5, this->sentence_analysis_data_struct.node_attribute);
-		if(this->sentence_analysis_data_struct.node_attribute->node_type != TOKEN_NAME) {
-			error("There must be a label after goto.\n");
-			return ERROR_GOTO_LABEL;
-		}
-		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-		mid_code_ptr->ret_operator = CTL_GOTO;
-		kstrcpy((char*)&mid_code_ptr->ret_addr, this->sentence_analysis_data_struct.node_attribute->value.ptr_value);
-		this->cur_mid_code_stack_ptr->push();
-		return ERROR_NO;
-	}
 	int ret;
+	ret = this->ctl_analysis(str, len);
+	if(ret != OK_CTL_NOT_FOUND)
+		return ret;
 	ret = this->post_order_expression(str, len);
 	if(ret) return ret;
 	if(need_semicolon) {
@@ -1948,7 +1963,6 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 		warning("No token found.\n");
 		return 0;//TODO:找个合适的返回值
 	}
-	this->sentence_analysis_data_struct.tree_root = root;
 
 	if(this->sentence_analysis_data_struct.expression_final_stack.get_count() == 0) {
 		ret = generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
@@ -2660,9 +2674,198 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon)
 	return ERROR_NO;
 }
 
-int c_interpreter::non_seq_struct_check(char* str)
+round_queue token_fifo;
+int c_interpreter::get_token(char *str, node_attribute_t *info)
 {
-	return nonseq_key_cmp(str);
+	int i = 0, real_token_pos, float_flag = 0;
+	char *symbol_ptr = token_fifo.get_wptr() + (char*)token_fifo.get_base_addr();
+	while(str[i] == ' ' || str[i] == '\t')i++;
+	real_token_pos = i;
+	if(is_letter(str[i])) {
+		i++;
+		while(is_valid_c_char(str[i]))i++;
+		token_fifo.write(str + real_token_pos, i - real_token_pos);
+		token_fifo.write("\0",1);
+		for(int j=0; j<sizeof(type_key)/sizeof(type_key[0]); j++) {
+			if(!kstrcmp(symbol_ptr, type_key[j])) {
+				info->value.int_value = j;
+				info->node_type = TOKEN_KEYWORD_TYPE;
+				return i;
+			}
+		}
+		for(int j=0; j<sizeof(non_seq_key)/sizeof(non_seq_key[0]); j++) {
+			if(!kstrcmp(symbol_ptr, non_seq_key[j])) {
+				info->value.int_value = j;
+				info->node_type = TOKEN_KEYWORD_NONSEQ;
+				return i;
+			}
+		}
+		for(int j=0; j<sizeof(ctl_key)/sizeof(ctl_key[0]); j++) {
+			if(!kstrcmp(symbol_ptr, ctl_key[j])) {
+				info->value.int_value = j + 1;
+				info->node_type = TOKEN_KEYWORD_CTL;
+				return i;
+			}
+		}
+		if(!kstrcmp(symbol_ptr, "sizeof")) {
+			info->node_type = TOKEN_OPERATOR;
+			info->data = OPT_SIZEOF;
+			info->value_type = 2;
+			return i;
+		}
+		info->value.ptr_value = symbol_ptr;
+		info->node_type = TOKEN_NAME;
+		return i;
+	} else if(kisdigit(str[i]) || (str[i] == '.' && kisdigit(str[i + 1]))) {
+		if(str[i] == '0' && (str[i + 1] == 'x' || str[i + 1] == 'X')) {
+			if(!(str[i + 2] >= '0' && str[i + 2] <= '9' || str[i + 2] >= 'a' && str[i + 2] <= 'f' || str[i + 2] >= 'A' && str[i + 2] <= 'F')) {
+				error("Illegal hex number.\n");
+				return ERROR_TOKEN;
+			}
+			i += 2;
+			while(1) {
+				if(!(str[i] >= '0' && str[i] <= '9' || str[i] >= 'a' && str[i] <= 'f' || str[i] >= 'A' && str[i] <= 'F')) {
+					goto int_value_handle;
+				}
+				i++;
+			}
+		}
+		i++;
+		while(kisdigit(str[i]))i++;
+		if(str[i] == '.') {
+			i++;
+			float_flag = 1;
+			while(kisdigit(str[i]))i++;
+		}
+		if(str[i] == 'e' || str[i] == 'E') {
+			i++;
+			float_flag = 1;
+			if(str[i] == '-' || str[i] == '+')
+				i++;
+			while(kisdigit(str[i]))i++;
+		}
+		if(float_flag) {
+			info->value_type = DOUBLE;
+			info->value.double_value = y_atof(str, i);
+			info->node_type = TOKEN_CONST_VALUE;
+			return i;
+		}
+int_value_handle:
+		info->value.int_value = y_atoi(str, i);
+		if(str[i] == 'u') {
+			info->value_type = U_INT;
+			i++;
+		} else {
+			info->value_type = INT;
+		}
+		info->node_type = TOKEN_CONST_VALUE;
+		return i;
+	} else if(str[i] == '"') {
+		int count = 0;
+		int pos = ++i;
+		while(str[i]) {
+			if(str[i] == '\\') {//TODO:处理\ddd\xhh
+				i++;
+			} else if(str[i] == '"') {
+				char *p = (char*)vmalloc(count + 1);
+				for(int j=0; j<count; j++) {
+					if(str[pos] == '\\') {
+						char ch = str[pos + 1];
+						switch(ch) {
+						case 'n':
+							p[j] = '\n';
+						}
+						pos += 2;
+					} else {
+						p[j] = str[pos++]; 
+					}
+				}
+				p[count] = 0;
+				info->node_type = TOKEN_STRING;
+				info->value.ptr_value = p;
+				return i + 1;
+			}
+			i++;
+			count++;
+		}
+	} else if(str[i] == '\'') {
+		char character;
+		int ret = 1;
+		i++;
+		if(str[i] == '\\') {
+			ret = get_escape_char(str, character);
+		} else {
+			character = str[i];
+		}
+		i += ret;
+		if(str[i] == '\'') {
+			info->value_type = CHAR;
+			info->value.int_value = character;
+			info->node_type = TOKEN_CONST_VALUE;
+			return i + 1;
+		} else {
+			info->node_type = TOKEN_ERROR;
+			error("\' operator error.\n");
+			return ERROR_TOKEN;
+		}
+	} else if(str[i] == '{' || str[i] == '}') {
+		info->node_type = TOKEN_OTHER;
+		return 1;
+	} else {
+		for(int j=0; j<sizeof(opt_str)/sizeof(opt_str[0]); j++) {
+			if(!strmcmp(str + i, opt_str[j], opt_str_len[j])) {
+				info->data = j;
+				info->node_type = TOKEN_OPERATOR;
+				info->value_type = opt_prio[j];
+				if(info->data == OPT_L_SMALL_BRACKET) {
+					struct_info *struct_info_ptr;
+					node_attribute_t node;
+					int varity_type, varity_len, total_len;
+					int len_in_bracket = find_ch_with_bracket_level(str + i, ')', 1);
+					int v_len = len_in_bracket;
+					PLATFORM_WORD *complex_info_ptr;
+					char name[32];
+					varity_type = basic_type_check(str + i + 1, v_len, struct_info_ptr);
+					total_len = i + 1;
+					if(varity_type > 0) {
+						int i_bak = i;
+						i += v_len + 1;
+						total_len += v_len;
+						varity_len = (len_in_bracket -= v_len) - 1;
+						varity_type = get_varity_type(str + i, varity_len, name, varity_type, struct_info_ptr, complex_info_ptr);
+						if(varity_type > 0) {
+							total_len += varity_len;
+							i += varity_len;
+							len_in_bracket -= varity_len;
+							if(get_token(str + i, &node) == len_in_bracket) {
+								if(name[0] != '\0') {
+									//error("Convert operator contains varity name.\n");
+									info->node_type = TOKEN_ARG_LIST;
+									return total_len + 1;
+								}
+								info->data = OPT_TYPE_CONVERT;
+								info->value_type = 2;
+								info->value.ptr_value = (char*)complex_info_ptr;
+								info->count = varity_type; //complex_arg_count
+								return total_len + 1;
+							}
+						}
+						i = i_bak;
+					}
+				}
+				return i + opt_str_len[j];
+			}
+		}
+		for(;str[i];i++) {
+			if(str[i] != ' ' || str[i] != '\t') {
+				info->node_type = TOKEN_ERROR;
+				return ERROR_TOKEN;
+			}
+		}
+		info->node_type = TOKEN_NONEXIST;
+		return 0;
+	}
+	return 0;
 }
 
 void c_interpreter::print_code(void)
@@ -2741,7 +2944,6 @@ extern "C" void run_interpreter(void)
 	myinterpreter.run_interpreter();
 }
 
-extern round_queue token_fifo;
 extern "C" void uc_timer_init(unsigned int index);
 extern "C" void global_init(void)
 {

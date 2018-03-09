@@ -11,6 +11,18 @@
 #include "operator.h"
 #include "data_struct.h"
 
+#define TOKEN_KEYWORD_TYPE		1
+#define TOKEN_KEYWORD_CTL		2
+#define TOKEN_ARG_LIST			3
+#define TOKEN_KEYWORD_NONSEQ	4
+#define TOKEN_OPERATOR			5
+#define TOKEN_NAME				6
+#define TOKEN_CONST_VALUE		7
+#define TOKEN_STRING			8
+#define TOKEN_OTHER				9
+#define TOKEN_ERROR				10
+#define TOKEN_NONEXIST			11
+
 #define NONSEQ_KEY_IF		1
 #define NONSEQ_KEY_SWITCH	2
 #define NONSEQ_KEY_ELSE		3
@@ -19,6 +31,11 @@
 #define NONSEQ_KEY_DO		6
 #define NONSEQ_KEY_WAIT_ELSE	7
 #define NONSEQ_KEY_WAIT_WHILE	8
+
+#define CTL_KEY_BREAK		1
+#define CTL_KEY_CONTINUE	2
+#define CTL_KEY_GOTO		3
+#define CTL_KEY_RETURN		4
 
 #define OPERAND_G_VARITY	(0 << 0)
 #define OPERAND_L_VARITY	(1 << 0)
@@ -113,7 +130,6 @@ typedef struct sentence_analysis_data_struct_s {
 	node_attribute_t node_attribute[MAX_ANALYSIS_NODE];
 	node node_struct[MAX_ANALYSIS_NODE];
 	node_attribute_t last_token;
-	node *tree_root;
 	PLATFORM_WORD short_calc_stack[MAX_LOGIC_DEPTH];
 	char short_depth;
 	char sizeof_depth;
@@ -191,7 +207,6 @@ class c_interpreter: public interpreter {
 	bool exec_flag;
 	call_func_info_t call_func_info;
 	int save_sentence(char*, uint);
-	int non_seq_struct_check(char* str);
 	int function_analysis(char*, uint);
 	int struct_analysis(char*, uint);
 	int struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
@@ -207,6 +222,7 @@ class c_interpreter: public interpreter {
 	int post_order_expression(char *str, int len);
 	int generate_mid_code(char *str, int len, bool need_semicolon);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
+	int ctl_analysis(char *str, int len);
 	int exec_mid_code(mid_code *pc, uint count);
 	int nonseq_start_gen_mid_code(char *str, uint len, int non_seq_type);
 	int nonseq_mid_gen_mid_code(char *str, uint len);
