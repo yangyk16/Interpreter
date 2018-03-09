@@ -28,18 +28,6 @@ int struct_info::reset(void)
 	return 0;
 }
 
-varity_info& struct_info::visit_struct_member(void* struct_content_ptr, varity_info* member_varity_ptr)
-{
-	static varity_info ret;
-	kmemcpy(&ret, member_varity_ptr, sizeof(varity_info));
-	if(ret.get_type() == STRUCT) {
-		//TODO: struct as member in other struct.
-	}
-	ret.config_varity(ATTRIBUTE_LINK);
-	ret.set_content_ptr((void*)((uint)ret.get_content_ptr() + (uint)struct_content_ptr));
-	return ret;
-}
-
 int struct_define::save_sentence(char* str, uint len)
 {
 	return 0;

@@ -767,7 +767,7 @@ assign_general:
 				varity_number = ((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value[1];
 				rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
 			} else
-				rvarity_ptr = (varity_info*)this->varity_declare->find(((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value, PRODUCED_DECLARE);
+				rvarity_ptr = (varity_info*)this->varity_declare->find(((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value);
 			if(rvarity_ptr) {
 				((node_attribute_t*)opt_node_ptr->value)->value.int_value = get_varity_size(0, rvarity_ptr->get_complex_ptr(), rvarity_ptr->get_complex_arg_count());
 			} else {

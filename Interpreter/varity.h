@@ -15,14 +15,6 @@
 #define VARITY_SCOPE_GLOBAL  	1
 #define VARITY_SCOPE_LOCAL   	(!VARITY_SCOPE_GLOBAL)
 
-#define ATTRIBUTE_NORMAL		0
-#define ATTRIBUTE_LINK			(1 << 0)
-#define ATTRIBUTE_TYPE_UNFIXED	(1 << 1)
-#define ATTRIBUTE_ARRAY			(1 << 2)
-#define ATTRIBUTE_COMPLEX		(1 << 3)
-#define ATTRIBUTE_RIGHT_VALUE	(1 << 4)
-#define ATTRIBUTE_REFERENCE		(1 << 5)
-
 #define COMPLEX_ARRAY	1u
 #define COMPLEX_PTR		2u
 #define COMPLEX_ARG		3u
@@ -69,31 +61,25 @@ typedef unsigned long PLATFORM_WORD;
 class varity_attribute: public element {
 protected:
 	char type;//TODO:已经没用了，移除相关代码及相关函数定义中的多余参数
-	char attribute;
 	uint size;
 	PLATFORM_WORD* comlex_info_ptr;
 public:
 	int complex_arg_count;
 	inline uint get_size(void){return this->size;}
 	int get_type(void);
-	static void init(void*, char*, char, char, uint);
 };
 
 class varity_info:public varity_attribute {
 protected:
 	void*	content_ptr;
 public:
-	static bool en_echo;
 	static void init_varity(void*, char*, char, uint, int, PLATFORM_WORD*);
 	void arg_init(char*, char, uint, void*);
-	void config_varity(char, void* = 0);
 	void config_complex_info(int, PLATFORM_WORD*);
-	void clear_attribute(char);
 	varity_info();
 	varity_info(char*, int, uint);
 	//operator varity_info();
 	int apply_space(void);
-	int struct_apply(void);
 	int get_element_size(void);
 	int get_first_order_sub_struct_size(void);
 	void *get_content_ptr(void){return content_ptr;}
@@ -103,11 +89,7 @@ public:
 	void set_size(uint size) {this->size = size;}
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
 	void set_type(int type);
-	char get_attribute(void){return this->attribute;}
 	void reset(void);
-	void echo(void);
-	void convert(void*,int);
-	void set_echo(bool enable) {en_echo = enable;}
 	int is_non_zero(void);
 	~varity_info(){this->reset();}
 };
@@ -120,7 +102,7 @@ public:
 	void init(stack*, indexed_stack*);
 	stack* global_varity_stack;
 	indexed_stack* local_varity_stack;
-	varity_info* find(char*, int);
+	varity_info* find(char*);
 	varity_info* vfind(char *name, int &scope);
 	int declare(int scope_flag, char* name, char type, uint size, int, PLATFORM_WORD*);
 	int destroy_local_varity_cur_depth(void);

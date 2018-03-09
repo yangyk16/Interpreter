@@ -17,8 +17,6 @@ const char sizeof_type[] = {0, 0, 0, 8, 4, 8, 8, 8, 8, 4, 4, 2, 2, 1, 1};
 const char type_len[] = {5, 6, 4, 6, 5, 18, 9, 13, 4, 12, 3, 14, 5, 13, 4};
 #endif
 
-bool varity_info::en_echo = 1;
-
 void inc_varity_ref(varity_info *varity_ptr)
 {
 	PTR_N_VALUE(varity_ptr->get_complex_ptr())++;
@@ -48,13 +46,6 @@ varity_info::varity_info()
 	kmemset(this, 0, sizeof(*this));
 }
 
-void varity_info::config_varity(char attribute, void* info_ptr)
-{
-	this->attribute |= attribute;
-	if(info_ptr)
-		this->comlex_info_ptr = (PLATFORM_WORD*)info_ptr;
-}
-
 int varity_attribute::get_type(void)
 {
 	if(this->complex_arg_count == 1)
@@ -77,18 +68,6 @@ void varity_info::config_complex_info(int complex_arg_count, PLATFORM_WORD* info
 	this->comlex_info_ptr = info_ptr;
 }
 
-void varity_info::clear_attribute(char attribute)
-{
-	this->attribute &= ~attribute;
-}
-
-int varity_info::struct_apply(void)
-{
-	this->size = ((struct_info*)this->comlex_info_ptr)->struct_size;
-	this->apply_space();
-	return 0;
-}
-
 void varity_info::arg_init(char* name, char type, uint size, void* offset)
 {
 	int name_len = kstrlen(name);
@@ -97,7 +76,6 @@ void varity_info::arg_init(char* name, char type, uint size, void* offset)
 	this->type = type;
 	this->size = size;
 	this->content_ptr = offset;
-	this->attribute = 0;
 	if(type != COMPLEX) {
 		this->comlex_info_ptr = basic_type_info[type];
 		inc_varity_ref(this);
@@ -120,7 +98,6 @@ void varity_info::init_varity(void *addr, char *name, char type, uint size, int 
 	varity_ptr->type = type;
 	varity_ptr->size = size;
 	varity_ptr->content_ptr = 0;
-	varity_ptr->attribute = 0;
 	if(type != COMPLEX) {
 		varity_ptr->comlex_info_ptr = complex_ptr;
 		varity_ptr->complex_arg_count = arg_count;
@@ -135,7 +112,6 @@ varity_info::varity_info(char* name, int type, uint size)
 	kstrcpy(this->name, name);
 	this->type = type;
 	this->size = size;
-	this->attribute = 0;
 	this->content_ptr = 0;
 }
 
@@ -162,7 +138,7 @@ int varity_info::get_element_size(void)
 
 int varity_info::apply_space(void)
 {
-	if(this->content_ptr && !(this->attribute & ATTRIBUTE_LINK)) {
+	if(this->content_ptr) {
 		vfree(this->content_ptr);
 		this->content_ptr = 0;
 	}
@@ -180,7 +156,7 @@ void varity_info::reset(void)
 {
 	this->size = 0;
 	this->type = 0;
-	if(this->content_ptr && !(this->attribute & ATTRIBUTE_LINK)) {
+	if(this->content_ptr) {
 		vfree(this->content_ptr);
 	}
 	this->content_ptr = 0;
@@ -188,7 +164,6 @@ void varity_info::reset(void)
 		vfree(this->name);
 		this->name = 0;
 	}
-	this->attribute = 0;
 }
 
 int varity_info::is_non_zero(void)
@@ -204,23 +179,6 @@ int varity_info::is_non_zero(void)
 			return 1;
 	}
 	return 0;
-}
-
-void varity_info::echo(void)
-{
-	if(en_echo) {
-		if(this->type == INT || this->type == LONG || this->type == SHORT || this->type == CHAR || this->type == U_SHORT || this->type == U_CHAR) {
-			debug("%s = %d\n",this->name, *(int*)this->content_ptr);
-		} else if(this->type == U_INT || this->type == U_LONG || this->type == U_SHORT || this->type == U_CHAR)
-			debug("%s = %lu\n",this->name, *(unsigned int*)this->content_ptr);
-		else if(this->type == DOUBLE)
-			debug("%s = %f\n",this->name, *(double*)this->content_ptr);
-		else if(this->type == FLOAT)
-			debug("%s = %f\n",this->name, *(float*)this->content_ptr);
-		else if(this->type >= BASIC_VARITY_TYPE_COUNT) {
-			debug("%s = 0x%x\n",this->name, *(int*)this->content_ptr);
-		}
-	}
 }
 
 int varity::declare(int scope_flag, char *name, char type, uint size, int complex_arg_count, PLATFORM_WORD *complex_info_ptr)
@@ -265,19 +223,6 @@ int varity::declare(int scope_flag, char *name, char type, uint size, int comple
 	return 0;
 }
 
-void varity_attribute::init(void* addr, char* name, char type, char attribute, uint size)
-{
-	int name_len = kstrlen(name);
-	varity_attribute* ptr = (varity_attribute*)addr;
-	ptr->type = type;
-	ptr->attribute = attribute;
-	ptr->size = size;
-	if(name) {
-		ptr->name = (char*)vmalloc(name_len + 1);
-		kstrcpy(ptr->name, name);
-	}
-}
-
 varity_info* varity::vfind(char *name, int &scope)
 {
 	varity_info* ret = NULL;
@@ -291,19 +236,16 @@ varity_info* varity::vfind(char *name, int &scope)
 	return ret;
 }
 
-varity_info* varity::find(char* name, int scope)
+varity_info* varity::find(char* name)
 {
 	varity_info* ret = NULL;
-	if(scope & PRODUCED_DECLARE) {
-		ret = (varity_info*)this->local_varity_stack->find(name);
-		if(ret)
-			return ret;
-		else
-			ret = (varity_info*)this->global_varity_stack->find(name);
-		if(ret)
-			return ret;
-	}
-	return ret;
+	ret = (varity_info*)this->local_varity_stack->find(name);
+	if(ret)
+		return ret;
+	else
+		ret = (varity_info*)this->global_varity_stack->find(name);
+	if(ret)
+		return ret;
 }
 
 int varity::destroy_local_varity_cur_depth(void)
