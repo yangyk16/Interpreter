@@ -672,7 +672,7 @@ assign_general:
 						}
 					}
 				} else {//确定参数
-					varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
+					varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] + 1));
 #if !CALL_CONVENTION
 					switch(instruction_ptr->opdb_varity_type) {
 					case DOUBLE:
@@ -902,7 +902,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					}
 				}
 			} else {
-				arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
+				arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] + 1));
 #if !CALL_CONVENTION
 				switch(instruction_ptr->opdb_varity_type) {
 				case DOUBLE:
@@ -1883,6 +1883,27 @@ int c_interpreter::ctl_analysis(char *str, int len)
 			ret = this->generate_mid_code(str + 7, len - 7, true);//下一句貌似重复了，所以注释掉。
 			if(ret)
 				return ret;
+			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+			int func_ret_type = ((varity_info*)this->function_declare->get_current_node()->arg_list->visit_element_by_index(0))->get_type();
+			if((mid_code_ptr - 1)->ret_operand_type == OPERAND_T_VARITY) {//$0已填入
+				if((mid_code_ptr - 1)->ret_varity_type != func_ret_type) {
+					mid_code_ptr->ret_varity_type = mid_code_ptr->opda_varity_type = func_ret_type;
+					mid_code_ptr->opdb_varity_type = (mid_code_ptr - 1)->ret_varity_type;
+					mid_code_ptr->opda_operand_type = mid_code_ptr->opdb_operand_type = mid_code_ptr->ret_operand_type = OPERAND_T_VARITY;
+					mid_code_ptr->ret_addr = mid_code_ptr->opda_addr = mid_code_ptr->opdb_addr = 0;
+					mid_code_ptr->ret_operator = OPT_ASSIGN;
+					this->cur_mid_code_stack_ptr->push();
+				}
+			} else {
+				mid_code_ptr->opda_operand_type = mid_code_ptr->ret_operand_type = OPERAND_T_VARITY;
+				mid_code_ptr->ret_addr = mid_code_ptr->opda_addr = 0;
+				mid_code_ptr->ret_varity_type = mid_code_ptr->opda_varity_type = func_ret_type;
+				mid_code_ptr->ret_operator = OPT_ASSIGN;
+				mid_code_ptr->opdb_varity_type = (mid_code_ptr - 1)->opdb_varity_type;
+				mid_code_ptr->opdb_operand_type = (mid_code_ptr - 1)->ret_operand_type;
+				mid_code_ptr->opdb_addr = (mid_code_ptr - 1)->ret_addr;
+				this->cur_mid_code_stack_ptr->push();
+			}
 			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 			mid_code_ptr->ret_operator = CTL_RETURN;
 			this->cur_mid_code_stack_ptr->push();

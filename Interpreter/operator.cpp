@@ -471,7 +471,7 @@ int get_varity_size(int type)
 	return 0;
 }
 
-inline int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr, int converting_type)
+int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr, int converting_type)
 {
 	if(converted_type == converting_type) {
 		kmemcpy(converted_ptr, converting_ptr, get_varity_size(converting_type, 0, 0));//TODO:É¾³ýget_varity_sizeµÄ¼òµ¥ÖØÔØ
