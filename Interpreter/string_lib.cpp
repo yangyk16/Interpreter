@@ -10,12 +10,98 @@ extern char non_seq_key[7][7];
 
 int get_escape_char(char *str, char &ch)
 {
+	if((str[1] >= '0' && str[1] <= '7')) {
+		if((str[2] >= '0' && str[2] <= '7')) {
+			if((str[3] >= '0' && str[3] <= '7')) {
+				int tch = str[3] - '0' + (str[2] - '0') * 8 + (str[1] - '0') * 64;
+				if(tch > 255) {
+					error("%d is too large for char.\n", tch);
+					return 0;
+				}
+				ch = tch;
+				return 4;
+			} else {
+				ch = str[2] - '0' + (str[1] - '0') * 8;
+				return 3;
+			}
+		} else {
+			ch = str[1] - '0';
+			return 2;
+		}
+	}
+	if(str[1] == 'x') {
+		if(kisdigit(str[2]) || str[2] >= 'a' && str[2] <= 'f' || str[2] >= 'A' && str[2] <= 'F') {
+			if(str[3] >= '0' && str[3] <= '9' || str[3] >= 'a' && str[3] <= 'f' || str[3] >= 'A' && str[3] <= 'F') {
+				if(kisdigit(str[2])) {
+					ch = str[2] - '0';
+				} else if(kisupper(str[2])) {
+					ch = str[2] - 'A';
+				} else if(kislower(str[2])) {
+					ch = str[2] - 'a';
+				}
+				ch <<= 4;
+				if(kisdigit(str[3])) {
+					ch += str[3] - '0';
+				} else if(kisupper(str[3])) {
+					ch += str[3] - 'A';
+				} else if(kislower(str[3])) {
+					ch += str[3] - 'a';
+				}
+				return 4;
+			} else {
+				if(kisdigit(str[2])) {
+					ch = str[2] - '0';
+				} else if(kisupper(str[2])) {
+					ch = str[2] - 'A';
+				} else if(kislower(str[2])) {
+					ch = str[2] - 'a';
+				}
+				return 3;
+			}
+		} else {
+			error("Illegal hex number.\n");
+			return 0;
+		}
+	}
 	switch(str[1]) {
 	case 'n':
 		ch = '\n';
 		return 2;
+	case 'r':
+		ch = '\r';
+		return 2;
+	case 'a':
+		ch = '\a';
+		return 2;
+	case 'b':
+		ch = '\b';
+		return 2;
+	case 'f':
+		ch = '\f';
+		return 2;
+	case 't':
+		ch = '\t';
+		return 2;
+	case 'v':
+		ch = '\v';
+		return 2;
+	case '\\':
+		ch = '\\';
+		return 2;
+	case '\'':
+		ch = '\'';
+		return 2;
+	case '\"':
+		ch = '\"';
+		return 2;
+	case '\?':
+		ch = '\?';
+		return 2;
 	case 0:
-		return -1;
+		return 0;
+	default:
+		ch = str[1];
+		return 2;
 	}
 	return 0;
 }

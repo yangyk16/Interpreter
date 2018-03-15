@@ -16,6 +16,7 @@ uart stdio;
 varity_type_stack_t c_interpreter::varity_type_stack;
 language_elment_space_t c_interpreter::language_elment_space;
 c_interpreter myinterpreter;
+round_queue token_fifo;
 
 char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
 char ctl_key[][9] = {"break", "continue", "goto", "return"};
@@ -1196,6 +1197,7 @@ int c_interpreter::run_interpreter(void)
 		if(len < 0)
 			continue;
 		ret = this->sentence_analysis(sentence_buf, len);
+		token_fifo.content_reset();
 		if(ret == OK_FUNC_RETURN)
 			return ret;
 	}
@@ -1753,6 +1755,8 @@ int c_interpreter::label_analysis(char *str, int len)
 		kstrcpy(name, node.value.ptr_value);
 		str += token_len;
 		token_len = get_token(str, &node);
+		if(token_len == ERROR_TOKEN)
+			return token_len;
 		if(node.node_type == TOKEN_OPERATOR && node.data == OPT_TERNARY_C) {
 			str += token_len;
 			token_len = get_token(str, &node);
@@ -2440,6 +2444,8 @@ int c_interpreter::basic_type_check(char *str, int &len, struct_info *&struct_in
 	total_token_len += token_len;
 	if(node_attribute.node_type == TOKEN_KEYWORD_TYPE) {
 		is_varity_declare = node_attribute.value.int_value;
+	} else if(node_attribute.node_type == TOKEN_ERROR) {
+		return ERROR_TOKEN;
 	} else
 		is_varity_declare = ERROR_NO_VARITY_FOUND;
 	struct_info *struct_node_ptr = 0;
@@ -2695,7 +2701,6 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon)
 	return ERROR_NO;
 }
 
-round_queue token_fifo;
 int c_interpreter::get_token(char *str, node_attribute_t *info)
 {
 	int i = 0, real_token_pos, float_flag = 0;
@@ -2706,7 +2711,7 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 		i++;
 		while(is_valid_c_char(str[i]))i++;
 		token_fifo.write(str + real_token_pos, i - real_token_pos);
-		token_fifo.write("\0",1);
+		token_fifo.write("\0", 1);
 		for(int j=0; j<sizeof(type_key)/sizeof(type_key[0]); j++) {
 			if(!kstrcmp(symbol_ptr, type_key[j])) {
 				info->value.int_value = j;
@@ -2785,18 +2790,23 @@ int_value_handle:
 		int count = 0;
 		int pos = ++i;
 		while(str[i]) {
-			if(str[i] == '\\') {//TODO:´¦Àí\ddd\xhh
-				i++;
+			if(str[i] == '\\') {
+				char ch;
+				int escape_len = get_escape_char(str + i, ch);
+				if(escape_len > 0)
+					i += escape_len - 1;
+				else {
+					info->node_type = TOKEN_ERROR;
+					return ERROR_TOKEN;
+				}
 			} else if(str[i] == '"') {
 				char *p = (char*)vmalloc(count + 1);
 				for(int j=0; j<count; j++) {
 					if(str[pos] == '\\') {
-						char ch = str[pos + 1];
-						switch(ch) {
-						case 'n':
-							p[j] = '\n';
-						}
-						pos += 2;
+						char ch;
+						int escape_len = get_escape_char(str + pos, ch);
+						pos += escape_len;
+						p[j] = ch;
 					} else {
 						p[j] = str[pos++]; 
 					}
@@ -2814,7 +2824,7 @@ int_value_handle:
 		int ret = 1;
 		i++;
 		if(str[i] == '\\') {
-			ret = get_escape_char(str, character);
+			ret = get_escape_char(str + i, character);
 		} else {
 			character = str[i];
 		}
@@ -2872,6 +2882,8 @@ int_value_handle:
 							}
 						}
 						i = i_bak;
+					} else if(varity_type == ERROR_TOKEN) {
+						return varity_type;
 					}
 				}
 				return i + opt_str_len[j];
@@ -2879,6 +2891,7 @@ int_value_handle:
 		}
 		for(;str[i];i++) {
 			if(str[i] != ' ' || str[i] != '\t') {
+				error("Token error.\n");
 				info->node_type = TOKEN_ERROR;
 				return ERROR_TOKEN;
 			}

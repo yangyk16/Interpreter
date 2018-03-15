@@ -15,6 +15,8 @@ char *kstrcpy(char *d, const char *s);
 int katoi(const char* sptr);
 double katof(const char* sptr);
 bool kisdigit(unsigned char ch);
+bool kisupper(unsigned char ch);
+bool kislower(unsigned char ch);
 
 void *vmalloc(unsigned int size);
 void vfree(void*);

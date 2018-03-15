@@ -542,3 +542,13 @@ bool kisdigit(unsigned char ch)//ctype.h
 {
 	return ch >= '0' && ch <= '9'? true: false;
 }
+
+bool kisupper(unsigned char ch)
+{
+	return ch >= 'A' && ch <= 'Z'? true: false;
+}
+
+bool kislower(unsigned char ch)
+{
+	return ch >= 'a' && ch <= 'z'? true: false;
+}

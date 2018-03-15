@@ -169,11 +169,9 @@ public:
 class interpreter {
 protected:
 	varity* varity_declare;
-	varity* temp_varity_analysis;//sentence_analysis produce mid-varity;
 	function* function_declare;
 	char sentence_buf[MAX_SENTENCE_LENGTH];
 	terminal* tty_used;
-	bool print_ret;
 
 	virtual int pre_treat(void){return 0;};
 	virtual int sentence_analysis(char*, int) = 0;

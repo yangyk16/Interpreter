@@ -1954,8 +1954,9 @@ int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 	int tick1, tick2;
 	if(interpreter_ptr->break_flag) {
 		error("Interrupted by break.\n");
-		if(interpreter_ptr->cur_mid_code_stack_ptr = &interpreter_ptr->mid_code_stack)
-			interpreter_ptr->break_flag = 0;
+		interpreter_ptr->break_flag = 0;
+		interpreter_ptr->stack_pointer = interpreter_ptr->simulation_stack + PLATFORM_WORD_LEN;
+		interpreter_ptr->tmp_varity_stack_pointer = interpreter_ptr->tmp_varity_stack;
 		return ERROR_CTL_BREAK;
 	}
 	if(opt_handle[instruction_ptr->ret_operator]) {
