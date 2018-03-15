@@ -1841,8 +1841,8 @@ int c_interpreter::post_order_expression(char *str, int len)
 								if(analysis_data_struct_ptr->node_attribute[n].node_type == TOKEN_OPERATOR && analysis_data_struct_ptr->node_attribute[n].data == OPT_L_SMALL_BRACKET) {
 									if(n>0 && analysis_data_struct_ptr->node_attribute[n-1].node_type == TOKEN_OPERATOR && analysis_data_struct_ptr->node_attribute[n-1].data == OPT_CALL_FUNC) {
 										node_attribute->data = OPT_FUNC_COMMA;
-										break;
 									}
+									break;
 								}
 							}
 						} else if(node_attribute->data == OPT_INDEX) {
