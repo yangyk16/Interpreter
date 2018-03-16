@@ -11,6 +11,7 @@ void* kmemcpy(void *d, const void *s, unsigned int size);
 void* kmemset(void *d, int ch, unsigned int size);
 unsigned int kstrlen(const char *str);
 int kstrcmp(const char *str1, const char *str2);
+int kstrncmp(const char *str1, const char *str2, unsigned int size);
 char *kstrcpy(char *d, const char *s);
 int katoi(const char* sptr);
 double katof(const char* sptr);

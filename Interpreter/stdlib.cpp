@@ -445,6 +445,19 @@ int kstrcmp(const char *str1, const char *str2)
 		return -1;
 }
 
+int kstrncmp(const char *str1, const char *str2, unsigned int n)
+{
+	int i;
+	for(i=0; i<n && str1[i] && str2[i]; i++) {
+		if(str1[i] != str2[i])
+			return -1;
+	}
+	if(i == n || str1[i] == str2[i])
+		return 0;
+	else
+		return -1;
+}
+
 char *kstrcpy(char *d, const char *s)
 {
 	int i;

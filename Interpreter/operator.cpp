@@ -1504,9 +1504,20 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 			else if(converting_type == CHAR || converting_type == U_CHAR)
 				INT_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
 			break;
+		case LONG_LONG:
+		case U_LONG_LONG:
+			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG)
+				LONG_LONG_VALUE(opda_addr) = INT_VALUE(opdb_addr);
+			else if(converting_type == SHORT || converting_type == U_SHORT)
+				LONG_LONG_VALUE(opda_addr) = SHORT_VALUE(opdb_addr);
+			else if(converting_type == CHAR || converting_type == U_CHAR)
+				LONG_LONG_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
+			else if(converting_type == LONG_LONG || converting_type == U_LONG_LONG)
+				LONG_LONG_VALUE(opda_addr) = LONG_LONG_VALUE(opdb_addr);
+			break;
 		case U_SHORT:
 		case SHORT:
-			if(converting_type == U_SHORT || converting_type == SHORT)
+			if(converting_type == SHORT)
 				SHORT_VALUE(opda_addr) = SHORT_VALUE(opdb_addr);
 			else if(converting_type == CHAR || converting_type == U_CHAR)
 				SHORT_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
@@ -1659,6 +1670,8 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 				LONG_LONG_VALUE(opda_addr) = (long long)opdb_addr;
 			} else if(converting_type == PTR) {
 				LONG_LONG_VALUE(opda_addr) = (long long)PTR_VALUE(opdb_addr);
+			} else if(converting_type == U_LONG_LONG) {
+				LONG_LONG_VALUE(opda_addr) = LONG_LONG_VALUE(opdb_addr);
 			}
 			break;
 		case PTR:
@@ -1955,8 +1968,6 @@ int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 	if(interpreter_ptr->break_flag) {
 		error("Interrupted by break.\n");
 		interpreter_ptr->break_flag = 0;
-		interpreter_ptr->stack_pointer = interpreter_ptr->simulation_stack + PLATFORM_WORD_LEN;
-		interpreter_ptr->tmp_varity_stack_pointer = interpreter_ptr->tmp_varity_stack;
 		return ERROR_CTL_BREAK;
 	}
 	if(opt_handle[instruction_ptr->ret_operator]) {

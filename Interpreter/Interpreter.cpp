@@ -1476,6 +1476,9 @@ int c_interpreter::generate_compile_func(void)
 	static stack sprintf_stack;
 	this->generate_arg_list("int,char*,char*;", 3, sprintf_stack);
 	this->function_declare->add_compile_func("sprintf", (void*)ksprintf, &sprintf_stack, 1);
+	static stack strcmp_stack;
+	this->generate_arg_list("int,char*,char*;", 3, strcmp_stack);
+	this->function_declare->add_compile_func("strcmp", (void*)kstrcmp, &strcmp_stack, 0);
 	return ERROR_NO;
 }
 
@@ -1973,15 +1976,15 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 		}
 	}
 	//后序表达式构造完成，下面构造二叉树
-	//while(analysis_data_struct_ptr->expression_final_stack.get_count()) {
-	//	node_attribute_t *tmp = (node_attribute_t*)analysis_data_struct_ptr->expression_final_stack.pop()->value;
-	//	printf("%d ",tmp->node_type);
+	//while(this->sentence_analysis_data_struct.expression_final_stack.get_count()) {
+	//	node_attribute_t *tmp = (node_attribute_t*)this->sentence_analysis_data_struct.expression_final_stack.pop()->value;
+	//	debug("%d ",tmp->node_type);
 	//	if(tmp->node_type == TOKEN_NAME)
-	//		printf("%s\n",tmp->value.ptr_value);
+	//		debug("%s\n",tmp->value.ptr_value);
 	//	else if(tmp->node_type == TOKEN_STRING)
-	//		printf("%s\n", tmp->value.ptr_value);
+	//		debug("%s\n", tmp->value.ptr_value);
 	//	else
-	//		printf("%d %d\n",tmp->data,tmp->value_type);
+	//		debug("%d %d\n",tmp->data,tmp->value_type);
 	//}
 	node *root = this->sentence_analysis_data_struct.expression_final_stack.pop();
 	if(!root) {
@@ -1995,7 +1998,11 @@ int c_interpreter::generate_mid_code(char *str, int len, bool need_semicolon)//T
 	} else {
 		root->link_reset();
 		ret = list_to_tree(root, &this->sentence_analysis_data_struct.expression_final_stack);//二叉树完成
-		if(ret)return ret;
+		if(ret) {
+			this->sentence_analysis_data_struct.expression_final_stack.reset();
+			this->sentence_analysis_data_struct.expression_tmp_stack.reset();
+			return ret;
+		}
 		if(this->sentence_analysis_data_struct.expression_final_stack.get_count()) {
 			this->sentence_analysis_data_struct.expression_final_stack.reset();
 			error("Exist extra token.\n");
@@ -2105,8 +2112,12 @@ ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 		ret = call_opt_handle(this);
 		//tick2 = HWREG(0x2040018);
 		//total2 += tick1 - tick2;
-		if(ret)
+		if(ret) {
+			this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
+			this->tmp_varity_stack_pointer = this->tmp_varity_stack;
+			this->call_func_info.function_depth = 0;
 			return ret;
+		}
 		this->pc++;
 	}
 	//kprintf("t1=%d,t2=%d,ot=%d\n", total1, total2, opt_time);
@@ -2483,7 +2494,7 @@ int c_interpreter::get_varity_type(char *str, int &len, char *name, int basic_ty
 	//解析复杂变量类型///////////////
 	int final_stack_count_bak = analysis_data_struct_ptr->expression_final_stack.get_count();
 	int tmp_stack_count_bak = analysis_data_struct_ptr->expression_tmp_stack.get_count();
-	int node_index = final_stack_count_bak + tmp_stack_count_bak, v_len = len;
+	int node_index = final_stack_count_bak + tmp_stack_count_bak + 1, v_len = len;//+1避免嵌套调用时破坏正在进行类型转换还没push的。
 	int token_flag = 0, array_flag = 0;
 	int varity_basic_type = 0;
 	list_stack *cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
@@ -2709,16 +2720,18 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 	real_token_pos = i;
 	if(is_letter(str[i])) {
 		i++;
+		for(int j=sizeof(type_key)/sizeof(type_key[0])-1; j>=0; j--) {
+			if(!kstrncmp(str + real_token_pos, type_key[j], type_len[j])) {
+				info->value.int_value = j;
+				info->node_type = TOKEN_KEYWORD_TYPE;
+				token_fifo.write(str + real_token_pos, type_len[j]);
+				token_fifo.write("\0", 1);
+				return type_len[j];
+			}
+		}
 		while(is_valid_c_char(str[i]))i++;
 		token_fifo.write(str + real_token_pos, i - real_token_pos);
 		token_fifo.write("\0", 1);
-		for(int j=0; j<sizeof(type_key)/sizeof(type_key[0]); j++) {
-			if(!kstrcmp(symbol_ptr, type_key[j])) {
-				info->value.int_value = j;
-				info->node_type = TOKEN_KEYWORD_TYPE;
-				return i;
-			}
-		}
 		for(int j=0; j<sizeof(non_seq_key)/sizeof(non_seq_key[0]); j++) {
 			if(!kstrcmp(symbol_ptr, non_seq_key[j])) {
 				info->value.int_value = j;
