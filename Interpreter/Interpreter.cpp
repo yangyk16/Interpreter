@@ -722,11 +722,19 @@ assign_general:
 			varity_number = this->mid_varity_stack.get_count();
 			instruction_ptr->ret_addr = varity_number * 8;
 			if(!function_ptr->variable_para_flag) {
-				instruction_ptr->opdb_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);//确认再确认，此处和中间代码函数调用运算符时栈的申请的联动处理。
+				instruction_ptr->data = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);//确认再确认，此处和中间代码函数调用运算符时栈的申请的联动处理。
 			} else {
-				instruction_ptr->opdb_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+				instruction_ptr->data = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
 			}
-			instruction_ptr->data = instruction_ptr->opdb_addr / PLATFORM_WORD_LEN;
+			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] < this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
+				error("Insufficient parameters for %s.\n", node_attribute->value.ptr_value);
+				RETURN(ERROR_FUNC_ARGS);
+			}
+			if(function_ptr->variable_para_flag)
+				instruction_ptr->data = instruction_ptr->data / PLATFORM_WORD_LEN;
+			else
+				instruction_ptr->data = this->varity_declare->local_varity_stack->offset;
+			instruction_ptr->opdb_addr = this->mid_varity_stack.get_count() * 8;
 			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
@@ -1079,7 +1087,7 @@ int c_interpreter::print_call_stack(void)
 				func_code_count = this->language_elment_space.function_node[i].mid_code_stack.get_count();
 				if(pc >= func_pc && pc < func_pc + func_code_count) {
 					gdbout("%s + %d\n", this->language_elment_space.function_node[i].get_name(), pc - func_pc);
-					stack_ptr -= this->language_elment_space.function_node[i].stack_frame_size + PLATFORM_WORD_LEN;
+					stack_ptr -= pc->data + PLATFORM_WORD_LEN;
 					break;
 				}
 			}
@@ -2121,7 +2129,6 @@ ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 		if(ret) {
 			this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
 			this->tmp_varity_stack_pointer = this->tmp_varity_stack;
-			this->call_func_info.function_depth = 0;
 			return ret;
 		}
 		this->pc++;

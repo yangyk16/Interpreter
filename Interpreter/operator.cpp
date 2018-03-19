@@ -1772,19 +1772,16 @@ int c_interpreter::opt_index_handle(c_interpreter *interpreter_ptr)
 
 ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr)
 {
-	mid_code *instruction_ptr = interpreter_ptr->pc, *pc_backup = interpreter_ptr->pc;
-	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
-	GET_RET_ADDR();
+	mid_code *instruction_ptr = interpreter_ptr->pc;
 	function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;
 	if(!function_ptr->compile_func_flag) {
-		int code_count = function_ptr->mid_code_stack.get_count();
 		PTR_N_VALUE(interpreter_ptr->stack_pointer - PLATFORM_WORD_LEN) = (PLATFORM_WORD)interpreter_ptr->pc;
 		interpreter_ptr->tmp_varity_stack_pointer += (int)instruction_ptr->opdb_addr;
-		interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth] = function_ptr->stack_frame_size;
-		interpreter_ptr->call_func_info.function_depth++;
 		interpreter_ptr->pc = (mid_code*)function_ptr->mid_code_stack.get_base_addr() - 1;
 		return ERROR_NO;
-	} 
+	}
+	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
+	GET_RET_ADDR();
 	long long ret;
 	PLATFORM_WORD *arg_ptr;
 	arg_ptr = (PLATFORM_WORD*)interpreter_ptr->stack_pointer;
@@ -1916,7 +1913,6 @@ int c_interpreter::ctl_bxlr_handle(c_interpreter *interpreter_ptr)
 	t_varity_sp -= (int)instruction_ptr->opdb_addr;//24;
 	GET_RET_ADDR();
 	function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;
-	interpreter_ptr->call_func_info.function_depth--;
 	varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp + instruction_ptr->opdb_addr, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
 	return ERROR_NO;
 }
