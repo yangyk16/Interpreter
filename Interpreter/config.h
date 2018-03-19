@@ -37,6 +37,9 @@
 #define STACK_SIZE				0x1000//128k
 #define TMP_VARITY_STACK_SIZE	(160)//sizeof(varity_info)*MAX_A_VARITY_NODE
 
+#define STACK_OVERFLOW_CHECK		1
+#define ARRAY_BOUND_CHECK			1
+
 #if SECTION_OPTIMIZE
 #define ITCM_TEXT __attribute__((section(".itcmcode")))
 #define DTCM_BSS  __attribute__((section(".dtcmdata")))

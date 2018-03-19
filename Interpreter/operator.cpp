@@ -113,6 +113,9 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 	case OPERAND_T_VARITY: \
 		opdb_addr = (int*)(t_varity_sp - instruction_ptr->opdb_addr - 8); \
 		break; \
+	case OPERAND_LINK_VARITY: \
+		opdb_addr = (int*)PTR_VALUE(t_varity_sp - instruction_ptr->opdb_addr - 8); \
+		break; \
 	default: \
 		opdb_addr = (int*)instruction_ptr->opdb_addr; \
 		break; \
@@ -1762,10 +1765,17 @@ int c_interpreter::opt_index_handle(c_interpreter *interpreter_ptr)
 	GET_OPDA_ADDR();
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
+#if ARRAY_BOUND_CHECK
+	int element_count = (instruction_ptr->data & (0xFF << 24)) >> 8 | instruction_ptr->opdb_varity_type << 8 | instruction_ptr->ret_varity_type;
+	if(INT_VALUE(opdb_addr) >= element_count) {
+		error("Array bound.\n");
+		return ERROR_ARRAY_BOUND;
+	}
+#endif
 	if(instruction_ptr->opda_varity_type == ARRAY)
-		INT_VALUE(ret_addr) = (int)opda_addr + INT_VALUE(opdb_addr) * instruction_ptr->data;
+		INT_VALUE(ret_addr) = (int)opda_addr + INT_VALUE(opdb_addr) * (instruction_ptr->data & ~(0xFF << 24));
 	else if(instruction_ptr->opda_varity_type == PTR)
-		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) + INT_VALUE(opdb_addr) * instruction_ptr->data;
+		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) + INT_VALUE(opdb_addr) * (instruction_ptr->data & ~(0xFF << 24));
 	last_ret_abs_addr = ret_addr;
 	return ERROR_NO;
 }
@@ -1777,6 +1787,12 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 	if(!function_ptr->compile_func_flag) {
 		PTR_N_VALUE(interpreter_ptr->stack_pointer - PLATFORM_WORD_LEN) = (PLATFORM_WORD)interpreter_ptr->pc;
 		interpreter_ptr->tmp_varity_stack_pointer -= (int)instruction_ptr->opdb_addr;
+#if STACK_OVERFLOW_CHECK
+		if(interpreter_ptr->stack_pointer > interpreter_ptr->tmp_varity_stack_pointer) {
+			error("Stack overflow.\n");
+			return ERROR_STACK_OVERFLOW;
+		}
+#endif
 		interpreter_ptr->pc = (mid_code*)function_ptr->mid_code_stack.get_base_addr() - 1;
 		return ERROR_NO;
 	}
@@ -1921,6 +1937,12 @@ int c_interpreter::ctl_sp_add_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	interpreter_ptr->stack_pointer += (int)instruction_ptr->opda_addr;
+#if STACK_OVERFLOW_CHECK
+	if(interpreter_ptr->stack_pointer > interpreter_ptr->tmp_varity_stack_pointer) {
+		error("Stack overflow.\n");
+		return ERROR_STACK_OVERFLOW;
+	}
+#endif
 	return ERROR_NO;
 }
 
