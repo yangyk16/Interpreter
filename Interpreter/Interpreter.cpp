@@ -2632,7 +2632,6 @@ varity_end:
 			kstrcpy(name, node_attribute->value.ptr_value);
 		}
 		this->sentence_analysis_data_struct.last_token = *node_attribute;
-		cur_stack_ptr = &analysis_data_struct_ptr->expression_tmp_stack;
 		v_len -= token_len;
 		str += token_len;
 		total_len += token_len;
