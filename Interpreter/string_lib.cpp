@@ -146,7 +146,7 @@ int strmcmp(const char* str1, const char* str2, int len)
 	return 0;
 }
 
-int make_align(int value, int align_byte)
+int make_align(PLATFORM_WORD value, int align_byte)
 {
 	return value % align_byte == 0 ? value : value + align_byte - (value % align_byte);
 }

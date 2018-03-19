@@ -17,6 +17,14 @@ typedef int (*func5)(int, int, int, int, int);
 typedef int (*func6)(int, int, int, int, int, int);
 typedef int (*func7)(int, int, int, int, int, int, int);
 typedef int (*func8)(int, int, int, int, int, int, int, int);
+typedef int (*func9)(int, int, int, int, int, int, int, int, int);
+typedef int (*func10)(int, int, int, int, int, int, int, int, int, int);
+typedef int (*func11)(int, int, int, int, int, int, int, int, int, int, int);
+typedef int (*func12)(int, int, int, int, int, int, int, int, int, int, int, int);
+typedef int (*func13)(int, int, int, int, int, int, int, int, int, int, int, int, int);
+typedef int (*func14)(int, int, int, int, int, int, int, int, int, int, int, int, int, int);
+typedef int (*func15)(int, int, int, int, int, int, int, int, int, int, int, int, int, int, int);
+typedef int (*func16)(int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int);
 func0 func0_ptr;
 func1 func1_ptr;
 func2 func2_ptr;
@@ -26,6 +34,14 @@ func5 func5_ptr;
 func6 func6_ptr;
 func7 func7_ptr;
 func8 func8_ptr;
+func9 func9_ptr;
+func10 func10_ptr;
+func11 func11_ptr;
+func12 func12_ptr;
+func13 func13_ptr;
+func14 func14_ptr;
+func15 func15_ptr;
+func16 func16_ptr;
 static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_len_ptr)
 {
 	if(*opt_type_ptr == OPT_PLUS || *opt_type_ptr == OPT_MINUS) {
@@ -75,12 +91,6 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 	case OPERAND_T_VARITY: \
 		opda_addr = (int*)(t_varity_sp + instruction_ptr->opda_addr); \
 		break; \
-	case OPERAND_L_S_VARITY: \
-		if(interpreter_ptr->call_func_info.function_depth == 0) \
-			opda_addr = (int*)(interpreter_ptr->nonseq_info->stack_frame_size + instruction_ptr->opda_addr + sp + PLATFORM_WORD_LEN); \
-		else \
-			opda_addr = (int*)(interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + instruction_ptr->opda_addr + sp + PLATFORM_WORD_LEN); \
-		break; \
 	case OPERAND_LINK_VARITY: \
 		opda_addr = (int*)PTR_VALUE(t_varity_sp + instruction_ptr->opda_addr); \
 		break; \
@@ -102,15 +112,6 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 		break; \
 	case OPERAND_T_VARITY: \
 		opdb_addr = (int*)(t_varity_sp + instruction_ptr->opdb_addr); \
-		break; \
-	case OPERAND_L_S_VARITY: \
-		if(interpreter_ptr->call_func_info.function_depth == 0) \
-			opdb_addr = (int*)(interpreter_ptr->nonseq_info->stack_frame_size + instruction_ptr->opdb_addr + sp + PLATFORM_WORD_LEN); \
-		else \
-			opdb_addr = (int*)(interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + instruction_ptr->opdb_addr + sp + PLATFORM_WORD_LEN); \
-		break; \
-	case OPERAND_LINK_VARITY: \
-		opdb_addr = (int*)PTR_VALUE(t_varity_sp + instruction_ptr->opdb_addr); \
 		break; \
 	default: \
 		opdb_addr = (int*)instruction_ptr->opdb_addr; \
@@ -1776,10 +1777,6 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 	GET_RET_ADDR();
 	function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;
 	if(!function_ptr->compile_func_flag) {
-		if(interpreter_ptr->call_func_info.function_depth == 0)
-			interpreter_ptr->stack_pointer += interpreter_ptr->nonseq_info->stack_frame_size + PLATFORM_WORD_LEN;
-		else
-			interpreter_ptr->stack_pointer += interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + PLATFORM_WORD_LEN;
 		int code_count = function_ptr->mid_code_stack.get_count();
 		PTR_N_VALUE(interpreter_ptr->stack_pointer - PLATFORM_WORD_LEN) = (PLATFORM_WORD)interpreter_ptr->pc;
 		interpreter_ptr->tmp_varity_stack_pointer += (int)instruction_ptr->opdb_addr;
@@ -1790,10 +1787,7 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 	} 
 	long long ret;
 	PLATFORM_WORD *arg_ptr;
-	if(interpreter_ptr->call_func_info.function_depth == 0)
-		arg_ptr = (PLATFORM_WORD*)(interpreter_ptr->stack_pointer + interpreter_ptr->nonseq_info->stack_frame_size + PLATFORM_WORD_LEN);
-	else
-		arg_ptr = (PLATFORM_WORD*)(interpreter_ptr->stack_pointer + interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + PLATFORM_WORD_LEN);
+	arg_ptr = (PLATFORM_WORD*)interpreter_ptr->stack_pointer;
 	switch(instruction_ptr->data) {
 	case 1:
 		func1_ptr = (func1)function_ptr->func_addr;
@@ -1827,8 +1821,41 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 		func8_ptr = (func8)function_ptr->func_addr;
 		ret = func8_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3), *(arg_ptr + 4), *(arg_ptr + 5), *(arg_ptr + 6), *(arg_ptr + 7));
 		break;
-	case 16:
+	case 9:
+		func9_ptr = (func9)function_ptr->func_addr;
+		ret = func9_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3), *(arg_ptr + 4), *(arg_ptr + 5), *(arg_ptr + 6), *(arg_ptr + 7), *(arg_ptr + 8));
 		break;
+	case 10:
+		func10_ptr = (func10)function_ptr->func_addr;
+		ret = func10_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3), *(arg_ptr + 4), *(arg_ptr + 5), *(arg_ptr + 6), *(arg_ptr + 7), *(arg_ptr + 8), *(arg_ptr + 9));
+		break;
+	case 11:
+		func11_ptr = (func11)function_ptr->func_addr;
+		ret = func11_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3), *(arg_ptr + 4), *(arg_ptr + 5), *(arg_ptr + 6), *(arg_ptr + 7), *(arg_ptr + 8), *(arg_ptr + 9), *(arg_ptr + 10));
+		break;
+	case 12:
+		func12_ptr = (func12)function_ptr->func_addr;
+		ret = func12_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3), *(arg_ptr + 4), *(arg_ptr + 5), *(arg_ptr + 6), *(arg_ptr + 7), *(arg_ptr + 8), *(arg_ptr + 9), *(arg_ptr + 10), *(arg_ptr + 11));
+		break;
+	case 13:
+		func13_ptr = (func13)function_ptr->func_addr;
+		ret = func13_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3), *(arg_ptr + 4), *(arg_ptr + 5), *(arg_ptr + 6), *(arg_ptr + 7), *(arg_ptr + 8), *(arg_ptr + 9), *(arg_ptr + 10), *(arg_ptr + 11), *(arg_ptr + 12));
+		break;
+	case 14:
+		func14_ptr = (func14)function_ptr->func_addr;
+		ret = func14_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3), *(arg_ptr + 4), *(arg_ptr + 5), *(arg_ptr + 6), *(arg_ptr + 7), *(arg_ptr + 8), *(arg_ptr + 9), *(arg_ptr + 10), *(arg_ptr + 11), *(arg_ptr + 12), *(arg_ptr + 13));
+		break;
+	case 15:
+		func15_ptr = (func15)function_ptr->func_addr;
+		ret = func15_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3), *(arg_ptr + 4), *(arg_ptr + 5), *(arg_ptr + 6), *(arg_ptr + 7), *(arg_ptr + 8), *(arg_ptr + 9), *(arg_ptr + 10), *(arg_ptr + 11), *(arg_ptr + 12), *(arg_ptr + 13), *(arg_ptr + 14));
+		break;
+	case 16:
+		func16_ptr = (func16)function_ptr->func_addr;
+		ret = func16_ptr(*arg_ptr, *(arg_ptr + 1), *(arg_ptr + 2), *(arg_ptr + 3), *(arg_ptr + 4), *(arg_ptr + 5), *(arg_ptr + 6), *(arg_ptr + 7), *(arg_ptr + 8), *(arg_ptr + 9), *(arg_ptr + 10), *(arg_ptr + 11), *(arg_ptr + 12), *(arg_ptr + 13), *(arg_ptr + 14), *(arg_ptr + 15));
+		break;
+	default:
+		error("Arg size cannot exceed 64B.\n");
+		return ERROR_NO;
 	}
 	varity_convert(ret_addr, instruction_ptr->ret_varity_type, &ret, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
 	last_ret_abs_addr = ret_addr;
@@ -1891,15 +1918,10 @@ int c_interpreter::ctl_bxlr_handle(c_interpreter *interpreter_ptr)
 	function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;
 	interpreter_ptr->call_func_info.function_depth--;
 	varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp + instruction_ptr->opdb_addr, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
-	if(interpreter_ptr->call_func_info.function_depth == 0)
-		sp -= interpreter_ptr->nonseq_info->stack_frame_size + PLATFORM_WORD_LEN;
-	else
-		sp -= interpreter_ptr->call_func_info.cur_stack_frame_size[interpreter_ptr->call_func_info.function_depth - 1] + PLATFORM_WORD_LEN;
-	
 	return ERROR_NO;
 }
 
-int c_interpreter::sys_stack_step_handle(c_interpreter *interpreter_ptr)
+int c_interpreter::ctl_sp_add_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	interpreter_ptr->stack_pointer += (int)instruction_ptr->opda_addr;
@@ -1956,7 +1978,7 @@ void c_interpreter::handle_init(void)
 	opt_handle[CTL_CONTINUE] = ctl_branch_handle;
 	opt_handle[CTL_GOTO] = ctl_branch_handle;
 	opt_handle[CTL_BXLR] = ctl_bxlr_handle;
-	opt_handle[SYS_STACK_STEP] = sys_stack_step_handle;
+	opt_handle[CTL_SP_ADD] = ctl_sp_add_handle;
 }
 
 int opt_time;

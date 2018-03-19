@@ -626,9 +626,9 @@ assign_general:
 			if(node_attribute->node_type == TOKEN_NAME || node_attribute->node_type == TOKEN_CONST_VALUE || node_attribute->node_type == TOKEN_STRING) {
 				stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
 				instruction_ptr->ret_operator = OPT_PASS_PARA;
-				instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
+				instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
 #if CALL_CONVENTION
-				instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+				instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 #endif
 				if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
 					if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
@@ -641,7 +641,7 @@ assign_general:
 						if(instruction_ptr->opdb_varity_type <= U_LONG && instruction_ptr->opdb_varity_type >= CHAR) {//TODO:平台相关，应该换掉
 							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = INT;
 #if !CALL_CONVENTION
-							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + 4;
 #else
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] += 4;
@@ -649,7 +649,7 @@ assign_general:
 						} else if(instruction_ptr->opdb_varity_type == FLOAT || instruction_ptr->opdb_varity_type == DOUBLE) {
 							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = DOUBLE;
 #if !CALL_CONVENTION
-							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8);
+							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + 8;
 #else
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
@@ -657,7 +657,7 @@ assign_general:
 						} else if(instruction_ptr->opdb_varity_type == PTR || instruction_ptr->opdb_varity_type == ARRAY) {
 							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = PLATFORM_TYPE;
 #if !CALL_CONVENTION
-							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 #else
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] += PLATFORM_WORD_LEN;
@@ -665,7 +665,7 @@ assign_general:
 						} else {
 							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = LONG_LONG;
 #if !CALL_CONVENTION
-							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8);
+							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + 8;
 #else
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
@@ -679,16 +679,16 @@ assign_general:
 					case DOUBLE:
 					case LONG_LONG:
 					case U_LONG_LONG:
-						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8);
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + arg_varity_ptr->get_size();
 						break;
 					case PTR:
 					case ARRAY:
-						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + arg_varity_ptr->get_size();
 						break;
 					default:
-						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + arg_varity_ptr->get_size();
 						break;
 					}
@@ -710,6 +710,9 @@ assign_general:
 				code_stack_ptr->push();
 			function_info *function_ptr;
 			instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
+			instruction_ptr->ret_operator = CTL_SP_ADD;
+			instruction_ptr++->opda_addr = make_align((PLATFORM_WORD)this->varity_declare->local_varity_stack->offset, 4) + PLATFORM_WORD_LEN;
+			code_stack_ptr->push();
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
 			function_ptr = this->function_declare->find(node_attribute->value.ptr_value);
 			return_varity_ptr = (varity_info*)function_ptr->arg_list->visit_element_by_index(0);
@@ -732,10 +735,13 @@ assign_general:
 			inc_varity_ref(rvarity_ptr);
 			this->mid_varity_stack.push();
 			this->call_func_info.function_depth--;
+			code_stack_ptr->push();
+			(++instruction_ptr)->ret_operator = CTL_SP_ADD;
+			instruction_ptr->opda_addr = -(make_align((PLATFORM_WORD)this->varity_declare->local_varity_stack->offset, 4) + PLATFORM_WORD_LEN);
 			if(this->call_func_info.function_depth) {
 				code_stack_ptr->push();
 				instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
-				instruction_ptr->ret_operator = SYS_STACK_STEP;
+				instruction_ptr->ret_operator = CTL_SP_ADD;
 				instruction_ptr->opda_addr = - make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) - PLATFORM_WORD_LEN;
 			}
 		}
@@ -816,7 +822,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		this->call_func_info.cur_arg_number[this->call_func_info.function_depth] = 0;
 		this->call_func_info.offset[this->call_func_info.function_depth] = 0;
 		if(this->call_func_info.function_depth) {
-			instruction_ptr->ret_operator = SYS_STACK_STEP;
+			instruction_ptr->ret_operator = CTL_SP_ADD;
 			instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + PLATFORM_WORD_LEN;
 			code_stack_ptr->push();
 		}
@@ -856,9 +862,9 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 			}
 			varity_info *arg_varity_ptr;
 			instruction_ptr->ret_operator = OPT_PASS_PARA;
-			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_S_VARITY;
+			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
 #if CALL_CONVENTION
-			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 #endif
 			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
 				if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
@@ -871,7 +877,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					if(instruction_ptr->opdb_varity_type <= U_LONG && instruction_ptr->opdb_varity_type >= CHAR) {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = INT;
 #if !CALL_CONVENTION
-						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 4;
 #else
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 4;
@@ -879,7 +885,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					} else if(instruction_ptr->opdb_varity_type == FLOAT || instruction_ptr->opdb_varity_type == DOUBLE) {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = DOUBLE;
 #if !CALL_CONVENTION
-						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8);
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + 8;
 #else
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
@@ -887,7 +893,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					} else if(instruction_ptr->opdb_varity_type == PTR || instruction_ptr->opdb_varity_type == ARRAY) {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = PLATFORM_TYPE;
 #if !CALL_CONVENTION
-						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 #else
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] += PLATFORM_WORD_LEN;
@@ -895,7 +901,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					} else {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = LONG_LONG;
 #if !CALL_CONVENTION
-						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8);
+						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + 8;
 #else
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 8;
@@ -909,16 +915,16 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 				case DOUBLE:
 				case LONG_LONG:
 				case U_LONG_LONG:
-					instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8);
+					instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 					this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + arg_varity_ptr->get_size();
 					break;
 				case PTR:
 				case ARRAY:
-					instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
+					instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 					this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + arg_varity_ptr->get_size();
 					break;
 				default:
-					instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4);
+					instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 					this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + arg_varity_ptr->get_size();
 					break;
 				}
@@ -1482,7 +1488,7 @@ int c_interpreter::generate_compile_func(void)
 	return ERROR_NO;
 }
 
-int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)//没有容错，不开放给终端输入，仅用于链接标准库函数
+int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)//没有容错，不开放给终端输入，仅用于链接标准库函数，仅能使用1级指针
 {
 	int len = kstrlen(str);
 	void *arg_stack = vmalloc(sizeof(varity_info) * count);

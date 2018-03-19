@@ -12,7 +12,7 @@ int y_atoi(char* str);
 double y_atof(char* str, int size);
 double y_atof(char* str);
 int strmcmp(const char* str1, const char* str2, int len);
-int make_align(int value, int align_byte);
+int make_align(PLATFORM_WORD value, int align_byte);
 bool is_valid_c_char(unsigned char ch);
 bool is_letter(unsigned char ch);
 bool is_non_zero(int type, void* addr);

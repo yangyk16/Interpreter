@@ -37,12 +37,11 @@
 #define CTL_KEY_GOTO		3
 #define CTL_KEY_RETURN		4
 
-#define OPERAND_G_VARITY	(0 << 0)
-#define OPERAND_L_VARITY	(1 << 0)
-#define OPERAND_T_VARITY	(2 << 0)
-#define OPERAND_L_S_VARITY	(3 << 0)//递进深度局部变量
-#define OPERAND_LINK_VARITY	(1 << 2)
-#define OPERAND_CONST   	(1 << 3)
+#define OPERAND_G_VARITY	(0)
+#define OPERAND_L_VARITY	(1)
+#define OPERAND_T_VARITY	(2)
+#define OPERAND_LINK_VARITY	(4)
+#define OPERAND_CONST   	(8)
 
 #define EXEC_FLAG_TRUE	true
 #define EXEC_FLAG_FALSE	false
@@ -277,7 +276,7 @@ class c_interpreter: public interpreter {
 	static int opt_pass_para_handle(c_interpreter *interpreter_ptr);
 	static int ctl_return_handle(c_interpreter *interpreter_ptr);
 	static int ctl_bxlr_handle(c_interpreter *interpreter_ptr);
-	static int sys_stack_step_handle(c_interpreter *interpreter_ptr);
+	static int ctl_sp_add_handle(c_interpreter *interpreter_ptr);
 	static void handle_init(void);
 	static int call_opt_handle(c_interpreter *interpreter_ptr);
 	//////////////////////////////////////////////////////////////////////

@@ -80,17 +80,16 @@
 #define OPT_TYPE_CONVERT		54
 #define OPT_SIZEOF				55//no mid code
 
-#define CTL_BRANCH				100
-#define CTL_BRANCH_TRUE			101
-#define CTL_BRANCH_FALSE		102
-#define OPT_PASS_PARA			103
-#define CTL_RETURN				104
-#define CTL_BREAK				105
-#define CTL_CONTINUE			106
-#define CTL_GOTO				107
-#define CTL_BXLR				108
-
-#define SYS_STACK_STEP			120
+#define CTL_BRANCH				80
+#define CTL_BRANCH_TRUE			81
+#define CTL_BRANCH_FALSE		82
+#define OPT_PASS_PARA			83
+#define CTL_RETURN				84
+#define CTL_BREAK				85
+#define CTL_CONTINUE			86
+#define CTL_GOTO				87
+#define CTL_BXLR				88
+#define CTL_SP_ADD				89
 
 class c_interpreter;
 

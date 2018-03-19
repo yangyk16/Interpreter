@@ -112,6 +112,7 @@
  3.14 修复token fifo溢出bug；修复Ctrl+C导致堆栈泄漏bug
  3.15 完善转义字符
  3.16 修复函数中使用普通"，"的bug；修复左括号+强制转换组合时get_token错误bug；exec_code错误时清理
+ 3.19 函数调用时SP的改变改由中间代码实现，删除OPERAND_L_S_VARITY类型
 
 
 变量命名：
