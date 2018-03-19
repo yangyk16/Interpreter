@@ -1263,9 +1263,9 @@ int c_interpreter::init(terminal* tty_used)
 	handle_init();
 	this->break_flag = 0;
 	this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
-	this->tmp_varity_stack_pointer = this->tmp_varity_stack;
+	this->tmp_varity_stack_pointer = this->simulation_stack + sizeof(this->simulation_stack);
 	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
-	this->mid_varity_stack.init(sizeof(varity_info), this->tmp_varity_stack_pointer, MAX_A_VARITY_NODE);//TODO: 设置node最大count
+	this->mid_varity_stack.init(sizeof(varity_info), this->tmp_varity_stack, MAX_A_VARITY_NODE);//TODO: 设置node最大count
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 	this->exec_flag = EXEC_FLAG_TRUE;
 	return 0;

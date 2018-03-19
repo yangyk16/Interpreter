@@ -89,10 +89,10 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 		opda_addr = (int*)(sp + instruction_ptr->opda_addr); \
 		break; \
 	case OPERAND_T_VARITY: \
-		opda_addr = (int*)(t_varity_sp + instruction_ptr->opda_addr); \
+		opda_addr = (int*)(t_varity_sp - instruction_ptr->opda_addr - 8); \
 		break; \
 	case OPERAND_LINK_VARITY: \
-		opda_addr = (int*)PTR_VALUE(t_varity_sp + instruction_ptr->opda_addr); \
+		opda_addr = (int*)PTR_VALUE(t_varity_sp - instruction_ptr->opda_addr - 8); \
 		break; \
 	default: \
 		opda_addr = (int*)instruction_ptr->opda_addr; \
@@ -111,7 +111,7 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 		opdb_addr = (int*)(sp + instruction_ptr->opdb_addr); \
 		break; \
 	case OPERAND_T_VARITY: \
-		opdb_addr = (int*)(t_varity_sp + instruction_ptr->opdb_addr); \
+		opdb_addr = (int*)(t_varity_sp - instruction_ptr->opdb_addr - 8); \
 		break; \
 	default: \
 		opdb_addr = (int*)instruction_ptr->opdb_addr; \
@@ -125,10 +125,10 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 		ret_addr = (int*)(instruction_ptr->ret_addr + sp); \
 		break; \
 	case OPERAND_T_VARITY: \
-		ret_addr = (int*)(instruction_ptr->ret_addr + t_varity_sp); \
+		ret_addr = (int*)(t_varity_sp - instruction_ptr->ret_addr - 8); \
 		break; \
 	case OPERAND_LINK_VARITY: \
-		ret_addr = (int*)(t_varity_sp + instruction_ptr->ret_addr); \
+		ret_addr = (int*)(t_varity_sp - instruction_ptr->ret_addr - 8); \
 		break; \
 	default: \
 		ret_addr = (int*)instruction_ptr->ret_addr; \
@@ -1776,7 +1776,7 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 	function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;
 	if(!function_ptr->compile_func_flag) {
 		PTR_N_VALUE(interpreter_ptr->stack_pointer - PLATFORM_WORD_LEN) = (PLATFORM_WORD)interpreter_ptr->pc;
-		interpreter_ptr->tmp_varity_stack_pointer += (int)instruction_ptr->opdb_addr;
+		interpreter_ptr->tmp_varity_stack_pointer -= (int)instruction_ptr->opdb_addr;
 		interpreter_ptr->pc = (mid_code*)function_ptr->mid_code_stack.get_base_addr() - 1;
 		return ERROR_NO;
 	}
@@ -1910,10 +1910,10 @@ int c_interpreter::ctl_bxlr_handle(c_interpreter *interpreter_ptr)
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	instruction_ptr = (mid_code*)PTR_N_VALUE(interpreter_ptr->stack_pointer - PLATFORM_WORD_LEN);
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
-	t_varity_sp -= (int)instruction_ptr->opdb_addr;//24;
+	t_varity_sp += (int)instruction_ptr->opdb_addr;//24;
 	GET_RET_ADDR();
 	function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;
-	varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp + instruction_ptr->opdb_addr, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
+	varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp + instruction_ptr->opdb_addr - 8, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
 	return ERROR_NO;
 }
 

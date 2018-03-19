@@ -15,7 +15,7 @@
 #define MAX_FUNCTION_DEPTH		8//16
 #define MAX_G_VARITY_NODE		128
 #define MAX_L_VARITY_NODE		64
-#define MAX_A_VARITY_NODE		16
+#define MAX_A_VARITY_NODE		4
 #define MAX_SENTENCE_LENGTH		512
 #define MAX_PRETREAT_BUFLEN		512
 #define MAX_TOKEN_BUFLEN		2048
@@ -34,8 +34,8 @@
 #define VARITY_ASSIGN_BUFLEN	256
 #define PLATFORM_WORD_LEN		4
 #define MAX_MID_CODE_COUNT		1024
-#define STACK_SIZE				4096//128k
-#define TMP_VARITY_STACK_SIZE	(8 * MAX_A_VARITY_NODE)
+#define STACK_SIZE				0x1000//128k
+#define TMP_VARITY_STACK_SIZE	(160)//sizeof(varity_info)*MAX_A_VARITY_NODE
 
 #if SECTION_OPTIMIZE
 #define ITCM_TEXT __attribute__((section(".itcmcode")))
