@@ -39,6 +39,7 @@
 
 #define STACK_OVERFLOW_CHECK		1
 #define ARRAY_BOUND_CHECK			1
+#define HARD_FAULT_CHECK			1
 
 #if SECTION_OPTIMIZE
 #define ITCM_TEXT __attribute__((section(".itcmcode")))

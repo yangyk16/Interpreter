@@ -1,6 +1,7 @@
 #include "hal.h"
 #include "config.h"
 #include "cstdlib.h"
+#include "error.h"
 #if TTY_TYPE == 0
 #include <stdio.h>
 #endif
@@ -48,4 +49,15 @@ int kfputs(char *str)
 	UartSendString(str);
 #endif
 	return 0;
+}
+
+int hard_fault_check(int addr)
+{
+#if TTY_TYPE == 1
+	if(addr < 0x200000 || addr >= 0x14000000 || (addr > 0x37FFFF && addr < 0x2000000) || (addr > 0x2400000 && addr <= 0x10000000)) {
+		return ERROR_HARD_FAULT;
+	}
+#else
+#endif
+	return ERROR_NO;
 }

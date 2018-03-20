@@ -77,7 +77,7 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 	return 0;
 }
 
-#define GET_OPDA_ADDR() \
+#define GET_OPDA_ADDR_NOCHECK() \
 	int *opda_addr; \
 	long long opda_value; \
 	switch(instruction_ptr->opda_operand_type) { \
@@ -99,7 +99,7 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 		break; \
 	}
 
-#define GET_OPDB_ADDR() \
+#define GET_OPDB_ADDR_NOCHECK() \
 	int *opdb_addr; \
 	long long opdb_value; \
 	switch(instruction_ptr->opdb_operand_type) { \
@@ -121,7 +121,7 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 		break; \
 	}
 
-#define GET_RET_ADDR() \
+#define GET_RET_ADDR_NOCHECK() \
 	int *ret_addr;	 \
 	switch(instruction_ptr->ret_operand_type) { \
 	case OPERAND_L_VARITY: \
@@ -137,6 +137,31 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 		ret_addr = (int*)instruction_ptr->ret_addr; \
 		break; \
 	}
+
+#if HARD_FAULT_CHECK
+#define GET_OPDA_ADDR() \
+	GET_OPDA_ADDR_NOCHECK(); \
+	if(hard_fault_check((int)opda_addr)) { \
+		error("Data abort @ 0x%x.\n", opda_addr); \
+		return ERROR_HARD_FAULT; \
+	}
+#define GET_OPDB_ADDR() \
+	GET_OPDB_ADDR_NOCHECK(); \
+	if(hard_fault_check((int)opdb_addr)) { \
+		error("Data abort @ 0x%x.\n", opdb_addr); \
+		return ERROR_HARD_FAULT; \
+	}
+#define GET_RET_ADDR() \
+	GET_RET_ADDR_NOCHECK(); \
+	if(hard_fault_check((int)ret_addr)) { \
+		error("Data abort @ 0x%x.\n", ret_addr); \
+		return ERROR_HARD_FAULT; \
+	}
+#else
+#define GET_OPDA_ADDR() GET_OPDA_ADDR_NOCHECK()
+#define GET_OPDB_ADDR() GET_OPDB_ADDR_NOCHECK()
+#define GET_RET_ADDR() GET_RET_ADDR_NOCHECK()
+#endif
 
 #define BINARY_OPT_EXEC(x)	\
 	switch(mid_type) { \
@@ -1788,7 +1813,7 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 		PTR_N_VALUE(interpreter_ptr->stack_pointer - PLATFORM_WORD_LEN) = (PLATFORM_WORD)interpreter_ptr->pc;
 		interpreter_ptr->tmp_varity_stack_pointer -= (int)instruction_ptr->opdb_addr;
 #if STACK_OVERFLOW_CHECK
-		if(interpreter_ptr->stack_pointer > interpreter_ptr->tmp_varity_stack_pointer) {
+		if(interpreter_ptr->stack_pointer + function_ptr->stack_frame_size >= interpreter_ptr->tmp_varity_stack_pointer) {
 			error("Stack overflow.\n");
 			return ERROR_STACK_OVERFLOW;
 		}
@@ -1938,7 +1963,7 @@ int c_interpreter::ctl_sp_add_handle(c_interpreter *interpreter_ptr)
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
 	interpreter_ptr->stack_pointer += (int)instruction_ptr->opda_addr;
 #if STACK_OVERFLOW_CHECK
-	if(interpreter_ptr->stack_pointer > interpreter_ptr->tmp_varity_stack_pointer) {
+	if(interpreter_ptr->stack_pointer >= interpreter_ptr->tmp_varity_stack_pointer) {
 		error("Stack overflow.\n");
 		return ERROR_STACK_OVERFLOW;
 	}

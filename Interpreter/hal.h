@@ -26,4 +26,5 @@ public:
 #endif
 
 int kfputs(char *str);
+int hard_fault_check(int addr);
 #endif
