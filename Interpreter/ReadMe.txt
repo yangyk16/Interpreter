@@ -114,7 +114,7 @@
  3.16 修复函数中使用普通"，"的bug；修复左括号+强制转换组合时get_token错误bug；exec_code错误时清理
  3.19 函数调用时SP的改变改由中间代码实现，删除OPERAND_L_S_VARITY类型；合并临时变量堆栈和调用堆栈；修复opdb链接变量bug；增加运行时代码检查；修复复杂类型检测bug
  3.20 完善堆栈溢出检查；增加运行时HardFault检查
- 3.21 运行时错误打印call stack；完善print_code
+ 3.21 运行时错误打印call stack；完善print_code；支持用户eval
 
 
 变量命名：

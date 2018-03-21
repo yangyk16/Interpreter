@@ -49,7 +49,7 @@
 #define DTCM_BSS
 #endif
 
-#define debug	
+#define debug	kprintf
 #define error	kprintf
 #define warning kprintf
 #define gdbout	kprintf

@@ -53,6 +53,7 @@ public:
 	void* pop(void);
 	virtual void* find(char*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
+	inline void set_count(int count) {this->count = count; this->top = count * this->element_size;}
 	//inline void set_length(uint len) {this->length = len;}
 	void empty(void) {kmemset(this->bottom_addr, 0, this->count * this->element_size); this->top = 0; this->count = 0;}
 	stack();

@@ -731,19 +731,12 @@ assign_general:
 			instruction_ptr->ret_varity_type = return_varity_ptr->get_type();
 			varity_number = this->mid_varity_stack.get_count();
 			instruction_ptr->ret_addr = varity_number * 8;
-			if(!function_ptr->variable_para_flag) {
-				instruction_ptr->data = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);//确认再确认，此处和中间代码函数调用运算符时栈的申请的联动处理。
-			} else {
-				instruction_ptr->data = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
-			}
 			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] < this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
 				error("Insufficient parameters for %s.\n", node_attribute->value.ptr_value);
 				RETURN(ERROR_FUNC_ARGS);
 			}
-			if(function_ptr->variable_para_flag)
-				instruction_ptr->data = instruction_ptr->data / PLATFORM_WORD_LEN;
-			else
-				instruction_ptr->data = this->varity_declare->local_varity_stack->offset;
+			instruction_ptr->opda_varity_type = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) / PLATFORM_WORD_LEN;
+			instruction_ptr->data = this->varity_declare->local_varity_stack->offset;
 			instruction_ptr->opdb_addr = this->mid_varity_stack.get_count() * 8;
 			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
@@ -1220,7 +1213,7 @@ int c_interpreter::run_interpreter(void)
 		len = pre_treat(len);
 		if(len < 0)
 			continue;
-		ret = this->sentence_analysis(sentence_buf, len);
+		ret = this->eval(sentence_buf, len);
 		token_fifo.content_reset();
 		if(ret == OK_FUNC_RETURN)
 			return ret;
@@ -1488,6 +1481,10 @@ struct_end_check:
 
 int c_interpreter::generate_compile_func(void)
 {
+	static stack eval_stack;
+	this->generate_arg_list("int,char*;", 2, eval_stack);
+	this->function_declare->add_compile_func("eval", (void*)user_eval, &eval_stack, 0);
+	///////////////////////////////////////////
 	static stack memcpy_stack;
 	this->generate_arg_list("void*,void*,void*,unsigned int;", 4, memcpy_stack);
 	this->function_declare->add_compile_func("memcpy", (void*)kmemcpy, &memcpy_stack, 0);
@@ -2148,7 +2145,7 @@ ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 	return ERROR_NO;
 }
 
-int c_interpreter::sentence_analysis(char* str, int len)
+int c_interpreter::eval(char* str, int len)
 {
 	int ret1, ret2;
 	ret1 = this->label_analysis(str, len);
@@ -2728,7 +2725,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon)
 	}
 	if(this->exec_flag) {
 		int mid_code_count = this->cur_mid_code_stack_ptr->get_count();
-		//this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
+		this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
 		this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), mid_code_count);
 		this->cur_mid_code_stack_ptr->empty();
 	}
@@ -2974,6 +2971,10 @@ void c_interpreter::print_code(mid_code *ptr, int n)
 					gdbout("%d", ptr->opda_addr);
 				} else if(ptr->opda_varity_type == U_INT || ptr->opda_varity_type == U_SHORT || ptr->opda_varity_type == U_LONG || ptr->opda_varity_type == U_CHAR) {
 					gdbout("%lu", ptr->opda_addr);
+				} else if(ptr->opda_varity_type == FLOAT) {
+					gdbout("%f", FLOAT_VALUE(&ptr->opda_addr));
+				} else if(ptr->opda_varity_type == DOUBLE) {
+					gdbout("%f", DOUBLE_VALUE(&ptr->opda_addr));
 				}
 			}
 		}
@@ -3001,6 +3002,9 @@ void c_interpreter::print_code(mid_code *ptr, int n)
 						break;
 					}
 				}
+				if(i == this->language_elment_space.g_varity_list.get_count() && ptr->opdb_varity_type == ARRAY) {
+					gdbout("0x%x", ptr->opdb_addr);
+				}
 			} else if(ptr->opdb_operand_type == OPERAND_L_VARITY) {
 				gdbout("SP+%d", ptr->opdb_addr);
 			} else if(ptr->opdb_operand_type == OPERAND_CONST) {
@@ -3008,6 +3012,10 @@ void c_interpreter::print_code(mid_code *ptr, int n)
 					gdbout("%d", ptr->opdb_addr);
 				} else if(ptr->opdb_varity_type == U_INT || ptr->opdb_varity_type == U_SHORT || ptr->opdb_varity_type == U_LONG || ptr->opdb_varity_type == U_CHAR) {
 					gdbout("%lu", ptr->opdb_addr);
+				} else if(ptr->opdb_varity_type == FLOAT) {
+					gdbout("%f", FLOAT_VALUE(&ptr->opdb_addr));
+				} else if(ptr->opdb_varity_type == DOUBLE) {
+					gdbout("%f", DOUBLE_VALUE(&ptr->opdb_addr));
 				}
 			}
 		} else {
@@ -3036,6 +3044,21 @@ void c_interpreter::print_code(mid_code *ptr, int n)
 		gdbout("\n");
 		//gdbout("opt=%d,radd=%x,rtype=%d,ropd=%d,aadd=%x,atype=%d,aopd=%d,badd=%x,byte=%d,bopd=%d\n",ptr->ret_operator,ptr->ret_addr,ptr->ret_varity_type,ptr->ret_operand_type,ptr->opda_addr,ptr->opda_varity_type,ptr->opda_operand_type,ptr->opdb_addr,ptr->opdb_varity_type,ptr->opdb_operand_type);
 	}
+}
+
+extern "C" int user_eval(char *str)
+{
+	int ret, len = kstrlen(str);
+	mid_code *base_bak = (mid_code*)myinterpreter.mid_code_stack.get_base_addr();
+	int count_bak = myinterpreter.mid_code_stack.get_count();
+	mid_code *pc_bak = myinterpreter.pc;
+	myinterpreter.mid_code_stack.set_base(base_bak + count_bak);
+	myinterpreter.mid_code_stack.set_count(0);
+	ret = myinterpreter.eval(str, len);
+	myinterpreter.mid_code_stack.set_base(base_bak);
+	myinterpreter.mid_code_stack.set_count(count_bak);
+	myinterpreter.pc = pc_bak;
+	return ret;
 }
 
 extern "C" void run_interpreter(void)

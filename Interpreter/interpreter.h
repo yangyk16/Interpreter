@@ -173,10 +173,14 @@ protected:
 	terminal* tty_used;
 
 	virtual int pre_treat(void){return 0;};
-	virtual int sentence_analysis(char*, int) = 0;
+	virtual int eval(char*, int) = 0;
 public:
 	virtual int run_interpreter(void) = 0;
 };
+
+extern "C" int user_eval(char *str);
+extern "C" void global_init(void);
+extern "C" void run_interpreter(void);
 
 class c_interpreter: public interpreter {
 	static language_elment_space_t language_elment_space;
@@ -280,16 +284,13 @@ class c_interpreter: public interpreter {
 	static void handle_init(void);
 	static int call_opt_handle(c_interpreter *interpreter_ptr);
 	//////////////////////////////////////////////////////////////////////
-	virtual int sentence_analysis(char*, int);
 	virtual int pre_treat(uint);
-
+	virtual int eval(char*, int);
+	friend int user_eval(char *str);
 public:
 	void set_break_flag(int flag) {break_flag = flag;}
 	int print_call_stack(void);
 	int init(terminal*);
 	virtual int run_interpreter(void);
 };
-
-extern "C" void global_init(void);
-extern "C" void run_interpreter(void);
 #endif

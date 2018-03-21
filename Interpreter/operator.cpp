@@ -1806,7 +1806,7 @@ int c_interpreter::opt_index_handle(c_interpreter *interpreter_ptr)
 }
 
 ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr)
-{
+{//opda：入口地址 opdb：临时变量堆栈推进值 data：调用时所用栈帧大小，用于堆栈回溯 opda_varity_type：参数个数
 	mid_code *instruction_ptr = interpreter_ptr->pc;
 	function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;
 	if(!function_ptr->compile_func_flag) {
@@ -1826,7 +1826,7 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 	long long ret;
 	PLATFORM_WORD *arg_ptr;
 	arg_ptr = (PLATFORM_WORD*)interpreter_ptr->stack_pointer;
-	switch(instruction_ptr->data) {
+	switch(instruction_ptr->opda_varity_type) {
 	case 1:
 		func1_ptr = (func1)function_ptr->func_addr;
 		ret = func1_ptr(*arg_ptr);
