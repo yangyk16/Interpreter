@@ -284,6 +284,7 @@ class c_interpreter: public interpreter {
 	static void handle_init(void);
 	static int call_opt_handle(c_interpreter *interpreter_ptr);
 	//////////////////////////////////////////////////////////////////////
+	int post_treat(void);
 	virtual int pre_treat(uint);
 	virtual int eval(char*, int);
 	friend int user_eval(char *str);

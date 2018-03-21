@@ -213,3 +213,14 @@ int varity_type_stack_t::find(char arg_count, void *type_info_addr)
 	}
 	return -1;
 }
+
+node* list_stack::find_str_val(char *str)
+{
+	node *ptr;
+	for(ptr=this->head.right; ptr!=&this->tail; ptr=ptr->right) {
+		if(!kstrcmp((const char*)ptr->value, str)) {
+			return ptr;
+		}
+	}
+	return 0;
+}

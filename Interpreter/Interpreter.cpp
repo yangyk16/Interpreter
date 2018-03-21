@@ -17,6 +17,7 @@ varity_type_stack_t c_interpreter::varity_type_stack;
 language_elment_space_t c_interpreter::language_elment_space;
 c_interpreter myinterpreter;
 round_queue token_fifo;
+list_stack string_stack;
 
 char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
 char ctl_key[][9] = {"break", "continue", "goto", "return"};
@@ -1196,6 +1197,22 @@ int c_interpreter::pre_treat(uint len)
 	return wptr;
 }
 
+int c_interpreter::post_treat(void)
+{
+	static int str_count_bak = 0;
+	token_fifo.content_reset();
+	if(exec_flag) {
+		node *ptr;
+		while(string_stack.get_count() > str_count_bak) {
+			ptr = string_stack.pop();
+			vfree(ptr->value);
+			vfree(ptr);
+		}
+	}
+	str_count_bak = string_stack.get_count();
+	return ERROR_NO;
+}
+
 int c_interpreter::run_interpreter(void)
 {
 	int ret;
@@ -1214,7 +1231,7 @@ int c_interpreter::run_interpreter(void)
 		if(len < 0)
 			continue;
 		ret = this->eval(sentence_buf, len);
-		token_fifo.content_reset();
+		this->post_treat();
 		if(ret == OK_FUNC_RETURN)
 			return ret;
 	}
@@ -2845,6 +2862,15 @@ int_value_handle:
 					}
 				}
 				p[count] = 0;
+				node *str_node_ptr = string_stack.find_str_val(p);
+				if(str_node_ptr) {
+					vfree(p);
+					p = (char*)str_node_ptr->value;
+				} else {
+					str_node_ptr = (node*)vmalloc(sizeof(node));
+					str_node_ptr->value = p;
+					string_stack.push(str_node_ptr);
+				}
 				info->node_type = TOKEN_STRING;
 				info->value.ptr_value = p;
 				return i + 1;
