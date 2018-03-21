@@ -230,7 +230,7 @@ class c_interpreter: public interpreter {
 	int operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int generate_expression_value(stack *code_stack_ptr, node_attribute_t *opt_node_ptr);
 	int test(char *str, uint len);
-	void print_code(void);
+	void print_code(mid_code *ptr, int n);
 	int basic_type_check(char *str, int &len, struct_info *&struct_info_ptr);
 	////////////////////////////opt handle////////////////////////
 	static int opt_asl_handle(c_interpreter *interpreter_ptr);

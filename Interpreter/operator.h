@@ -79,11 +79,11 @@
 #define OPT_R_MINUS_MINUS		53//no mid code
 #define OPT_TYPE_CONVERT		54
 #define OPT_SIZEOF				55//no mid code
+#define OPT_PASS_PARA			56
 
 #define CTL_BRANCH				80
 #define CTL_BRANCH_TRUE			81
 #define CTL_BRANCH_FALSE		82
-#define OPT_PASS_PARA			83
 #define CTL_RETURN				84
 #define CTL_BREAK				85
 #define CTL_CONTINUE			86

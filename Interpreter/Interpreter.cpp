@@ -2136,12 +2136,13 @@ ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 		ret = call_opt_handle(this);
 		//tick2 = HWREG(0x2040018);
 		//total2 += tick1 - tick2;
+		this->pc++;
 		if(ret) {
+			this->print_call_stack();
 			this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
 			this->tmp_varity_stack_pointer = this->tmp_varity_stack;
 			return ret;
 		}
-		this->pc++;
 	}
 	//kprintf("t1=%d,t2=%d,ot=%d\n", total1, total2, opt_time);
 	return ERROR_NO;
@@ -2176,7 +2177,7 @@ int c_interpreter::sentence_analysis(char* str, int len)
 		debug("exec non seq struct\n");
 		nonseq_info->non_seq_exec = 0;
 		if(this->exec_flag) {
-			this->print_code();
+			//this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
 			this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
 			//ret = this->non_seq_section_exec(0, nonseq_info->row_num - 1);
 			this->cur_mid_code_stack_ptr->empty();
@@ -2727,7 +2728,7 @@ int c_interpreter::sentence_exec(char* str, uint len, bool need_semicolon)
 	}
 	if(this->exec_flag) {
 		int mid_code_count = this->cur_mid_code_stack_ptr->get_count();
-		this->print_code();
+		//this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
 		this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), mid_code_count);
 		this->cur_mid_code_stack_ptr->empty();
 	}
@@ -2937,73 +2938,103 @@ int_value_handle:
 	return 0;
 }
 
-void c_interpreter::print_code(void)
+void c_interpreter::print_code(mid_code *ptr, int n)
 {
-	int n = this->cur_mid_code_stack_ptr->get_count();
-	mid_code *ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 	for(int i=0; i<n; i++, ptr++) {
-		if(ptr->ret_operator >= 100) {
-			debug("%d ", ptr->ret_operator);
-		}
 		if(ptr->ret_operand_type == OPERAND_T_VARITY) {
-			debug("$%d=", ptr->ret_addr / 8);
+			gdbout("$%d=", ptr->ret_addr / 8);
 		} else if(ptr->ret_operand_type == OPERAND_LINK_VARITY) {
-			debug("#%d=", ptr->ret_addr / 8);
+			gdbout("#%d=", ptr->ret_addr / 8);
 		} else if(ptr->ret_operand_type == OPERAND_G_VARITY) {
 			for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
 				if(this->language_elment_space.g_varity_node[i].get_content_ptr() == (void*)ptr->ret_addr) {
-					debug("%s=",this->language_elment_space.g_varity_node[i].get_name());
+					gdbout("%s=",this->language_elment_space.g_varity_node[i].get_name());
 					break;
 				}
 			}
 		} else if(ptr->ret_operand_type == OPERAND_L_VARITY) {
-			debug("SP+%d=", ptr->ret_addr);
+			gdbout("SP+%d=", ptr->ret_addr);
 		}
-		if(ptr->opda_operand_type == OPERAND_T_VARITY) {
-			debug("$%d ", ptr->opda_addr / 8);
-		} else if(ptr->opda_operand_type == OPERAND_LINK_VARITY) {
-			debug("#%d ", ptr->opda_addr / 8);
-		} else if(ptr->opda_operand_type == OPERAND_G_VARITY) {
-			for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
-				if(this->language_elment_space.g_varity_node[i].get_content_ptr() == (void*)ptr->opda_addr) {
-					debug("%s ",this->language_elment_space.g_varity_node[i].get_name());
-					break;
+		if(opt_number[ptr->ret_operator] == 2 && !(ptr->ret_operator >= OPT_DEVIDE_ASSIGN && ptr->ret_operator <= OPT_BIT_OR_ASSIGN || ptr->ret_operator == OPT_ASSIGN)) {
+			if(ptr->opda_operand_type == OPERAND_T_VARITY) {
+				gdbout("$%d", ptr->opda_addr / 8);
+			} else if(ptr->opda_operand_type == OPERAND_LINK_VARITY) {
+				gdbout("#%d", ptr->opda_addr / 8);
+			} else if(ptr->opda_operand_type == OPERAND_G_VARITY) {
+				for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
+					if(this->language_elment_space.g_varity_node[i].get_content_ptr() == (void*)ptr->opda_addr) {
+						gdbout("%s",this->language_elment_space.g_varity_node[i].get_name());
+						break;
+					}
+				}
+			} else if(ptr->opda_operand_type == OPERAND_L_VARITY) {
+				gdbout("SP+%d", ptr->opda_addr);
+			} else if(ptr->opda_operand_type == OPERAND_CONST) {
+				if(ptr->opda_varity_type == INT || ptr->opda_varity_type == SHORT || ptr->opda_varity_type == LONG || ptr->opda_varity_type == CHAR) {
+					gdbout("%d", ptr->opda_addr);
+				} else if(ptr->opda_varity_type == U_INT || ptr->opda_varity_type == U_SHORT || ptr->opda_varity_type == U_LONG || ptr->opda_varity_type == U_CHAR) {
+					gdbout("%lu", ptr->opda_addr);
 				}
 			}
-		} else if(ptr->opda_operand_type == OPERAND_L_VARITY) {
-			debug("SP+%d ", ptr->opda_addr);
-		} else if(ptr->opda_operand_type == OPERAND_CONST) {
-			if(ptr->opda_varity_type == INT || ptr->opda_varity_type == SHORT || ptr->opda_varity_type == LONG || ptr->opda_varity_type == CHAR) {
-				debug("%d ", ptr->opda_addr);
-			} else if(ptr->opda_varity_type == U_INT || ptr->opda_varity_type == U_SHORT || ptr->opda_varity_type == U_LONG || ptr->opda_varity_type == U_CHAR) {
-				debug("%lu ", ptr->opda_addr);
-			}
 		}
-		if(ptr->ret_operator < 100) {
-			debug("%d ", ptr->ret_operator);
-		}
-		if(ptr->opdb_operand_type == OPERAND_T_VARITY) {
-			debug("$%d", ptr->opdb_addr / 8);
-		} else if(ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
-			debug("#%d", ptr->opdb_addr / 8);
-		} else if(ptr->opdb_operand_type == OPERAND_G_VARITY) {
-			for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
-				if(this->language_elment_space.g_varity_node[i].get_content_ptr() == (void*)ptr->opdb_addr) {
-					debug("%s",this->language_elment_space.g_varity_node[i].get_name());
+
+		if(ptr->ret_operator < 80) {
+			if(!(ptr->ret_operator >= OPT_DEVIDE_ASSIGN && ptr->ret_operator <= OPT_BIT_OR_ASSIGN || ptr->ret_operator == OPT_ASSIGN) && ptr->ret_operator <= OPT_COMMA)
+				gdbout("%s", opt_str[ptr->ret_operator]);
+			else {
+				switch(ptr->ret_operator) {
+				case OPT_CALL_FUNC:
+					function_info *function_ptr = (function_info*)ptr->opda_addr;
+					gdbout("CALL %s", function_ptr->get_name());
 					break;
+					
 				}
 			}
-		} else if(ptr->opdb_operand_type == OPERAND_L_VARITY) {
-			debug("SP+%d", ptr->opdb_addr);
-		} else if(ptr->opdb_operand_type == OPERAND_CONST) {
-			if(ptr->opdb_varity_type == INT || ptr->opdb_varity_type == SHORT || ptr->opdb_varity_type == LONG || ptr->opdb_varity_type == CHAR) {
-				debug("%d", ptr->opdb_addr);
-			} else if(ptr->opdb_varity_type == U_INT || ptr->opdb_varity_type == U_SHORT || ptr->opdb_varity_type == U_LONG || ptr->opdb_varity_type == U_CHAR) {
-				debug("%lu", ptr->opdb_addr);
+			if(ptr->opdb_operand_type == OPERAND_T_VARITY) {
+				gdbout("$%d", ptr->opdb_addr / 8);
+			} else if(ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
+				gdbout("#%d", ptr->opdb_addr / 8);
+			} else if(ptr->opdb_operand_type == OPERAND_G_VARITY) {
+				for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
+					if(this->language_elment_space.g_varity_node[i].get_content_ptr() == (void*)ptr->opdb_addr) {
+						gdbout("%s",this->language_elment_space.g_varity_node[i].get_name());
+						break;
+					}
+				}
+			} else if(ptr->opdb_operand_type == OPERAND_L_VARITY) {
+				gdbout("SP+%d", ptr->opdb_addr);
+			} else if(ptr->opdb_operand_type == OPERAND_CONST) {
+				if(ptr->opdb_varity_type == INT || ptr->opdb_varity_type == SHORT || ptr->opdb_varity_type == LONG || ptr->opdb_varity_type == CHAR) {
+					gdbout("%d", ptr->opdb_addr);
+				} else if(ptr->opdb_varity_type == U_INT || ptr->opdb_varity_type == U_SHORT || ptr->opdb_varity_type == U_LONG || ptr->opdb_varity_type == U_CHAR) {
+					gdbout("%lu", ptr->opdb_addr);
+				}
+			}
+		} else {
+			switch(ptr->ret_operator) {
+			case CTL_BRANCH:
+			case CTL_RETURN:
+			case CTL_BREAK:
+			case CTL_CONTINUE:
+			case CTL_GOTO:
+				gdbout("B %d", ptr->opda_addr);
+				break;
+			case CTL_BRANCH_TRUE:
+				gdbout("BTrue %d", ptr->opda_addr);
+				break;
+			case CTL_BRANCH_FALSE:
+				gdbout("BFalse %d", ptr->opda_addr);
+				break;
+			case CTL_BXLR:
+				gdbout("BXLR");
+				break;
+			case CTL_SP_ADD:
+				gdbout("SP=SP");
+				ptr->opda_addr >= 0 ? gdbout("+%d", ptr->opda_addr) : gdbout("%d", ptr->opda_addr);
 			}
 		}
-		debug("\n");
-		//debug("opt=%d,radd=%x,rtype=%d,ropd=%d,aadd=%x,atype=%d,aopd=%d,badd=%x,byte=%d,bopd=%d\n",ptr->ret_operator,ptr->ret_addr,ptr->ret_varity_type,ptr->ret_operand_type,ptr->opda_addr,ptr->opda_varity_type,ptr->opda_operand_type,ptr->opdb_addr,ptr->opdb_varity_type,ptr->opdb_operand_type);
+		gdbout("\n");
+		//gdbout("opt=%d,radd=%x,rtype=%d,ropd=%d,aadd=%x,atype=%d,aopd=%d,badd=%x,byte=%d,bopd=%d\n",ptr->ret_operator,ptr->ret_addr,ptr->ret_varity_type,ptr->ret_operand_type,ptr->opda_addr,ptr->opda_varity_type,ptr->opda_operand_type,ptr->opdb_addr,ptr->opdb_varity_type,ptr->opdb_operand_type);
 	}
 }
 
