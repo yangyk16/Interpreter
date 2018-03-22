@@ -178,7 +178,7 @@ public:
 	virtual int run_interpreter(void) = 0;
 };
 
-extern "C" int user_eval(char *str);
+int user_eval(char *str);
 extern "C" void global_init(void);
 extern "C" void run_interpreter(void);
 

@@ -204,10 +204,9 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_MEMBER:
 	case OPT_REFERENCE:
 	{
-		varity_info *member_varity_ptr, *struct_ptr = avarity_ptr;
-		struct_info *struct_info_ptr = (struct_info*)(((PLATFORM_WORD*)avarity_ptr->get_complex_ptr())[1]);
+		varity_info *member_varity_ptr;
 		if(opt == OPT_MEMBER) {
-			if(avarity_ptr->get_type() != STRUCT) {
+			if(instruction_ptr->opda_varity_type != STRUCT) {
 				error("Only struct can use member operator.\n");
 				RETURN(ERROR_ILLEGAL_OPERAND);
 			}
@@ -217,6 +216,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				RETURN(ERROR_ILLEGAL_OPERAND);
 			}
 		}
+		struct_info *struct_info_ptr = (struct_info*)(((PLATFORM_WORD*)avarity_ptr->get_complex_ptr())[1]);
 		//ret_type = get_ret_type(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
 		varity_number = this->mid_varity_stack.get_count();
 		member_varity_ptr = (varity_info*)struct_info_ptr->varity_stack_ptr->find(node_attribute->value.ptr_value);
@@ -230,22 +230,22 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		this->mid_varity_stack.push();
 		inc_varity_ref(avarity_ptr);
 		if(opt == OPT_MEMBER) {
-			instruction_ptr->opda_varity_type = INT;
+			instruction_ptr->opda_varity_type = PLATFORM_TYPE;
 			instruction_ptr->opdb_addr = (int)member_varity_ptr->get_content_ptr();
 			instruction_ptr->opdb_operand_type = OPERAND_CONST;
 			instruction_ptr->opdb_varity_type = INT;
 			instruction_ptr->ret_operator = opt;
 			instruction_ptr->ret_addr = varity_number * 8;
-			instruction_ptr->ret_varity_type = INT;
+			instruction_ptr->ret_varity_type = PLATFORM_TYPE;
 			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 		} else if(opt == OPT_REFERENCE) {
-			instruction_ptr->opda_varity_type = INT;
+			instruction_ptr->opda_varity_type = PLATFORM_TYPE;
 			instruction_ptr->opdb_addr = (int)member_varity_ptr->get_content_ptr();
 			instruction_ptr->opdb_operand_type = OPERAND_CONST;
 			instruction_ptr->opdb_varity_type = INT;
 			instruction_ptr->ret_operator = OPT_PLUS;
 			instruction_ptr->ret_addr = varity_number * 8;
-			instruction_ptr->ret_varity_type = INT;
+			instruction_ptr->ret_varity_type = PLATFORM_TYPE;
 			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 		}
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
@@ -1626,6 +1626,9 @@ int c_interpreter::function_analysis(char* str, uint len)
 		node_attribute_t node_ptr;
 		int token_len;
 		int function_declare_flag = 0;
+		PLATFORM_WORD *complex_info;
+		//v_len -= type_len[ret_function_define];
+		//int c = get_varity_type(str + type_len[ret_function_define], v_len, function_name, ret_function_define, struct_info_ptr, complex_info);
 		while(v_len > 0) {
 			token_len = get_token(str_bak, &node_ptr);
 			if(node_ptr.node_type == TOKEN_NAME) {
@@ -2645,6 +2648,10 @@ varity_end:
 			token_flag = 1;
 			cur_stack_ptr = &analysis_data_struct_ptr->expression_final_stack;
 			kstrcpy(name, node_attribute->value.ptr_value);
+		} else if(node_attribute->node_type == TOKEN_CONST_VALUE) {
+			if(!array_flag) {
+
+			}
 		}
 		this->sentence_analysis_data_struct.last_token = *node_attribute;
 		v_len -= token_len;
@@ -2679,7 +2686,10 @@ int c_interpreter::varity_declare_analysis(char* str, uint len)
 			else
 				align_size = get_element_size(complex_node_count, varity_complex_ptr);
 			varity_size = get_varity_size(0, varity_complex_ptr, complex_node_count);
-
+			if(!varity_name[0]) {
+				error("Wrong varity name.\n");
+				return ERROR_VARITY_NAME;
+			}
 			if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
 				ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare, varity_size, complex_node_count, varity_complex_ptr);
 				new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
@@ -2757,8 +2767,10 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 	real_token_pos = i;
 	if(is_letter(str[i])) {
 		i++;
-		for(int j=sizeof(type_key)/sizeof(type_key[0])-1; j>=0; j--) {
+		for(int j=sizeof(type_key)/sizeof(type_key[0])-1; j>=0; j--) {//避免多段字符串构成的类型检测不到，使用strncmp
 			if(!kstrncmp(str + real_token_pos, type_key[j], type_len[j])) {
+				if(is_valid_c_char(str[real_token_pos + type_len[j]]))
+					continue;//unsigned long long1要识别为ulong型long1，所以不能break
 				info->value.int_value = j;
 				info->node_type = TOKEN_KEYWORD_TYPE;
 				token_fifo.write(str + real_token_pos, type_len[j]);
@@ -2818,7 +2830,17 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 			float_flag = 1;
 			if(str[i] == '-' || str[i] == '+')
 				i++;
+			if(!kisdigit(str[i])) {
+				error("Illegal float.\n");
+				info->node_type = TOKEN_ERROR;
+				return ERROR_TOKEN;
+			}
 			while(kisdigit(str[i]))i++;
+		}
+		if(is_letter(str[i])) {
+			error("Illegal const value or name.\n");
+			info->node_type = TOKEN_ERROR;
+			return ERROR_TOKEN;
 		}
 		if(float_flag) {
 			info->value_type = DOUBLE;
@@ -2903,7 +2925,7 @@ int_value_handle:
 		return 1;
 	} else {
 		for(int j=0; j<sizeof(opt_str)/sizeof(opt_str[0]); j++) {
-			if(!strmcmp(str + i, opt_str[j], opt_str_len[j])) {
+			if(!kstrncmp(str + i, opt_str[j], opt_str_len[j])) {
 				info->data = j;
 				info->node_type = TOKEN_OPERATOR;
 				info->value_type = opt_prio[j];
@@ -3072,7 +3094,7 @@ void c_interpreter::print_code(mid_code *ptr, int n)
 	}
 }
 
-extern "C" int user_eval(char *str)
+int user_eval(char *str)
 {
 	int ret, len = kstrlen(str);
 	mid_code *base_bak = (mid_code*)myinterpreter.mid_code_stack.get_base_addr();
