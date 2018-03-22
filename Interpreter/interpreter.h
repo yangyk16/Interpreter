@@ -181,6 +181,7 @@ public:
 int user_eval(char *str);
 extern "C" void global_init(void);
 extern "C" void run_interpreter(void);
+void clear_arglist(stack *arg_stack_ptr);
 
 class c_interpreter: public interpreter {
 	static language_elment_space_t language_elment_space;
