@@ -1639,10 +1639,10 @@ int c_interpreter::function_analysis(char* str, uint len)
 			varity_info *all_arg_ptr = (varity_info*)vmalloc(sizeof(varity_info) * (arg_count + 1));
 			kmemcpy(all_arg_ptr + 1, arg_ptr, sizeof(varity_info) * (arg_count));
 			this->varity_global_flag = VARITY_SCOPE_LOCAL;
-			for(int n=0; n<arg_count; n++, arg_ptr++) {
-				int size = get_varity_size(0, arg_ptr->get_complex_ptr(), arg_ptr->get_complex_arg_count());
+			for(int n=0; n<arg_count; n++) {
+				int size = get_varity_size(0, arg_ptr[n].get_complex_ptr(), arg_ptr[n].get_complex_arg_count());
 				size = make_align(size, 4);
-				this->varity_declare->declare(VARITY_SCOPE_LOCAL, arg_ptr->get_name(), 0, size, arg_ptr->get_complex_arg_count(), arg_ptr->get_complex_ptr());
+				this->varity_declare->declare(VARITY_SCOPE_LOCAL, arg_ptr[n].get_name(), 0, size, arg_ptr[n].get_complex_arg_count(), arg_ptr[n].get_complex_ptr());
 			}
 			vfree(arg_ptr);
 			arg_stack_ptr->set_base(all_arg_ptr);
@@ -2914,7 +2914,7 @@ int_value_handle:
 				node *str_node_ptr = string_stack.find_str_val(symbol_ptr);
 				if(str_node_ptr) {
 					//vfree(p);
-					p = symbol_ptr;
+					p = (char*)str_node_ptr->value;
 				} else {
 					p = (char*)vmalloc(count + 1);
 					str_node_ptr = (node*)vmalloc(sizeof(node));
@@ -2969,7 +2969,7 @@ int_value_handle:
 					PLATFORM_WORD *varity_complex_ptr;
 					int type_len, complex_node_count;
 					int type_flag = 0;
-					for(; len_in_bracket >= 0;) {
+					for(; len_in_bracket > 0;) {
 						int type;
 						int void_flag = 0;
 						struct_info *struct_info_ptr;
