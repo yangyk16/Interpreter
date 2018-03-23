@@ -19,14 +19,23 @@ inline uint align_size(uint size)
 	return size + (size % ALIGN_BYTE == 0 ? 0 : (ALIGN_BYTE - size % ALIGN_BYTE));
 }
 
+static void print_mempool(void)
+{
+	head_t *head_ptr;
+	for(head_ptr = (head_t*)heapbase; head_ptr; head_ptr = head_ptr->next)
+		kprintf("0x%x, %d, u=%d\n", head_ptr + 1, head_ptr->size, head_ptr->isused);
+	kprintf("mempool print finish.\n");
+}
+
 void* kmalloc(uint size) {
 	head_t *head_ptr, *next_head_ptr, *new_next_ptr;
 	uint tsize;
 	head_ptr = (head_t*)heapbase;
 	for(;head_ptr->isused==1 || head_ptr->size < size;) {
 		head_ptr = head_ptr->next;
-		if(head_ptr == NULL)
+		if(head_ptr == NULL) {
 			return 0;
+		}
 	}
 	tsize = align_size(size);
 	//debug("tsize=%d\n", tsize + sizeof(head_t));
@@ -144,9 +153,10 @@ void* vmalloc(unsigned int size)
 {
 	unsigned int a_size = size&7?size+(8-(size&7)):size;
 	void* ret = kmalloc(a_size);
+	debug("malloc %x, %d\n", ret, size);
 	if(ret) {
 		//size = size&7?size+(8-size&7):size;
-		debug("malloc %x, %d\n", ret, size);
+		//debug("malloc %x, %d\n", ret, size);
 		kmemset(ret, 0, size);
 		return ret;
 	} else {
@@ -162,6 +172,7 @@ void vfree(void *ptr)
 
 void* vrealloc(void* addr, unsigned int size)
 {
+	void *ret = krealloc(addr, size);
 	debug("realloc %x, %d\n", addr, size);
-	return krealloc(addr, size);
+	return ret;
 }

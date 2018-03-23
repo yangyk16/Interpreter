@@ -98,11 +98,11 @@ void varity_info::init_varity(void *addr, char *name, char type, uint size, int 
 	varity_ptr->type = type;
 	varity_ptr->size = size;
 	varity_ptr->content_ptr = 0;
-	if(type != COMPLEX) {
+	//if(type != COMPLEX) {
 		varity_ptr->comlex_info_ptr = complex_ptr;
 		varity_ptr->complex_arg_count = arg_count;
 		inc_varity_ref(varity_ptr);
-	}
+	//}
 }
 
 varity_info::varity_info(char* name, int type, uint size)

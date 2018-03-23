@@ -115,6 +115,8 @@
  3.19 函数调用时SP的改变改由中间代码实现，删除OPERAND_L_S_VARITY类型；合并临时变量堆栈和调用堆栈；修复opdb链接变量bug；增加运行时代码检查；修复复杂类型检测bug
  3.20 完善堆栈溢出检查；增加运行时HardFault检查
  3.21 运行时错误打印call stack；完善print_code；支持用户eval；解决STRING的内存浪费问题
+ 3.22 完善TOKEN_ARG
+ 3.23 使用TOKEN_ARG重写函数声明
 
 
 变量命名：
