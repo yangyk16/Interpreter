@@ -1653,7 +1653,8 @@ int c_interpreter::function_analysis(char* str, uint len)
 			this->exec_flag = false;
 			this->function_declare->save_sentence(str, len);
 			return OK_FUNC_DEFINE;
-		}
+		} else if(complex_count < 0)
+			return complex_count;
 		//while(v_len > 0) {
 		//	token_len = get_token(str_bak, &node_ptr);
 		//	if(node_ptr.node_type == TOKEN_NAME) {
@@ -2801,8 +2802,6 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 					continue;//unsigned long long1要识别为ulong型long1，所以不能break
 				info->value.int_value = j;
 				info->node_type = TOKEN_KEYWORD_TYPE;
-				token_fifo.write(str + real_token_pos, type_len[j]);
-				token_fifo.write("\0", 1);
 				return type_len[j];
 			}
 		}
@@ -2900,25 +2899,27 @@ int_value_handle:
 					return ERROR_TOKEN;
 				}
 			} else if(str[i] == '"') {
-				char *p = (char*)vmalloc(count + 1);
+				char *p;
 				for(int j=0; j<count; j++) {
 					if(str[pos] == '\\') {
 						char ch;
 						int escape_len = get_escape_char(str + pos, ch);
 						pos += escape_len;
-						p[j] = ch;
+						symbol_ptr[j] = ch;
 					} else {
-						p[j] = str[pos++]; 
+						symbol_ptr[j] = str[pos++];
 					}
 				}
-				p[count] = 0;
-				node *str_node_ptr = string_stack.find_str_val(p);
+				symbol_ptr[count] = 0;
+				node *str_node_ptr = string_stack.find_str_val(symbol_ptr);
 				if(str_node_ptr) {
-					vfree(p);
-					p = (char*)str_node_ptr->value;
+					//vfree(p);
+					p = symbol_ptr;
 				} else {
+					p = (char*)vmalloc(count + 1);
 					str_node_ptr = (node*)vmalloc(sizeof(node));
 					str_node_ptr->value = p;
+					kstrcpy(p, symbol_ptr);
 					string_stack.push(str_node_ptr);
 				}
 				info->node_type = TOKEN_STRING;
@@ -2963,24 +2964,36 @@ int_value_handle:
 					int len_in_bracket = find_ch_with_bracket_level(str + (++i), ')', 0);
 					int v_len = len_in_bracket;
 					char varity_name[32];
-					stack *arg_stack = (stack*)vmalloc(sizeof(stack));
-					varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);
-					arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
+					stack *arg_stack;
+					varity_info* arg_node_ptr;
 					PLATFORM_WORD *varity_complex_ptr;
 					int type_len, complex_node_count;
+					int type_flag = 0;
 					for(; len_in_bracket >= 0;) {
 						int type;
 						int void_flag = 0;
 						struct_info *struct_info_ptr;
-						varity_len = get_token(str + i, &node);
-						if(varity_len > len_in_bracket) {
-							break;
-						}
+						//varity_len = get_token(str + i, &node);
+						//if(varity_len > len_in_bracket) {
+						//	break;
+						//}
 						type = basic_type_check(str + i, type_len, struct_info_ptr);
 						if(type < 0) {
 							i--;
-							clear_arglist(arg_stack);
+							if(type_flag) {
+								info->node_type = TOKEN_ERROR;
+								error("Illegal arg list.\n");
+								clear_arglist(arg_stack);
+								return ERROR_FUNC_ARG_LIST;
+							}
 							goto normal_opt;
+						} else {
+							if(!type_flag) {
+								type_flag = 1;
+								arg_stack = (stack*)vmalloc(sizeof(stack));
+								arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);
+								arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
+							}
 						}
 						i += type_len;
 						type_len = len_in_bracket -= type_len;

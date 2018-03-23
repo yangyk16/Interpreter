@@ -494,7 +494,7 @@ int get_ret_type(int a, int b)//TODO:内联
 int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr, int converting_type)
 {
 	if(converted_type == converting_type) {
-		kmemcpy(converted_ptr, converting_ptr, get_varity_size(converting_type, 0, 0));//TODO:删除get_varity_size的简单重载
+		kmemcpy(converted_ptr, converting_ptr, get_varity_size(converting_type, 0, 0));
 	} else if(converted_type > converting_type) {
 		switch(converted_type) {
 		case INT:
