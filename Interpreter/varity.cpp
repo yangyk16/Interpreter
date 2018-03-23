@@ -46,7 +46,7 @@ varity_info::varity_info()
 	kmemset(this, 0, sizeof(*this));
 }
 
-int varity_attribute::get_type(void)
+int varity_info::get_type(void)
 {
 	if(this->complex_arg_count == 1)
 		return GET_COMPLEX_DATA(this->comlex_info_ptr[1]);
@@ -68,34 +68,20 @@ void varity_info::config_complex_info(int complex_arg_count, PLATFORM_WORD* info
 	this->comlex_info_ptr = info_ptr;
 }
 
-void varity_info::arg_init(char* name, char type, uint size, void* offset)
+void varity_info::arg_init(char* name, uint size, int arg_count, PLATFORM_WORD *complex_ptr, void* offset)
 {
-	int name_len = kstrlen(name);
-	this->name = (char*)vmalloc(name_len + 1);
-	kstrcpy(this->name, name);
-	this->type = type;
-	this->size = size;
 	this->content_ptr = offset;
-	if(type != COMPLEX) {
-		this->comlex_info_ptr = basic_type_info[type];
-		inc_varity_ref(this);
-		if(type != STRUCT) {
-			this->complex_arg_count = 1;
-		} else {
-			this->complex_arg_count = 2;
-		}
-	}
+	this->init_varity(name, size, arg_count, complex_ptr);
 }
 
-void varity_info::init_varity(void *addr, char *name, char type, uint size, int arg_count, PLATFORM_WORD *complex_ptr)
+void varity_info::init_varity(char *name, uint size, int arg_count, PLATFORM_WORD *complex_ptr)
 {
-	varity_info* varity_ptr = (varity_info*)addr;
+	varity_info* varity_ptr = this;
 	if(name) {
 		int name_len = kstrlen(name);
 		varity_ptr->name = (char*)vmalloc(name_len+1);
 		kstrcpy(varity_ptr->name, name);
 	}
-	varity_ptr->type = type;
 	varity_ptr->size = size;
 	varity_ptr->content_ptr = 0;
 	//if(type != COMPLEX) {
@@ -110,7 +96,6 @@ varity_info::varity_info(char* name, int type, uint size)
 	int name_len = kstrlen(name);
 	this->name = (char*)vmalloc(name_len+1);
 	kstrcpy(this->name, name);
-	this->type = type;
 	this->size = size;
 	this->content_ptr = 0;
 }
@@ -155,7 +140,6 @@ int varity_info::apply_space(void)
 void varity_info::reset(void)
 {
 	this->size = 0;
-	this->type = 0;
 	if(this->content_ptr) {
 		vfree(this->content_ptr);
 	}
@@ -164,21 +148,6 @@ void varity_info::reset(void)
 		vfree(this->name);
 		this->name = 0;
 	}
-}
-
-int varity_info::is_non_zero(void)
-{
-	if(type >= U_LONG_LONG) {
-		if(*(long long*)this->content_ptr)
-			return 1;
-	} else if(type == FLOAT) {
-		if(*(float*)this->content_ptr != 0)
-			return 1;
-	} else if(type == DOUBLE) {
-		if(*(double*)this->content_ptr != 0)
-			return 1;
-	}
-	return 0;
 }
 
 int varity::declare(int scope_flag, char *name, char type, uint size, int complex_arg_count, PLATFORM_WORD *complex_info_ptr)
@@ -206,7 +175,7 @@ int varity::declare(int scope_flag, char *name, char type, uint size, int comple
 		return ERROR_VARITY_COUNT_MAX;
 	}
 	varity_ptr = (varity_info*)varity_stack->get_current_ptr();
-	varity_info::init_varity(varity_ptr, name, type, size, complex_arg_count, complex_info_ptr);
+	varity_ptr->init_varity(name, size, complex_arg_count, complex_info_ptr);
 	//if(complex_arg_count && complex_info_ptr)
 	//	varity_ptr->config_complex_info(complex_arg_count, complex_info_ptr);
 	if(scope_flag == VARITY_SCOPE_GLOBAL) {

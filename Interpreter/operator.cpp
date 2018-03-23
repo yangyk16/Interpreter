@@ -491,15 +491,6 @@ int get_ret_type(int a, int b)//TODO:ÄÚÁª
 	return INT;
 }
 
-int get_varity_size(int type)
-{
-	if(type <= CHAR)
-		return sizeof_type[type];
-	else
-		return PLATFORM_WORD_LEN;
-	return 0;
-}
-
 int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr, int converting_type)
 {
 	if(converted_type == converting_type) {

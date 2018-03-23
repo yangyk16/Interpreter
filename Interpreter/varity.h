@@ -58,23 +58,17 @@
 #define PLATFORM_TYPE LONG
 typedef unsigned long PLATFORM_WORD;
 
-class varity_attribute: public element {
+class varity_info:public element {
 protected:
-	char type;//TODO:已经没用了，移除相关代码及相关函数定义中的多余参数
 	uint size;
 	PLATFORM_WORD* comlex_info_ptr;
-public:
+	void*	content_ptr;
 	int complex_arg_count;
+public:
 	inline uint get_size(void){return this->size;}
 	int get_type(void);
-};
-
-class varity_info:public varity_attribute {
-protected:
-	void*	content_ptr;
-public:
-	static void init_varity(void*, char*, char, uint, int, PLATFORM_WORD*);
-	void arg_init(char*, char, uint, void*);
+	void init_varity(char*, uint, int, PLATFORM_WORD*);
+	void arg_init(char*, uint, int, PLATFORM_WORD*, void*);
 	void config_complex_info(int, PLATFORM_WORD*);
 	varity_info();
 	varity_info(char*, int, uint);
@@ -90,7 +84,6 @@ public:
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
 	void set_type(int type);
 	void reset(void);
-	int is_non_zero(void);
 	~varity_info(){this->reset();}
 };
 

@@ -1537,7 +1537,7 @@ int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)/
 			if(node.data == OPT_MUL) {
 				ptr_flag = 1;
 			} else {
-				varity_info::init_varity(varity_ptr, 0, type, 4, 1 + ptr_flag, basic_type_info[type]);
+				varity_ptr->init_varity(0, 4, 1 + ptr_flag, basic_type_info[type]);
 				varity_ptr++;
 				arg_list_ptr.push();
 				ptr_flag = 0;
@@ -2477,8 +2477,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 						align_size = get_element_size(complex_node_count, varity_complex_ptr);
 					varity_size = get_varity_size(0, varity_complex_ptr, complex_node_count);
 					this->struct_info_set.current_offset = make_align(this->struct_info_set.current_offset, align_size);
-					new_node_ptr->arg_init(varity_name, type, varity_size, (void*)this->struct_info_set.current_offset);
-					new_node_ptr->config_complex_info(complex_node_count, varity_complex_ptr);
+					new_node_ptr->arg_init(varity_name, varity_size, complex_node_count, varity_complex_ptr, (void*)this->struct_info_set.current_offset);
 					this->struct_info_set.current_offset += varity_size;
 					varity_stack_ptr->push();
 					str += type_len;
@@ -2507,7 +2506,7 @@ int c_interpreter::struct_analysis(char* str, uint len)
 			this->struct_info_set.current_offset = 0;
 			int i = keylen + 1;
 			symbol_begin_pos = i;
-			varity_attribute* arg_node_ptr = (varity_attribute*)vmalloc(sizeof(varity_info) * MAX_VARITY_COUNT_IN_STRUCT);
+			varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_VARITY_COUNT_IN_STRUCT);
 			arg_stack = (stack*)vmalloc(sizeof(stack));
 			stack tmp_stack(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
 			kmemcpy(arg_stack, &tmp_stack, sizeof(stack));
@@ -3007,8 +3006,7 @@ int_value_handle:
 							}
 						}
 						if(!void_flag) {
-							arg_node_ptr->arg_init(varity_name, type, sizeof_type[type], 0);
-							arg_node_ptr->config_complex_info(complex_node_count, varity_complex_ptr);
+							arg_node_ptr->arg_init(varity_name, get_varity_size(0, varity_complex_ptr, complex_node_count), complex_node_count, varity_complex_ptr, 0);
 							arg_stack->push(arg_node_ptr++);
 						} else {
 							if(varity_name[0] != 0) {
