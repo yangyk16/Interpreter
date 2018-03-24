@@ -2530,6 +2530,8 @@ int c_interpreter::basic_type_check(char *str, int &len, struct_info *&struct_in
 		is_varity_declare = node_attribute.value.int_value;
 	} else if(node_attribute.node_type == TOKEN_ERROR) {
 		return ERROR_TOKEN;
+	} else if(node_attribute.node_type == TOKEN_NONEXIST) {
+		return ERROR_NO;
 	} else
 		is_varity_declare = ERROR_NO_VARITY_FOUND;
 	struct_info *struct_node_ptr = 0;
@@ -2973,10 +2975,11 @@ int_value_handle:
 						int type;
 						int void_flag = 0;
 						struct_info *struct_info_ptr;
-						//varity_len = get_token(str + i, &node);
-						//if(varity_len > len_in_bracket) {
-						//	break;
-						//}
+						varity_len = get_token(str + i, &node);
+						if(varity_len > len_in_bracket) {//防止括号内只剩空格引发后续bug
+							i += len_in_bracket;
+							break;
+						}
 						type = basic_type_check(str + i, type_len, struct_info_ptr);
 						if(type < 0) {
 							i--;
