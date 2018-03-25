@@ -100,11 +100,12 @@ typedef union operand_value {
 } operand_value_t;
 
 typedef struct node_attribute_s {
+	operand_value_t value;
 	char node_type;
 	char value_type;
 	char data;
 	char count;
-	operand_value_t value;
+	int reserve;
 } node_attribute_t;
 
 typedef struct language_element_space {
@@ -124,8 +125,6 @@ typedef struct language_element_space {
 } language_elment_space_t;
 
 typedef struct sentence_analysis_data_struct_s {
-	list_stack expression_tmp_stack;
-	list_stack expression_final_stack;
 	node_attribute_t node_attribute[MAX_ANALYSIS_NODE];
 	node node_struct[MAX_ANALYSIS_NODE];
 	node_attribute_t last_token;
@@ -171,9 +170,7 @@ protected:
 	function* function_declare;
 	char sentence_buf[MAX_SENTENCE_LENGTH];
 	terminal* tty_used;
-
 	virtual int pre_treat(void){return 0;};
-	virtual int eval(char*, int) = 0;
 public:
 	virtual int run_interpreter(void) = 0;
 };
@@ -200,6 +197,7 @@ class c_interpreter: public interpreter {
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;
 	char *stack_pointer;
 	char *tmp_varity_stack_pointer;
+	node_attribute_t *token_node_ptr;
 	mid_code *pc;
 	stack mid_code_stack;
 	stack mid_varity_stack;
@@ -209,34 +207,35 @@ class c_interpreter: public interpreter {
 	bool exec_flag;
 	call_func_info_t call_func_info;
 	int save_sentence(char*, uint);
-	int function_analysis(char*, uint);
-	int struct_analysis(char*, uint);
+	int function_analysis(node_attribute_t*, int);
+	int struct_analysis(node_attribute_t*, uint);
 	int struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
-	int non_seq_struct_analysis(char*, uint);
-	int varity_declare_analysis(char*, uint);
-	int label_analysis(char*, int);
-	int sentence_exec(char*, uint, bool);
-	int get_varity_type(char *str, int &len, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info);
+	int non_seq_struct_analysis(node_attribute_t*, uint);
+	int varity_declare_analysis(node_attribute_t*, int);
+	int label_analysis(node_attribute_t*, int);
+	int sentence_exec(node_attribute_t*, uint, bool);
+	int get_varity_type(node_attribute_t*, int&, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info);
 	int generate_arg_list(char *str, int count, stack &arg_list_ptr);
 	int generate_compile_func(void);
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, char &type, int &opt_len, char &prio);
-	int post_order_expression(char *str, int len);
-	int generate_mid_code(char *str, int len, bool need_semicolon);
+	int post_order_expression(node_attribute_t *node_ptr, int count, list_stack&);
+	int generate_mid_code(node_attribute_t*, int count, bool need_semicolon);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
-	int ctl_analysis(char *str, int len);
+	int ctl_analysis(node_attribute_t*, int);
 	int exec_mid_code(mid_code *pc, uint count);
-	int nonseq_start_gen_mid_code(char *str, uint len, int non_seq_type);
-	int nonseq_mid_gen_mid_code(char *str, uint len);
-	int nonseq_end_gen_mid_code(int row_num, char*, int);
+	int nonseq_start_gen_mid_code(node_attribute_t*, int, int non_seq_type);
+	int nonseq_mid_gen_mid_code(node_attribute_t*, int);
+	int nonseq_end_gen_mid_code(int row_num, node_attribute_t*, int);
 	int tree_to_code(node *tree, stack *code_stack);
 	int operator_pre_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int operator_post_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int generate_expression_value(stack *code_stack_ptr, node_attribute_t *opt_node_ptr);
-	int test(char *str, uint len);
+	int generate_token_list(char *str, uint len);
+	int token_convert(node_attribute_t *node_ptr, int &count);
 	void print_code(mid_code *ptr, int n);
-	int basic_type_check(char *str, int &len, struct_info *&struct_info_ptr);
+	int basic_type_check(node_attribute_t*, int &count, struct_info *&struct_info_ptr);
 	////////////////////////////opt handle////////////////////////
 	static int opt_asl_handle(c_interpreter *interpreter_ptr);
 	static int opt_asr_handle(c_interpreter *interpreter_ptr);
@@ -287,7 +286,7 @@ class c_interpreter: public interpreter {
 	//////////////////////////////////////////////////////////////////////
 	int post_treat(void);
 	virtual int pre_treat(uint);
-	virtual int eval(char*, int);
+	int eval(node_attribute_t*, int);
 	friend int user_eval(char *str);
 public:
 	void set_break_flag(int flag) {break_flag = flag;}

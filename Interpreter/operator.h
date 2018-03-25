@@ -81,6 +81,9 @@
 #define OPT_SIZEOF				55//no mid code
 #define OPT_PASS_PARA			56
 
+#define L_BIG_BRACKET			100
+#define R_BIG_BRACKET			101
+
 #define CTL_BRANCH				80
 #define CTL_BRANCH_TRUE			81
 #define CTL_BRANCH_FALSE		82

@@ -188,14 +188,14 @@ bool is_non_zero(int type, void* addr)
 	return true;
 }
 
-int find_ch_with_bracket_level(char* str, char ch, int level)
+int find_token_with_bracket_level(node_attribute_t* node_list, int n, node_attribute_t *node, int level)
 {
-	for(int i=0, cur_level=0; str[i]; i++) {
-		if(str[i] == ch && level == cur_level) {
+	for(int i=0, cur_level=0; i<n; i++) {
+		if(!kmemcmp(&node_list[i], node, sizeof(node_attribute_t)) && level == cur_level) {
 			return i;
-		} else if(str[i] == '(' || str[i] == '[') {
+		} else if((node_list[i].data == OPT_L_SMALL_BRACKET || node_list[i].data == OPT_L_MID_BRACKET) && node_list[i].node_type == TOKEN_OPERATOR) {
 			cur_level++;
-		} else if(str[i] == ')' || str[i] == ']') {
+		} else if((node_list[i].data == OPT_R_SMALL_BRACKET || node_list[i].data == OPT_R_MID_BRACKET) && node_list[i].node_type == TOKEN_OPERATOR) {
 			cur_level--;
 		}
 	}

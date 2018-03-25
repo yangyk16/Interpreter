@@ -391,6 +391,18 @@ void* kmemcpy(void *d, const void *s, unsigned int size)
 	return d;
 }
 
+void* kmemmove(void *d, const void *s, unsigned int size)
+{
+	unsigned int i, j, remain;
+	if((long)d < long(s))
+		kmemcpy(d, s, size);
+	else {
+		for(int i=size-1; i>0; i--)
+			*(long*)((long)d + i) = *(long*)((long)s + i);
+	}
+	return d;
+}
+
 void* kmemset(register void *d, int ch, register unsigned int size)
 {
 	register int unsigned i, j;
@@ -423,6 +435,15 @@ void* kmemset(register void *d, int ch, register unsigned int size)
 		}
 	}
 	return d;
+}
+
+int kmemcmp(void *mem1, void *mem2, unsigned int size)
+{
+	for(int i=0; i<size; i++) {
+		if(((char*)mem1)[i] != ((char*)mem2)[i])
+			return 1;
+	}
+	return 0;
 }
 
 unsigned int kstrlen(const char *str)
