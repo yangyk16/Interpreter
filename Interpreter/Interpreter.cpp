@@ -1046,17 +1046,21 @@ int c_interpreter::tree_to_code(node *tree, stack *code_stack)
 int c_interpreter::generate_token_list(char *str, uint len)
 {
 	int token_len;
+	node_attribute_t *raw_token_ptr = (node_attribute_t*)this->mid_code_stack.get_current_ptr();
 	int i = 0;
 	while(len > 0) {
-		token_len = get_token(str, &this->token_node_ptr[i]);
+		token_len = get_token(str, &raw_token_ptr[i]);
 		if(token_len < 0)
 			return token_len;
 		len -= token_len;
 		str += token_len;
-		if(this->token_node_ptr[i].node_type != TOKEN_NONEXIST)
+		if(raw_token_ptr[i].node_type != TOKEN_NONEXIST)
 			i++;
+		else
+			break;
 	}
-	return i;
+	token_len = this->token_convert(raw_token_ptr, i);
+	return token_len;
 }
 
 int c_interpreter::print_call_stack(void)
@@ -1236,7 +1240,6 @@ int c_interpreter::run_interpreter(void)
 		ret = this->generate_token_list(sentence_buf, len);
 		if(ret < 0)
 			continue;
-		this->token_convert(this->token_node_ptr, ret);
 		ret = this->eval(this->token_node_ptr, ret);
 		this->post_treat();
 		if(ret == OK_FUNC_RETURN)
@@ -1868,14 +1871,7 @@ int c_interpreter::post_order_expression(node_attribute_t *node_ptr, int count, 
 						expression_tmp_stack.pop();
 						break;
 					} else {
-						if(node_attribute->data == OPT_CALL_FUNC) {
-							expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[i]);
-							node_attribute = &analysis_data_struct_ptr->node_attribute[++i];
-							analysis_data_struct_ptr->node_struct[i].value = node_attribute;
-							node_attribute->node_type = TOKEN_OPERATOR;
-							node_attribute->value_type = 1;
-							node_attribute->data = OPT_L_SMALL_BRACKET;
-						} else if(node_attribute->data == OPT_PLUS_PLUS || node_attribute->data == OPT_MINUS_MINUS) {
+						if(node_attribute->data == OPT_PLUS_PLUS || node_attribute->data == OPT_MINUS_MINUS) {
 							node_attribute_t *final_stack_top_ptr = (node_attribute_t*)expression_final_stack.get_lastest_element()->value;
 							if(!expression_final_stack.get_count() || this->sentence_analysis_data_struct.last_token.node_type == TOKEN_OPERATOR) {
 								if(node_attribute->data == OPT_PLUS_PLUS)
@@ -1889,21 +1885,16 @@ int c_interpreter::post_order_expression(node_attribute_t *node_ptr, int count, 
 									node_attribute->data = OPT_R_MINUS_MINUS;
 							}
 						} else if(node_attribute->data == OPT_COMMA) {
-							for(int n=i-1; n>=0; n--) {
-								if(analysis_data_struct_ptr->node_attribute[n].node_type == TOKEN_OPERATOR && analysis_data_struct_ptr->node_attribute[n].data == OPT_L_SMALL_BRACKET) {
-									if(n>0 && analysis_data_struct_ptr->node_attribute[n-1].node_type == TOKEN_OPERATOR && analysis_data_struct_ptr->node_attribute[n-1].data == OPT_CALL_FUNC) {
+							int element_count = expression_tmp_stack.get_count();
+							node *cnode_ptr = expression_tmp_stack.get_lastest_element();
+							for(int n=1; n<element_count; n++, cnode_ptr = cnode_ptr->left) {
+								if(((node_attribute_t*)cnode_ptr->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)cnode_ptr->value)->data == OPT_L_SMALL_BRACKET) {
+									if(((node_attribute_t*)cnode_ptr->left->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)cnode_ptr->left->value)->data == OPT_CALL_FUNC) {
 										node_attribute->data = OPT_FUNC_COMMA;
 									}
 									break;
 								}
 							}
-						} else if(node_attribute->data == OPT_INDEX) {
-							expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[i]);
-							node_attribute = &analysis_data_struct_ptr->node_attribute[++i];
-							analysis_data_struct_ptr->node_struct[i].value = node_attribute;
-							node_attribute->node_type = TOKEN_OPERATOR;
-							node_attribute->value_type = 1;
-							node_attribute->data = OPT_L_SMALL_BRACKET;
 						}
 						expression_tmp_stack.push(&analysis_data_struct_ptr->node_struct[i]);
 						break;
@@ -2235,15 +2226,6 @@ int c_interpreter::nonseq_mid_gen_mid_code(node_attribute_t* node_ptr, int count
 int c_interpreter::nonseq_end_gen_mid_code(int row_num, node_attribute_t* node_ptr, int count)
 {
 	int i, key_len, len;
-	//char *str;
-	//if(str_try)
-	//	str = str_try;
-	//else
-	//	str =  nonseq_info->row_info_node[row_num].row_ptr;
-	//if(len_try)
-	//	len = len_try;
-	//else
-	//	len = nonseq_info->row_info_node[row_num].row_len;
 	int cur_depth = nonseq_info->row_info_node[row_num].non_seq_depth;
 	if(count == 0)return ERROR_NO;
 	mid_code *mid_code_ptr;
@@ -2551,17 +2533,18 @@ int c_interpreter::get_varity_type(node_attribute_t *node_ptr, int &count, char 
 					expression_final_stack.push(expression_tmp_stack.pop());
 				}
 				expression_tmp_stack.pop();
-			} else if(node_ptr[i].data == OPT_L_MID_BRACKET) {
+				if(array_flag)
+					goto array_def;
+			} else if(node_ptr[i].data == OPT_INDEX) {
 				array_flag = 1;
-			} else if(node_ptr[i].data == OPT_R_MID_BRACKET) {
-				array_flag = 0;
 				cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[i]);
-				node_ptr[i].data = OPT_INDEX;
-				node_ptr[i].value.int_value = this->sentence_analysis_data_struct.last_token.value.int_value;
+			} else if(node_ptr[i].data == OPT_R_MID_BRACKET) {
+				array_def:
+				array_flag = 0;
+				((node_attribute_t*)expression_final_stack.get_lastest_element()->value)->value.int_value = this->sentence_analysis_data_struct.last_token.value.int_value;
 			} else if(node_ptr[i].data == OPT_MUL) {
 				cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[i]);
 				node_ptr[i].data = OPT_PTR_CONTENT;
-				node_ptr[i].value_type = 1;
 			} else if(node_ptr[i].data == OPT_COMMA || node_ptr[i].data == OPT_EDGE || node_ptr[i].data == OPT_ASSIGN) {
 varity_end:
 				int node_count = expression_final_stack.get_count();
@@ -2583,6 +2566,7 @@ varity_end:
 						} else if(complex_attribute->data == OPT_INDEX) {
 							*cur_complex_info_ptr = (COMPLEX_ARRAY << COMPLEX_TYPE_BIT) | complex_attribute->value.int_value;
 						} else if(complex_attribute->data == OPT_PTR_CONTENT) {
+							complex_attribute->data = OPT_MUL;
 							*cur_complex_info_ptr = (COMPLEX_PTR << COMPLEX_TYPE_BIT);
 						}
 						cur_complex_info_ptr--;
@@ -2672,26 +2656,30 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 			node_ptr += complex_part_count;
 			count -= complex_part_count;
 			if(this->sentence_analysis_data_struct.last_token.data == OPT_ASSIGN) {
-				//int exp_len = find_ch_with_bracket_level(str, ',', 0);
-				//if(exp_len == -1)
-				//	exp_len = find_ch_with_bracket_level(str, ';', 0);
-				//if(new_varity_ptr->get_type() != ARRAY) {
-				//	generate_mid_code(str, exp_len, false);
-				//	mid_code *code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-				//	kmemcpy(&code_ptr->opdb_addr, &(code_ptr - 1)->opda_addr, sizeof(code_ptr->opda_addr) + sizeof(code_ptr->opda_operand_type) + sizeof(code_ptr->double_space1) + sizeof(code_ptr->opda_varity_type));
-				//	code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_content_ptr();
-				//	if(this->varity_global_flag == VARITY_SCOPE_LOCAL)
-				//		code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_L_VARITY;
-				//	else
-				//		code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_G_VARITY;
-				//	code_ptr->ret_varity_type = code_ptr->opda_varity_type = new_varity_ptr->get_type();
-				//	code_ptr->data = new_varity_ptr->get_element_size();
-				//	code_ptr->ret_operator = OPT_ASSIGN;
-				//	this->cur_mid_code_stack_ptr->push();
-				//} else {//数组赋值
-				//}
-				//str += exp_len + 1;
-				//remain_len -= exp_len + 1;
+				node_attribute_t node = {0, TOKEN_OPERATOR, opt_prio[OPT_COMMA], OPT_COMMA, 0, 0};
+				int exp_len = find_token_with_bracket_level(node_ptr, count, &node, 0);
+				if(exp_len == -1) {
+					node.data = OPT_EDGE;
+					node.value_type = opt_prio[OPT_EDGE];
+					exp_len = find_token_with_bracket_level(node_ptr, count + 1, &node, 0);
+				}
+				if(new_varity_ptr->get_type() != ARRAY) {
+					generate_mid_code(node_ptr, exp_len, false);
+					mid_code *code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+					kmemcpy(&code_ptr->opdb_addr, &(code_ptr - 1)->opda_addr, sizeof(code_ptr->opda_addr) + sizeof(code_ptr->opda_operand_type) + sizeof(code_ptr->double_space1) + sizeof(code_ptr->opda_varity_type));
+					code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_content_ptr();
+					if(this->varity_global_flag == VARITY_SCOPE_LOCAL)
+						code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_L_VARITY;
+					else
+						code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_G_VARITY;
+					code_ptr->ret_varity_type = code_ptr->opda_varity_type = new_varity_ptr->get_type();
+					code_ptr->data = new_varity_ptr->get_element_size();
+					code_ptr->ret_operator = OPT_ASSIGN;
+					this->cur_mid_code_stack_ptr->push();
+				} else {//数组赋值
+				}
+				node_ptr += exp_len + 1;
+				count -= exp_len + 1;
 			}
 		}
 		return OK_VARITY_DECLARE;
@@ -2920,119 +2908,181 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 {
 	int wptr = 0;
 	for(int i=0; i<count; i++) {
-		if(node_ptr[i].node_type == TOKEN_OPERATOR && node_ptr[i].data == OPT_L_SMALL_BRACKET) {
-			int token_in_bracket;
-			int type_flag = 0;
-			node_attribute_t rbracket_node = {0, TOKEN_OPERATOR, opt_prio[OPT_R_SMALL_BRACKET], OPT_R_SMALL_BRACKET, 0, 0};
-			char varity_name[32];
-			stack *arg_stack = 0;
-			PLATFORM_WORD *varity_complex_ptr;
-			int complex_node_count;
-			int void_flag = 0;
-			token_in_bracket = find_token_with_bracket_level(node_ptr + i + 1, count - i - 1, &rbracket_node, 0);
-			i++;
-			for(; token_in_bracket > 0;) {
-				int type;
-				int v_count = token_in_bracket;		
-				struct_info *struct_info_ptr;
-				varity_info* arg_node_ptr;
-				type = basic_type_check(node_ptr + i, v_count, struct_info_ptr);
-				if(type < 0) {
-					if(type_flag) {
-						node_ptr[wptr].node_type = TOKEN_ERROR;
-						error("Illegal arg list.\n");
-						clear_arglist(arg_stack);
-						return ERROR_FUNC_ARG_LIST;
-					}
-					i--;
-					goto normal_bracket;
-				} else {
-					if(!type_flag) {
-						type_flag = 1;
-						arg_stack = (stack*)vmalloc(sizeof(stack));
-						arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);
-						arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
-					}
-				}
-				i += v_count;
-				v_count = token_in_bracket -= v_count;
-				complex_node_count = get_varity_type(node_ptr + i, v_count, varity_name, type, struct_info_ptr, varity_complex_ptr);
-				i += v_count;
-				token_in_bracket -= v_count;
-				if(type == VOID) {
-					if(complex_node_count == 1 || (complex_node_count > 1 && varity_complex_ptr[complex_node_count] != PTR)) {
-						if(arg_stack->get_count() >= 1) {
-							error("arg list error.\n");
+		if(node_ptr[i].node_type != TOKEN_OPERATOR) {
+			this->token_node_ptr[wptr++] = node_ptr[i];
+			continue;
+		}
+		switch(node_ptr[i].data) {
+			case OPT_L_SMALL_BRACKET:
+			{
+				int token_in_bracket;
+				int type_flag = 0;
+				node_attribute_t rbracket_node = {0, TOKEN_OPERATOR, opt_prio[OPT_R_SMALL_BRACKET], OPT_R_SMALL_BRACKET, 0, 0};
+				char varity_name[32];
+				stack *arg_stack = 0;
+				PLATFORM_WORD *varity_complex_ptr;
+				int complex_node_count;
+				int void_flag = 0;
+				token_in_bracket = find_token_with_bracket_level(node_ptr + i + 1, count - i - 1, &rbracket_node, 0);
+				i++;
+				for(; token_in_bracket > 0;) {
+					int type;
+					int v_count = token_in_bracket;		
+					struct_info *struct_info_ptr;
+					varity_info* arg_node_ptr;
+					type = basic_type_check(node_ptr + i, v_count, struct_info_ptr);
+					if(type < 0) {
+						if(type_flag) {
+							this->token_node_ptr[wptr].node_type = TOKEN_ERROR;
+							error("Illegal arg list.\n");
 							clear_arglist(arg_stack);
-							node_ptr[wptr].node_type = TOKEN_ERROR;
+							return ERROR_FUNC_ARG_LIST;
+						}
+						i--;
+						goto normal_bracket;
+					} else {
+						if(!type_flag) {
+							type_flag = 1;
+							arg_stack = (stack*)vmalloc(sizeof(stack));
+							arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);
+							arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
+						}
+					}
+					i += v_count;
+					v_count = token_in_bracket -= v_count;
+					complex_node_count = get_varity_type(node_ptr + i, v_count, varity_name, type, struct_info_ptr, varity_complex_ptr);
+					i += v_count;
+					token_in_bracket -= v_count;
+					if(type == VOID) {
+						if(complex_node_count == 1 || (complex_node_count > 1 && varity_complex_ptr[complex_node_count] != PTR)) {
+							if(arg_stack->get_count() >= 1) {
+								error("arg list error.\n");
+								clear_arglist(arg_stack);
+								this->token_node_ptr[wptr].node_type = TOKEN_ERROR;
+								return ERROR_FUNC_ARG_LIST;
+							}
+						}
+						void_flag = true;
+					} else {
+						if(void_flag) {
+							error("arg cannot use void type.\n");
+							clear_arglist(arg_stack);
+							this->token_node_ptr[wptr].node_type = TOKEN_ERROR;
 							return ERROR_FUNC_ARG_LIST;
 						}
 					}
-					void_flag = true;
-				} else {
-					if(void_flag) {
-						error("arg cannot use void type.\n");
-						clear_arglist(arg_stack);
-						node_ptr[wptr].node_type = TOKEN_ERROR;
-						return ERROR_FUNC_ARG_LIST;
+					if(!void_flag) {
+						arg_node_ptr->arg_init(varity_name, get_varity_size(0, varity_complex_ptr, complex_node_count), complex_node_count, varity_complex_ptr, 0);
+						arg_stack->push(arg_node_ptr++);
+					} else {
+						if(varity_name[0] != 0) {
+							error("arg cannot use void type.\n");
+							clear_arglist(arg_stack);
+							this->token_node_ptr[wptr].node_type = TOKEN_ERROR;
+							return ERROR_FUNC_ARG_LIST;
+						}
 					}
 				}
-				if(!void_flag) {
-					arg_node_ptr->arg_init(varity_name, get_varity_size(0, varity_complex_ptr, complex_node_count), complex_node_count, varity_complex_ptr, 0);
-					arg_stack->push(arg_node_ptr++);
+				if(arg_stack && arg_stack->get_count() == 1 && !varity_name[0]) {
+					this->token_node_ptr[wptr].data = OPT_TYPE_CONVERT;
+					this->token_node_ptr[wptr].value_type = 2;
+					this->token_node_ptr[wptr].value.ptr_value = (char*)varity_complex_ptr;
+					this->token_node_ptr[wptr].count = complex_node_count; //complex_arg_count
+					clear_arglist(arg_stack);
 				} else {
-					if(varity_name[0] != 0) {
-						error("arg cannot use void type.\n");
-						clear_arglist(arg_stack);
-						node_ptr[wptr].node_type = TOKEN_ERROR;
-						return ERROR_FUNC_ARG_LIST;
+					if(!void_flag && !arg_stack) {
+						i--;
+						goto normal_bracket;
 					}
+					this->token_node_ptr[wptr].node_type = TOKEN_ARG_LIST;
+					this->token_node_ptr[wptr].value.ptr_value = (char*)arg_stack;
+					if(arg_stack)
+						vrealloc(arg_stack->get_base_addr(), arg_stack->get_count() * sizeof(varity_info));
 				}
-			}
-			if(arg_stack && arg_stack->get_count() == 1 && !varity_name[0]) {
-				node_ptr[wptr].data = OPT_TYPE_CONVERT;
-				node_ptr[wptr].value_type = 2;
-				node_ptr[wptr].value.ptr_value = (char*)varity_complex_ptr;
-				node_ptr[wptr].count = complex_node_count; //complex_arg_count
-				clear_arglist(arg_stack);
-			} else {
-				if(!void_flag && !arg_stack) {
-					i--;
-					goto normal_bracket;
-				}
-				node_ptr[wptr].node_type = TOKEN_ARG_LIST;
-				node_ptr[wptr].value.ptr_value = (char*)arg_stack;
-				if(arg_stack)
-					vrealloc(arg_stack->get_base_addr(), arg_stack->get_count() * sizeof(varity_info));
-			}
-			wptr++;
-			continue;
-normal_bracket:
-			if(wptr > 0 && (node_ptr[wptr - 1].node_type == TOKEN_NAME || node_ptr[wptr - 1].node_type == TOKEN_OPERATOR && (node_ptr[wptr - 1].data == OPT_R_SMALL_BRACKET || node_ptr[wptr - 1].data == OPT_R_MID_BRACKET))) {
-				if(wptr == i) {
-					kmemmove(node_ptr + i + 1, node_ptr + i, (count - i) * sizeof(node_attribute_t));
-					node_ptr[wptr] = node_ptr[i + 1];
-					node_ptr[wptr].data = OPT_CALL_FUNC;
-					i++;
-					count++;
-				} else {
-					node_ptr[wptr + 1] = node_ptr[i];
-					node_ptr[wptr] = node_ptr[i];
-					node_ptr[wptr].data = OPT_CALL_FUNC;
-				}
-				wptr += 2;
-				continue;
-			} else
 				wptr++;
-
-
-		} else {
-			wptr++;
+				continue;
+normal_bracket:
+				if(i > 0 && (node_ptr[i - 1].node_type == TOKEN_NAME || node_ptr[i - 1].node_type == TOKEN_OPERATOR && (node_ptr[i - 1].data == OPT_R_SMALL_BRACKET || node_ptr[i - 1].data == OPT_R_MID_BRACKET))) {
+					this->token_node_ptr[wptr] = node_ptr[i];
+					this->token_node_ptr[wptr++].data = OPT_CALL_FUNC;
+					this->token_node_ptr[wptr++] = node_ptr[i];
+					continue;
+				} else {
+					this->token_node_ptr[wptr++] = node_ptr[i];
+				}
+				break;
+			}
+			case OPT_PLUS:
+			case OPT_MINUS:
+				if(node_ptr[i - 1].node_type == TOKEN_OPERATOR 
+					&& node_ptr[i - 1].data != OPT_R_SMALL_BRACKET 
+					&& node_ptr[i - 1].data != OPT_L_MINUS_MINUS 
+					&& node_ptr[i - 1].data != OPT_L_PLUS_PLUS 
+					&& node_ptr[i - 1].data != OPT_R_PLUS_PLUS 
+					&& node_ptr[i - 1].data != OPT_R_MINUS_MINUS) {
+					this->token_node_ptr[wptr] = node_ptr[i];
+					if(node_ptr[i].data == OPT_PLUS)
+						this->token_node_ptr[wptr].data = OPT_POSITIVE;
+					else
+						this->token_node_ptr[wptr].data = OPT_NEGATIVE;
+					this->token_node_ptr[wptr++].value_type = 2;
+				} else {
+					this->token_node_ptr[wptr++] = node_ptr[i];
+				}
+				break;
+			case OPT_PLUS_PLUS:
+			case OPT_MINUS_MINUS:
+				if(node_ptr[i - 1].node_type == TOKEN_NAME && node_ptr[i + 1].node_type == TOKEN_NAME) {
+					this->token_node_ptr[wptr++] = node_ptr[i];
+					this->token_node_ptr[wptr] = node_ptr[i];
+					if(node_ptr[i].data == OPT_PLUS_PLUS) {
+						this->token_node_ptr[wptr - 1].data = OPT_PLUS;
+						this->token_node_ptr[wptr].data = OPT_POSITIVE;
+					} else {
+						this->token_node_ptr[wptr - 1].data = OPT_MINUS;
+						this->token_node_ptr[wptr].data = OPT_NEGATIVE;
+					}
+					this->token_node_ptr[wptr - 1].value_type = 4;
+					this->token_node_ptr[wptr].value_type = 2;
+					this->token_node_ptr[wptr++].value.long_long_value  = 0;
+				} else {
+					this->token_node_ptr[wptr++] = node_ptr[i];
+				}
+				break;
+			case OPT_MUL:
+			case OPT_BIT_AND:
+				if(node_ptr[i - 1].node_type == TOKEN_OPERATOR 
+					&& node_ptr[i - 1].data != OPT_R_SMALL_BRACKET 
+					&& node_ptr[i - 1].data != OPT_L_MINUS_MINUS 
+					&& node_ptr[i - 1].data != OPT_L_PLUS_PLUS
+					&& node_ptr[i - 1].data != OPT_R_PLUS_PLUS
+					&& node_ptr[i - 1].data != OPT_R_MINUS_MINUS) {
+					this->token_node_ptr[wptr] = node_ptr[i];
+					if(node_ptr[i].data == OPT_MUL)
+						this->token_node_ptr[wptr].data = OPT_PTR_CONTENT;
+					else
+						this->token_node_ptr[wptr].data = OPT_ADDRESS_OF;
+					this->token_node_ptr[wptr++].value_type = 2;
+				} else {
+					this->token_node_ptr[wptr++] = node_ptr[i];
+				}
+				break;
+			case OPT_L_MID_BRACKET:
+				this->token_node_ptr[wptr] = node_ptr[i];
+				this->token_node_ptr[wptr++].data = OPT_INDEX;
+				this->token_node_ptr[wptr] = node_ptr[i];
+				this->token_node_ptr[wptr++].data = OPT_L_SMALL_BRACKET;
+				break;
+			case OPT_R_MID_BRACKET:
+				this->token_node_ptr[wptr] = node_ptr[i];
+				this->token_node_ptr[wptr].data = OPT_R_SMALL_BRACKET;
+				wptr++;
+				break;
+			default:
+				this->token_node_ptr[wptr++] = node_ptr[i];
 		}
-
 	}
-	count = wptr;
-	return ERROR_NO;
+	return wptr;
 }
 
 void c_interpreter::print_code(mid_code *ptr, int n)
