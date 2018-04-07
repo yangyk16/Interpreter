@@ -1658,6 +1658,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 			arg_stack_ptr->set_base(all_arg_ptr);
 			arg_stack_ptr->set_count(arg_count + 1);
 			all_arg_ptr->config_complex_info(complex_count - 2, complex_info);
+			inc_varity_ref(all_arg_ptr);
 			this->function_declare->declare(function_name, arg_stack_ptr);
 			this->cur_mid_code_stack_ptr = &this->function_declare->get_current_node()->mid_code_stack;
 			this->exec_flag = false;
@@ -2988,12 +2989,14 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 					this->token_node_ptr[wptr].value_type = 2;
 					this->token_node_ptr[wptr].value.ptr_value = (char*)varity_complex_ptr;
 					this->token_node_ptr[wptr].count = complex_node_count; //complex_arg_count
+					this->token_node_ptr[wptr].node_type = TOKEN_OPERATOR;
 					clear_arglist(arg_stack);
 				} else {
 					if(!void_flag && !arg_stack) {
 						i--;
 						goto normal_bracket;
 					}
+					this->token_node_ptr[wptr].node_type = TOKEN_OPERATOR;
 					this->token_node_ptr[wptr].node_type = TOKEN_ARG_LIST;
 					this->token_node_ptr[wptr].value.ptr_value = (char*)arg_stack;
 					if(arg_stack)
@@ -3198,13 +3201,14 @@ void c_interpreter::print_code(mid_code *ptr, int n)
 
 int user_eval(char *str)
 {
-	int ret, len = kstrlen(str);
+	int ret, len = kstrlen(str), count;
 	mid_code *base_bak = (mid_code*)myinterpreter.mid_code_stack.get_base_addr();
 	int count_bak = myinterpreter.mid_code_stack.get_count();
 	mid_code *pc_bak = myinterpreter.pc;
 	myinterpreter.mid_code_stack.set_base(base_bak + count_bak);
 	myinterpreter.mid_code_stack.set_count(0);
-	//ret = myinterpreter.eval(str, len);
+	count = myinterpreter.generate_token_list(str, len);
+	ret = myinterpreter.eval(myinterpreter.token_node_ptr, count);
 	myinterpreter.mid_code_stack.set_base(base_bak);
 	myinterpreter.mid_code_stack.set_count(count_bak);
 	myinterpreter.pc = pc_bak;

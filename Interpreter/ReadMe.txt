@@ -118,6 +118,7 @@
  3.22 完善TOKEN_ARG
  3.23 使用TOKEN_ARG重写函数声明。
  3.24-28 改变所有依赖字符串分析的接口，改为依赖token分析。进行所有语法分析前进行token变换节约后续get_token时间
+ 4.6  修复函数返回值变量complex信息被破坏bug，修复token转换bug
 
 
 变量命名：

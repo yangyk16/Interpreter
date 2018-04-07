@@ -213,8 +213,7 @@ varity_info* varity::find(char* name)
 		return ret;
 	else
 		ret = (varity_info*)this->global_varity_stack->find(name);
-	if(ret)
-		return ret;
+	return ret;
 }
 
 int varity::destroy_local_varity_cur_depth(void)
