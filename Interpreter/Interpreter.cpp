@@ -1069,6 +1069,7 @@ int c_interpreter::print_call_stack(void)
 	mid_code *pc, *func_pc;
 	int func_code_count;
 	pc = this->pc;
+	gdbout("Print call stack:\n");
 	if(pc >= (mid_code*)this->mid_code_stack.get_base_addr() && pc < (mid_code*)this->mid_code_stack.get_base_addr() + MAX_MID_CODE_COUNT) {
 		gdbout("main + %d\n", pc - (mid_code*)this->mid_code_stack.get_base_addr());
 	} else {
@@ -2151,13 +2152,13 @@ ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 		ret = call_opt_handle(this);
 		//tick2 = HWREG(0x2040018);
 		//total2 += tick1 - tick2;
-		this->pc++;
 		if(ret) {
 			this->print_call_stack();
 			this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
 			this->tmp_varity_stack_pointer = this->tmp_varity_stack;
 			return ret;
 		}
+		this->pc++;
 	}
 	//kprintf("t1=%d,t2=%d,ot=%d\n", total1, total2, opt_time);
 	return ERROR_NO;

@@ -1352,7 +1352,10 @@ int c_interpreter::opt_divide_handle(c_interpreter *interpreter_ptr)
 	GET_RET_ADDR();
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 #if DIVIDE_ZERO_CHECK == 1
-
+	if(!is_non_zero(instruction_ptr->opdb_varity_type, opdb_addr)) {
+		error("Divide zero.\n");
+		return ERROR_DEVIDE_ZERO;
+	}
 #endif
 	BINARY_OPT_EXEC(/);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
