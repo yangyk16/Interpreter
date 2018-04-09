@@ -161,7 +161,7 @@ int varity::declare(int scope_flag, char *name, char type, uint size, int comple
 			return ERROR_VARITY_DUPLICATE;
 		}
 	} else if(scope_flag == VARITY_SCOPE_LOCAL) {
-		if(this->local_varity_stack->find(name)) {
+		if(this->local_varity_stack->f_find(name)) {
 			error("declare varity \"%s\" error: varity name duplicated\n", name);
 			return ERROR_VARITY_DUPLICATE;
 		}

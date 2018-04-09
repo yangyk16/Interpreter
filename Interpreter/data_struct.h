@@ -68,7 +68,6 @@ public:
 
 class indexed_stack: public stack {
 	int current_depth;
-	int visible_depth;
 	uint index_table[MAX_STACK_INDEX];
 	uint offset_table[MAX_STACK_INDEX];
 	uint offset;
@@ -76,6 +75,7 @@ public:
 	friend class c_interpreter;
 	friend class varity;
 	virtual void* find(char*);
+	void *f_find(char*);
 	void init(int esize, void* base_addr, int capacity);
 	inline void reset(void) {kmemset(this->bottom_addr, 0 , this->top); this->count = 0; this->top = 0; this->offset = 0;}
 	inline void endeep(void) {index_table[++current_depth] = this->count; offset_table[current_depth] = offset;}

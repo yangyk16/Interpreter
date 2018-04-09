@@ -79,11 +79,21 @@ void indexed_stack::init(int esize, void* base_addr, int capacity)
 	kmemset(this->bottom_addr, 0, this->length * this->element_size);
 }
 
-void* indexed_stack::find(char* name)
+void* indexed_stack::find(char* name)//TODO:考虑复用stack find合理性
 {
 	char* element_name;
-	int visible_index = this->index_table[this->visible_depth];
-	for(uint i=visible_index; i<this->count; i++) {
+	for(int i=this->count-1; i>=0; i--) {
+		element_name = ((element*)((char*)this->bottom_addr + i * this->element_size))->get_name();
+		if(!kstrcmp(element_name, name))
+			return (char*)this->bottom_addr + i * this->element_size;
+	}
+	return NULL;
+}
+
+void* indexed_stack::f_find(char *name)
+{
+	char *element_name;
+	for(uint i=this->index_table[this->current_depth]; i<this->count; i++) {
 		element_name = ((element*)((char*)this->bottom_addr + i * this->element_size))->get_name();
 		if(!kstrcmp(element_name, name))
 			return (char*)this->bottom_addr + i * this->element_size;
