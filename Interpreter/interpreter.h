@@ -164,31 +164,24 @@ public:
 	int data;
 };
 
-class interpreter {
-protected:
-	varity* varity_declare;
-	function* function_declare;
-	char sentence_buf[MAX_SENTENCE_LENGTH];
-	terminal* tty_used;
-	virtual int pre_treat(void){return 0;};
-public:
-	virtual int run_interpreter(void) = 0;
-};
-
 int user_eval(char *str);
 extern "C" void global_init(void);
 extern "C" void run_interpreter(void);
 void clear_arglist(stack *arg_stack_ptr);
 
-class c_interpreter: public interpreter {
+class c_interpreter {
 	static language_elment_space_t language_elment_space;
 	static varity_type_stack_t varity_type_stack;
+	char sentence_buf[MAX_SENTENCE_LENGTH];
+	terminal* tty_used;
 	char pretreat_buf[MAX_PRETREAT_BUFLEN];
 	round_queue row_pretreat_fifo;
 	nonseq_info_struct* nonseq_info;
 	struct_info_struct struct_info_set;
 	function_flag_struct function_flag_set;
 	struct_define* struct_declare;
+	varity* varity_declare;
+	function* function_declare;
 	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
 	round_queue non_seq_code_fifo;
 	int varity_global_flag;
@@ -236,6 +229,7 @@ class c_interpreter: public interpreter {
 	int token_convert(node_attribute_t *node_ptr, int &count);
 	void print_code(mid_code *ptr, int n);
 	int basic_type_check(node_attribute_t*, int &count, struct_info *&struct_info_ptr);
+	bool gdb_check(void);
 	////////////////////////////opt handle////////////////////////
 	static int opt_asl_handle(c_interpreter *interpreter_ptr);
 	static int opt_asr_handle(c_interpreter *interpreter_ptr);
@@ -285,13 +279,14 @@ class c_interpreter: public interpreter {
 	static int call_opt_handle(c_interpreter *interpreter_ptr);
 	//////////////////////////////////////////////////////////////////////
 	int post_treat(void);
-	virtual int pre_treat(uint);
+	int pre_treat(uint);
 	int eval(node_attribute_t*, int);
 	friend int user_eval(char *str);
+	friend class gdb;
 public:
 	void set_break_flag(int flag) {break_flag = flag;}
 	int print_call_stack(void);
 	int init(terminal*);
-	virtual int run_interpreter(void);
+	int run_interpreter(void);
 };
 #endif

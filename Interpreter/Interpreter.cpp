@@ -6,6 +6,7 @@
 #include "data_struct.h"
 #include "cstdlib.h"
 #include "kmalloc.h"
+#include "gdb.h"
 
 #if TTY_TYPE == 0
 tty stdio;
@@ -638,7 +639,7 @@ assign_general:
 				stack *arg_list_ptr = (stack*)this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->arg_list;
 				instruction_ptr->ret_operator = OPT_PASS_PARA;
 				instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
-#if CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_X86
 				instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 #endif
 				if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
@@ -651,7 +652,7 @@ assign_general:
 						}
 						if(instruction_ptr->opdb_varity_type <= U_LONG && instruction_ptr->opdb_varity_type >= CHAR) {//TODO:平台相关，应该换掉
 							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = INT;
-#if !CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_ARM
 							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + 4;
 #else
@@ -659,7 +660,7 @@ assign_general:
 #endif
 						} else if(instruction_ptr->opdb_varity_type == FLOAT || instruction_ptr->opdb_varity_type == DOUBLE) {
 							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = DOUBLE;
-#if !CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_ARM
 							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + 8;
 #else
@@ -667,7 +668,7 @@ assign_general:
 #endif
 						} else if(instruction_ptr->opdb_varity_type == PTR || instruction_ptr->opdb_varity_type == ARRAY) {
 							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = PLATFORM_TYPE;
-#if !CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_ARM
 							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 #else
@@ -675,7 +676,7 @@ assign_general:
 #endif
 						} else {
 							instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = LONG_LONG;
-#if !CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_ARM
 							instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + 8;
 #else
@@ -685,7 +686,7 @@ assign_general:
 					}
 				} else {//确定参数
 					varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] + 1));
-#if !CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_ARM
 					switch(instruction_ptr->opdb_varity_type) {
 					case DOUBLE:
 					case LONG_LONG:
@@ -875,7 +876,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 			varity_info *arg_varity_ptr;
 			instruction_ptr->ret_operator = OPT_PASS_PARA;
 			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
-#if CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_X86
 			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 #endif
 			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
@@ -888,7 +889,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					}
 					if(instruction_ptr->opdb_varity_type <= U_LONG && instruction_ptr->opdb_varity_type >= CHAR) {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = INT;
-#if !CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_ARM
 						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 4) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] += 4;
 #else
@@ -896,7 +897,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 #endif
 					} else if(instruction_ptr->opdb_varity_type == FLOAT || instruction_ptr->opdb_varity_type == DOUBLE) {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = DOUBLE;
-#if !CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_ARM
 						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + 8;
 #else
@@ -904,7 +905,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 #endif
 					} else if(instruction_ptr->opdb_varity_type == PTR || instruction_ptr->opdb_varity_type == ARRAY) {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = PLATFORM_TYPE;
-#if !CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_ARM
 						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 #else
@@ -912,7 +913,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 #endif
 					} else {
 						instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = LONG_LONG;
-#if !CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_ARM
 						instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + PLATFORM_WORD_LEN;
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], 8) + 8;
 #else
@@ -922,7 +923,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 				}
 			} else {
 				arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] + 1));
-#if !CALL_CONVENTION
+#if HW_PLATFORM == PLATFORM_ARM
 				switch(instruction_ptr->opdb_varity_type) {
 				case DOUBLE:
 				case LONG_LONG:
@@ -1221,6 +1222,19 @@ int c_interpreter::post_treat(void)
 	return ERROR_NO;
 }
 
+bool c_interpreter::gdb_check(void)
+{
+#if DEBUG_EN
+	if(!kstrncmp(this->sentence_buf, "gdb", 3)) {
+		if(this->sentence_buf[3] == ' ' || this->sentence_buf[3] == '\t') {
+			gdb::parse(&this->sentence_buf[3]);
+			return true;
+		}
+	}
+#endif
+	return false;
+}
+
 int c_interpreter::run_interpreter(void)
 {
 	int ret;
@@ -1238,6 +1252,12 @@ int c_interpreter::run_interpreter(void)
 		len = pre_treat(len);
 		if(len < 0)
 			continue;
+#if DEBUG_EN
+		if(this->gdb_check()) {
+			ret = gdb::exec(this);
+			continue;
+		}
+#endif
 		ret = this->generate_token_list(sentence_buf, len);
 		if(ret < 0)
 			continue;

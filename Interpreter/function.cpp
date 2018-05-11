@@ -14,6 +14,9 @@ int function_info::init(char* name, stack* arg_list)
 	this->buffer = (char*)vmalloc(MAX_FUNCTION_LEN);
 	this->row_begin_pos = (char**)vmalloc(MAX_FUNCTION_LINE * sizeof(char*));
 	this->row_len = (int*)vmalloc(MAX_FUNCTION_LINE * sizeof(int));
+#if DEBUG_EN
+	this->row_code_ptr = (mid_code*)vmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*));
+#endif
 	this->arg_list = arg_list;
 	this->compile_func_flag = 0;
 	this->variable_para_flag = 0;
@@ -38,6 +41,10 @@ int function_info::reset(void)
 		vfree(this->name);
 	if(this->buffer)
 		vfree(this->buffer);
+#if DEBUG_EN
+	if(this->row_code_ptr)
+		vfree(this->row_code_ptr);
+#endif
 	if(this->row_begin_pos)
 		vfree(this->row_begin_pos);
 	if(this->row_len)
@@ -55,9 +62,12 @@ int function_info::reset(void)
 int function_info::size_adapt(void)
 {
 	vrealloc(this->mid_code_stack.get_base_addr(), this->mid_code_stack.get_count() * sizeof(mid_code));
+#if DEBUG_EN
+	vrealloc(this->row_code_ptr, this->row_line * sizeof(mid_code*));
+#endif
 	vrealloc(this->buffer, this->wptr);
 	vfree(this->row_len);
-	vrealloc(this->row_begin_pos, this->row_line);
+	vrealloc(this->row_begin_pos, this->row_line * sizeof(char*));
 	return ERROR_NO;
 }
 
@@ -71,6 +81,24 @@ int function_info::save_sentence(char* str, uint len)
 	wptr += len + 1;
 	return 0;
 }
+
+int function_info::destroy_sentence(void)
+{
+	if(!row_line)
+		return ERROR_EMPTY_FIFO;
+	this->wptr = this->row_begin_pos[--row_line] - this->buffer;
+	return ERROR_NO;
+}
+
+#if DEBUG_EN
+int function_info::print_line(int line)
+{
+	if(line < 0 || line > this->row_line)
+		return -1;
+	gdbout("%03d %s\n", line, row_begin_pos[line]);
+	return 0;
+}
+#endif
 
 void function::init(stack* function_stack_ptr)
 {
@@ -116,4 +144,9 @@ int function::add_compile_func(char *name, void *addr, stack *arg_list, char var
 int function::save_sentence(char* str, uint len)
 {
 	return this->current_node->save_sentence(str, len);
+}
+
+int function::destroy_sentence(void)
+{
+	return this->current_node->destroy_sentence();
 }
