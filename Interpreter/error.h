@@ -70,4 +70,6 @@
 #define OK_LABEL_DEFINE			13
 #define OK_FUNC_RETURN			14
 #define OK_CTL_NOT_FOUND		15
+
+#define OK_GDB_RUN				30
 #endif

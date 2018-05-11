@@ -15,7 +15,7 @@ int function_info::init(char* name, stack* arg_list)
 	this->row_begin_pos = (char**)vmalloc(MAX_FUNCTION_LINE * sizeof(char*));
 	this->row_len = (int*)vmalloc(MAX_FUNCTION_LINE * sizeof(int));
 #if DEBUG_EN
-	this->row_code_ptr = (mid_code*)vmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*));
+	this->row_code_ptr = (mid_code**)vmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*));
 #endif
 	this->arg_list = arg_list;
 	this->compile_func_flag = 0;

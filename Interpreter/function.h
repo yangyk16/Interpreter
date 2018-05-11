@@ -16,7 +16,7 @@ public:
 	int row_line;
 	char **row_begin_pos;
 #if DEBUG_EN
-	mid_code *row_code_ptr;
+	mid_code **row_code_ptr;
 #endif
 	int *row_len;
 	int stack_frame_size;

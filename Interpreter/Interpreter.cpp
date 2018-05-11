@@ -1596,6 +1596,10 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 	if(this->function_flag_set.function_flag) {
 		if(!count)
 			return OK_FUNC_INPUTING;
+		function_info *current_function_ptr = this->function_declare->get_current_node();
+#if DEBUG_EN
+		current_function_ptr->row_code_ptr[current_function_ptr->row_line] = (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+#endif
 		this->function_declare->save_sentence(this->sentence_buf, kstrlen(this->sentence_buf));
 		if(this->function_flag_set.function_begin_flag) {
 			if(node_ptr[0].node_type != TOKEN_OTHER || node_ptr[0].data != L_BIG_BRACKET) {
@@ -1609,7 +1613,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 		} else if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == R_BIG_BRACKET) {
 			this->function_flag_set.brace_depth--;
 			if(!this->function_flag_set.brace_depth) {
-				function_info *current_function_ptr = this->function_declare->get_current_node();
+				
 				mid_code *mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr(), *code_end_ptr = mid_code_ptr;
 				mid_code_ptr->ret_operator = CTL_BXLR;
 				this->cur_mid_code_stack_ptr->push();
@@ -2018,18 +2022,20 @@ int c_interpreter::ctl_analysis(node_attribute_t *node_ptr, int count)
 int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool need_semicolon)//TODO:所有uint len统统改int，否则传个-1进来
 {
 	if(count == 0 || node_ptr->node_type == TOKEN_OTHER)return ERROR_NO;
-	int ret;
+	int ret = ERROR_NO;
 	ret = this->ctl_analysis(node_ptr, count);
 	if(ret != OK_CTL_NOT_FOUND)
 		return ret;
 	list_stack expression_stack;
 	ret = this->post_order_expression(node_ptr, count, expression_stack);
-	if(ret) return ret;
+	if(ret)
+		goto gcode_exit;
 	if(need_semicolon) {
 		node *last_token = expression_stack.pop();
 		if(((node_attribute_t*)last_token->value)->node_type != TOKEN_OPERATOR || ((node_attribute_t*)last_token->value)->data != OPT_EDGE) {
 			error("Missing ;\n");
-			return ERROR_SEMICOLON;
+			ret = ERROR_SEMICOLON;
+			goto gcode_exit;
 		}
 	}
 	//后序表达式构造完成，下面构造二叉树
@@ -2051,18 +2057,20 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 
 	if(expression_stack.get_count() == 0) {
 		ret = generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
-		if(ret)return ret;
+		if(ret)
+			goto gcode_exit;
 	} else {
 		root->link_reset();
 		ret = list_to_tree(root, &expression_stack);//二叉树完成
 		if(ret) {
 			expression_stack.reset();
-			return ret;
+			goto gcode_exit;
 		}
 		if(expression_stack.get_count()) {
 			expression_stack.reset();
 			error("Exist extra token.\n");
-			return ERROR_OPERAND_SURPLUS;
+			ret = ERROR_OPERAND_SURPLUS;
+			goto gcode_exit;
 		}
 		//root->middle_visit();
 		int current_code_count = this->cur_mid_code_stack_ptr->get_count();
@@ -2074,7 +2082,7 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 			}
 			this->cur_mid_code_stack_ptr->del_element_to(current_code_count);
 			this->call_func_info.function_depth = 0;
-			return ret;
+			goto gcode_exit;
 		}
 		if(this->sentence_analysis_data_struct.short_depth) {
 			error("? && : unmatch.\n");
@@ -2085,7 +2093,8 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 			}
 			this->cur_mid_code_stack_ptr->del_element_to(current_code_count);
 			this->call_func_info.function_depth = 0;
-			return ERROR_TERNARY_UNMATCH;
+			ret = ERROR_TERNARY_UNMATCH;
+			goto gcode_exit;
 		}
 	}
 	if(this->mid_varity_stack.get_count()) {
@@ -2097,7 +2106,12 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 		return ERROR_NO;
 	}
 	debug("generate code.\n");
-	return ERROR_NO;
+gcode_exit:
+	if(ret) {
+		if(this->function_flag_set.function_flag)
+			this->function_declare->destroy_sentence();
+	}
+	return ret;
 }
 
 int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribute_t *node_attribute)//TODO:加参数，表示生成的赋值到哪个变量里。

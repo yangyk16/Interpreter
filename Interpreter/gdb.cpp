@@ -25,19 +25,40 @@ static int print(int argc, char **argv, c_interpreter *cptr)
 
 static int continue_exec(int argc, char **argv, c_interpreter *cptr)
 {
-
-	return ERROR_NO;
+	return OK_GDB_RUN;
 }
 
-static int breakpoint(int argc, char **argv, c_interpreter *cptr)
+int gdb::breakpoint(int argc, char **argv, c_interpreter *cptr)
 {
-	debug("set breakpoint.\n");
+	function_info *fptr;
+	int line;
+	if(argc != 3)
+		return ERROR_NO;
+	line = katoi(argv[2]);
+	//if(!kstrcmp(argv[1], "main")) {
+	//	for(int i=0; i<cptr->nonseq_info->row_num; i++)
+	//		kprintf("%03d %s\n", i, cptr->nonseq_info->row_info_node[i].row_ptr);
+	//	return ERROR_NO;
+	//}
+	fptr = cptr->function_declare->find(argv[1]);
+	if(!fptr)
+		gdbout("Function not found.\n");
+	else {
+		fptr->row_code_ptr[line]->break_flag = BREAKPOINT_REAL;
+	}
 	return ERROR_NO;
 }
 
 int gdb::print_code(int argc, char **argv, c_interpreter *cptr)
 {
 	function_info *fptr;
+	if(argc == 1)
+		return ERROR_NO;
+	if(!kstrcmp(argv[1], "main")) {
+		for(int i=0; i<cptr->nonseq_info->row_num; i++)
+			gdbout("%03d %s\n", i, cptr->nonseq_info->row_info_node[i].row_ptr);
+		return ERROR_NO;
+	}
 	fptr = cptr->function_declare->find(argv[1]);
 	if(!fptr)
 		gdbout("Function not found.\n");
@@ -51,7 +72,7 @@ int gdb::print_code(int argc, char **argv, c_interpreter *cptr)
 cmd_t cmd_tab[] = {
 	{"print", print},
 	{"p", print},
-	{"b", breakpoint},
+	{"b", gdb::breakpoint},
 	{"c", continue_exec},
 	{"pcode", gdb::print_code},
 };
@@ -72,7 +93,7 @@ begin:
 			if(argc >= 0) {
 				char_total_index++;
 				if(char_total_index > ARG_SPACE_SIZE) {
-					debug("Cmd error: cmd too long\r\n");
+					gdbout("Cmd error: cmd too long\r\n");
 					return -3;
 				}
 				argv[argc][char_index] = 0;
@@ -80,7 +101,7 @@ begin:
 			char_index = 0;
 			argc++;
 			if(argc >= MAX_GDBCMD_ARGC) {
-				debug("Cmd error: too many args\r\n");
+				gdbout("Cmd error: too many args\r\n");
 				return -2;
 			}
 			argv[argc] = &args[char_total_index];
@@ -92,7 +113,7 @@ begin:
 		if(inword) {
 			char_total_index++;
 			if(char_total_index > ARG_SPACE_SIZE) {
-				debug("Cmd error: cmd too long\r\n");
+				gdbout("Cmd error: cmd too long\r\n");
 				return -3;
 			}			
 			argv[argc][char_index++] = ch;
@@ -115,7 +136,7 @@ int gdb::exec(c_interpreter* interpreter_ptr)
 	for(i=0; i<cmd_count; i++)
 		if(!kstrcmp(cmd_tab[i].str, argv[0]) && cmd_tab[i].fun != NULL)
 			return cmd_tab[i].fun(argc, argv, interpreter_ptr);
-	debug("Wrong Cmd: %s\r\n", argv[0]);
+	gdbout("Wrong Cmd: %s\r\n", argv[0]);
 	return -1;
 }
 #endif

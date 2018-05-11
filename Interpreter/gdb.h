@@ -16,6 +16,7 @@ public:
 	static int exec(c_interpreter* interpreter_ptr);
 
 	static int print_code(int argc, char **argv, c_interpreter *cptr);
+	static int breakpoint(int argc, char **argv, c_interpreter *cptr);
 };
 
 #endif

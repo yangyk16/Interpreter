@@ -47,6 +47,10 @@
 #define EXEC_FLAG_FALSE	false
 
 #define C_OPT_PRIO_COUNT		15
+
+#define BREAKPOINT_REAL		(1 << 0)
+#define BREAKPOINT_STEP		(1 << 1)
+
 class c_interpreter;
 //typedef varity_info (*opt_calc)(c_interpreter*,char*,uint);
 typedef int (c_interpreter::*opt_calc )(char*, uint*);

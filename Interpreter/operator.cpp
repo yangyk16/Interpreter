@@ -5,6 +5,9 @@
 #include "type.h"
 #include "error.h"
 #include "cstdlib.h"
+#if DEBUG_EN
+#include "gdb.h"
+#endif
 
 #define OPERATOR_TYPE_NUM	128
 
@@ -2032,6 +2035,21 @@ int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 		interpreter_ptr->break_flag = 0;
 		return ERROR_CTL_BREAK;
 	}
+#if DEBUG_EN
+	if(instruction_ptr->break_flag) {
+		char gdbstr[128];
+		int gdbret;
+		gdbout("Breakpoint @ 0x%x.\n", instruction_ptr);
+		while(1) {
+			gdbout("gdb>");
+			interpreter_ptr->tty_used->readline(gdbstr);
+			gdb::parse(gdbstr);
+			gdbret = gdb::exec(interpreter_ptr);
+			if(gdbret == OK_GDB_RUN)
+				break;
+		}
+	}
+#endif
 	//gdbout("addr=%x,opt=%d\n", instruction_ptr, instruction_ptr->ret_operator);
 	if(opt_handle[instruction_ptr->ret_operator]) {
 		//tick1 = HWREG(0x2040018);
