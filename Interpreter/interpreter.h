@@ -50,6 +50,7 @@
 
 #define BREAKPOINT_REAL		(1 << 0)
 #define BREAKPOINT_STEP		(1 << 1)
+#define BREAKPOINT_EN		(1 << 7)
 
 class c_interpreter;
 //typedef varity_info (*opt_calc)(c_interpreter*,char*,uint);
@@ -234,6 +235,7 @@ class c_interpreter {
 	void print_code(mid_code *ptr, int n);
 	int basic_type_check(node_attribute_t*, int &count, struct_info *&struct_info_ptr);
 	bool gdb_check(void);
+	int find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fptr, int *line_ptr = 0);
 	////////////////////////////opt handle////////////////////////
 	static int opt_asl_handle(c_interpreter *interpreter_ptr);
 	static int opt_asr_handle(c_interpreter *interpreter_ptr);

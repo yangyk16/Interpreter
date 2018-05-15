@@ -224,7 +224,7 @@ int varity_type_stack_t::find(char arg_count, void *type_info_addr)
 	return -1;
 }
 
-node* list_stack::find_str_val(char *str)
+node* list_stack::find_val(char *str)
 {
 	node *ptr;
 	for(ptr=this->head.right; ptr!=&this->tail; ptr=ptr->right) {
@@ -233,4 +233,15 @@ node* list_stack::find_str_val(char *str)
 		}
 	}
 	return 0;
+}
+
+int list_stack::del(node *obj)
+{
+	if(obj->left && obj->right) {
+		obj->left->right = obj->right;
+		obj->right->left = obj->left;
+		this->count--;
+	} else {
+		return -1;
+	}
 }

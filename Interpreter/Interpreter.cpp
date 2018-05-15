@@ -1064,6 +1064,45 @@ int c_interpreter::generate_token_list(char *str, uint len)
 	return token_len;
 }
 
+int c_interpreter::find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fptr, int *line_ptr)
+{
+	if(mid_code_ptr >= (mid_code*)this->mid_code_stack.get_base_addr() && mid_code_ptr < (mid_code*)this->mid_code_stack.get_base_addr() + MAX_MID_CODE_COUNT) {
+		fptr = 0;
+		if(line_ptr) {
+			for(int j=this->nonseq_info->row_num-1; j>=0; j--) {
+				if(1) {
+					*line_ptr = j;
+					break;
+				}
+			}
+		}
+		return ERROR_NO;
+	} else {
+		int i;
+		mid_code *func_pc;
+		int func_code_count;
+		for(i=0; i<this->language_elment_space.function_list.get_count(); i++) {
+			func_pc = (mid_code*)this->language_elment_space.function_node[i].mid_code_stack.get_base_addr();
+			func_code_count = this->language_elment_space.function_node[i].mid_code_stack.get_count();
+			if(mid_code_ptr >= func_pc && mid_code_ptr < func_pc + func_code_count) {
+				fptr = &this->language_elment_space.function_node[i];
+				if(line_ptr) {
+					for(int j=fptr->row_line-1; j>=0; j--) {
+						if(fptr->row_code_ptr[j] <= mid_code_ptr) {
+							*line_ptr = j;
+							break;
+						}
+					}
+				}
+				return ERROR_NO;
+			}
+		}
+		if(i == this->language_elment_space.function_list.get_count()) {
+			return ERROR_ILLEGAL_CODE;
+		}
+	}
+}
+
 int c_interpreter::print_call_stack(void)
 {
 	char *stack_ptr = this->stack_pointer;
@@ -1598,7 +1637,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 			return OK_FUNC_INPUTING;
 		function_info *current_function_ptr = this->function_declare->get_current_node();
 #if DEBUG_EN
-		current_function_ptr->row_code_ptr[current_function_ptr->row_line] = (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+		current_function_ptr->row_code_ptr[current_function_ptr->row_line] = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 #endif
 		this->function_declare->save_sentence(this->sentence_buf, kstrlen(this->sentence_buf));
 		if(this->function_flag_set.function_begin_flag) {
@@ -2873,7 +2912,7 @@ int_value_handle:
 					}
 				}
 				symbol_ptr[count] = 0;
-				node *str_node_ptr = string_stack.find_str_val(symbol_ptr);
+				node *str_node_ptr = string_stack.find_val(symbol_ptr);
 				if(str_node_ptr) {
 					//vfree(p);
 					p = (char*)str_node_ptr->value;

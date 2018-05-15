@@ -50,10 +50,14 @@
 #define ERROR_HEAD_TOKEN		-45
 #define ERROR_DEVIDE_ZERO		-46
 #define ERROR_EMPTY_FIFO		-47
+#define ERROR_ILLEGAL_CODE		-48
 
 #define ERROR_STACK_OVERFLOW	-70
 #define ERROR_ARRAY_BOUND		-71
 #define ERROR_HARD_FAULT		-72
+#define ERROR_UNDEFINED_OPT		-73
+
+#define ERROR_GDB_ARGC			-100
 
 #define OK_NONSEQ_FINISH		1
 #define OK_NONSEQ_INPUTING		2
@@ -72,4 +76,7 @@
 #define OK_CTL_NOT_FOUND		15
 
 #define OK_GDB_RUN				30
+#define OK_GDB_STEPRUN_CODE		31
+#define OK_GDB_STEPINTO			32
+#define OK_GDB_STEPOVER			33
 #endif

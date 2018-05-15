@@ -2036,19 +2036,10 @@ int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 		return ERROR_CTL_BREAK;
 	}
 #if DEBUG_EN
-	if(instruction_ptr->break_flag) {
-		char gdbstr[128];
-		int gdbret;
-		gdbout("Breakpoint @ 0x%x.\n", instruction_ptr);
-		while(1) {
-			gdbout("gdb>");
-			interpreter_ptr->tty_used->readline(gdbstr);
-			gdb::parse(gdbstr);
-			gdbret = gdb::exec(interpreter_ptr);
-			if(gdbret == OK_GDB_RUN)
-				break;
-		}
-	}
+	int gdbret;
+	gdbret = gdb::breakpoint_handle(interpreter_ptr, instruction_ptr);
+	if(gdbret < 0)
+		return gdbret;
 #endif
 	//gdbout("addr=%x,opt=%d\n", instruction_ptr, instruction_ptr->ret_operator);
 	if(opt_handle[instruction_ptr->ret_operator]) {
@@ -2056,9 +2047,13 @@ int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 		ret = opt_handle[instruction_ptr->ret_operator](interpreter_ptr);
 		//tick2 = HWREG(0x2040018);
 		//opt_time += tick1 - tick2;
+#if DEBUG_EN
+		if(gdbret == OK_GDB_STEPRUN_CODE && !ret)
+			(interpreter_ptr->pc + 1)->break_flag |= BREAKPOINT_STEP;
+#endif
 	} else {
-		error("no handle for operator %d\n", instruction_ptr->ret_operator);
-		ret = 0;
+		error("Undefined instruction. opt: %d\n", instruction_ptr->ret_operator);
+		ret = ERROR_UNDEFINED_OPT;
 	}
 	return ret;
 }
