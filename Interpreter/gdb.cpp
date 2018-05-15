@@ -249,7 +249,7 @@ int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction
 						fptr->row_code_ptr[line + 1]->break_flag |= BREAKPOINT_STEP;
 						break;
 					} else {
-						((mid_code*)interpreter_ptr->stack_pointer - 1)->break_flag |= BREAKPOINT_STEP;
+						((mid_code*)(*((PLATFORM_WORD*)interpreter_ptr->stack_pointer - 1)) + 1)->break_flag |= BREAKPOINT_STEP;
 					}
 				}
 				break;

@@ -20,3 +20,4 @@ Interpreter/Debug/Interpreter.exe.embed.manifest.res
 *.lib
 Debug/Interpreter.exp
 Interpreter/jk
+*.tmp

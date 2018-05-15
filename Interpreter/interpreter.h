@@ -58,6 +58,7 @@ typedef int (c_interpreter::*opt_calc )(char*, uint*);
 
 typedef struct row_info_relative_nonseq_s {
 	char* row_ptr;
+	mid_code *row_code_ptr;
 	short row_len;
 	char non_seq_depth;
 	char non_seq_info;

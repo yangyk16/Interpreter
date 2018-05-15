@@ -1069,7 +1069,7 @@ int c_interpreter::find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fpt
 	if(mid_code_ptr >= (mid_code*)this->mid_code_stack.get_base_addr() && mid_code_ptr < (mid_code*)this->mid_code_stack.get_base_addr() + MAX_MID_CODE_COUNT) {
 		fptr = 0;
 		if(line_ptr) {
-			for(int j=this->nonseq_info->row_num-1; j>=0; j--) {
+			for(int j=this->nonseq_info->row_num; j>=0; j--) {
 				if(1) {
 					*line_ptr = j;
 					break;
@@ -1432,6 +1432,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 	int struct_end_flag = 0;
 	int ret = ERROR_NO;
  	int current_brace_level = 0;
+	nonseq_info->row_info_node[nonseq_info->row_num].row_code_ptr = (mid_code*)this->mid_code_stack.get_current_ptr();
 	nonseq_info->last_non_seq_check_ret = nonseq_info->non_seq_check_ret;
 	nonseq_info->non_seq_check_ret = node_ptr[0].node_type == TOKEN_KEYWORD_NONSEQ ? node_ptr[0].value.int_value : 0;
 	current_brace_level = nonseq_info->brace_depth;
@@ -3177,7 +3178,7 @@ void c_interpreter::print_code(mid_code *ptr, int n)
 				}
 			}
 		} else if(ptr->ret_operand_type == OPERAND_L_VARITY) {
-			gdbout("SP+%d=", ptr->ret_addr);
+			gdbout("*(SP+%d)=", ptr->ret_addr);
 		}
 		if(opt_number[ptr->ret_operator] == 2 && !(ptr->ret_operator >= OPT_DEVIDE_ASSIGN && ptr->ret_operator <= OPT_BIT_OR_ASSIGN || ptr->ret_operator == OPT_ASSIGN)) {
 			if(ptr->opda_operand_type == OPERAND_T_VARITY) {
@@ -3192,7 +3193,7 @@ void c_interpreter::print_code(mid_code *ptr, int n)
 					}
 				}
 			} else if(ptr->opda_operand_type == OPERAND_L_VARITY) {
-				gdbout("SP+%d", ptr->opda_addr);
+				gdbout("*(SP+%d)", ptr->opda_addr);
 			} else if(ptr->opda_operand_type == OPERAND_CONST) {
 				if(ptr->opda_varity_type == INT || ptr->opda_varity_type == SHORT || ptr->opda_varity_type == LONG || ptr->opda_varity_type == CHAR) {
 					gdbout("%d", ptr->opda_addr);
@@ -3233,7 +3234,7 @@ void c_interpreter::print_code(mid_code *ptr, int n)
 					gdbout("0x%x", ptr->opdb_addr);
 				}
 			} else if(ptr->opdb_operand_type == OPERAND_L_VARITY) {
-				gdbout("SP+%d", ptr->opdb_addr);
+				gdbout("*(SP+%d)", ptr->opdb_addr);
 			} else if(ptr->opdb_operand_type == OPERAND_CONST) {
 				if(ptr->opdb_varity_type == INT || ptr->opdb_varity_type == SHORT || ptr->opdb_varity_type == LONG || ptr->opdb_varity_type == CHAR) {
 					gdbout("%d", ptr->opdb_addr);
