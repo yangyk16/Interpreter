@@ -1069,12 +1069,15 @@ int c_interpreter::find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fpt
 	if(mid_code_ptr >= (mid_code*)this->mid_code_stack.get_base_addr() && mid_code_ptr < (mid_code*)this->mid_code_stack.get_base_addr() + MAX_MID_CODE_COUNT) {
 		fptr = 0;
 		if(line_ptr) {
-			for(int j=this->nonseq_info->row_num; j>=0; j--) {
-				if(1) {
+			int j = this->nonseq_info->row_num - 1;
+			if(j < 0)
+				j = 0;
+			do {
+				if(this->nonseq_info->row_info_node[j].row_code_ptr <= mid_code_ptr) {
 					*line_ptr = j;
 					break;
 				}
-			}
+			} while(--j >= 0);
 		}
 		return ERROR_NO;
 	} else {
@@ -3166,6 +3169,7 @@ normal_bracket:
 void c_interpreter::print_code(mid_code *ptr, int n)
 {
 	for(int i=0; i<n; i++, ptr++) {
+		gdbout("%03d ", i);
 		if(ptr->ret_operand_type == OPERAND_T_VARITY) {
 			gdbout("$%d=", ptr->ret_addr / 8);
 		} else if(ptr->ret_operand_type == OPERAND_LINK_VARITY) {

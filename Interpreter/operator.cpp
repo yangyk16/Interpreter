@@ -2027,7 +2027,7 @@ void c_interpreter::handle_init(void)
 int opt_time;
 int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 {
-	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	mid_code *instruction_ptr = interpreter_ptr->pc;
 	int ret;
 	int tick1, tick2;
 	if(interpreter_ptr->break_flag) {
@@ -2048,8 +2048,10 @@ int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 		//tick2 = HWREG(0x2040018);
 		//opt_time += tick1 - tick2;
 #if DEBUG_EN
-		if(gdbret == OK_GDB_STEPRUN_CODE && !ret)
+		if(instruction_ptr == gdb::get_bp_todo()) {
 			(interpreter_ptr->pc + 1)->break_flag |= BREAKPOINT_STEP;
+			gdb::clear_bp_todo();
+		}
 #endif
 	} else {
 		error("Undefined instruction. opt: %d\n", instruction_ptr->ret_operator);

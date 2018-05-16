@@ -21,6 +21,7 @@ typedef struct bp_info {
 int gdb::argc;
 char *gdb::argv[MAX_GDBCMD_ARGC];
 char gdb::args[ARG_SPACE_SIZE - sizeof(argv)];
+mid_code *gdb::bp_todo = 0;
 
 int bp_info_t::total_no = 0;
 list_stack bp_stack;
@@ -41,6 +42,11 @@ static int continue_exec(int argc, char **argv, c_interpreter *cptr)
 static int step_code(int argc, char **argv, c_interpreter *cptr)
 {
 	return OK_GDB_STEPRUN_CODE;
+}
+
+static int stepinto(int argc, char **argv, c_interpreter *cptr)
+{
+	return OK_GDB_STEPINTO;
 }
 
 static int stepover(int argc, char **argv, c_interpreter *cptr)
@@ -88,10 +94,15 @@ int del_breakpoint(int argc, char **argv, c_interpreter *cptr)
 	int i;
 	for(nptr=bp_stack.get_head()->right, i=0; i<=bp_stack.get_count(); i++, nptr=nptr->right) {
 		if(((bp_info_t*)nptr->value)->no == no) {
+			gdbout("Delete breakpoint %d.\n", no);
 			bp_stack.del(nptr);
+			((mid_code*)nptr->value)->break_flag &= ~BREAKPOINT_REAL;
+			vfree(nptr->value);
+			vfree(nptr);
 			return ERROR_NO;
 		}
 	}
+	gdbout("Breakpoint not exist.\n");
 	return ERROR_NO;
 }
 
@@ -152,6 +163,7 @@ cmd_t cmd_tab[] = {
 	{"c", continue_exec},
 	{"d", del_breakpoint},
 	{"n", stepover},
+	{"s", stepinto},
 	{"ni", step_code},
 	{"si", step_code},
 	{"info", info_ask},
@@ -224,7 +236,7 @@ int gdb::exec(c_interpreter* interpreter_ptr)
 
 int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction_ptr)
 {
-	int gdbret;
+	int gdbret = 0;
 	if(instruction_ptr->break_flag) {
 		char gdbstr[128];
 		int line, tret;
@@ -246,11 +258,13 @@ int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction
 			if(gdbret == OK_GDB_RUN || gdbret == OK_GDB_STEPRUN_CODE || gdbret == OK_GDB_STEPINTO || gdbret == OK_GDB_STEPOVER) {
 				if(gdbret == OK_GDB_STEPOVER) {
 					if(fptr && line != fptr->row_line - 1) {
-						fptr->row_code_ptr[line + 1]->break_flag |= BREAKPOINT_STEP;
-						break;
+						bp_todo = fptr->row_code_ptr[line + 1] - 1;
 					} else {
-						((mid_code*)(*((PLATFORM_WORD*)interpreter_ptr->stack_pointer - 1)) + 1)->break_flag |= BREAKPOINT_STEP;
+						if(fptr)
+							bp_todo = (mid_code*)fptr->mid_code_stack.get_current_ptr() - 1;
 					}
+				} else if(gdbret == OK_GDB_STEPRUN_CODE) {
+					bp_todo = instruction_ptr;
 				}
 				break;
 			}
