@@ -216,6 +216,42 @@ varity_info* varity::find(char* name)
 	return ret;
 }
 
+#if DEBUG_EN
+void print_varity(char *format_str, int complex_count, PLATFORM_WORD *complex_ptr, void *content_ptr)
+{
+	int type = GET_COMPLEX_TYPE(complex_ptr[complex_count]);
+	int count;
+	switch(type) {
+	case COMPLEX_BASIC:
+		switch(GET_COMPLEX_DATA(complex_ptr[complex_count])) {
+		case INT:
+		case LONG:
+			gdbout(format_str, INT_VALUE(content_ptr));
+			gdbout(" ");
+			break;
+		}
+		break;
+	case COMPLEX_ARRAY:
+		count = GET_COMPLEX_DATA(complex_ptr[complex_count]);
+		for(int i=0, esize=get_varity_size(0,complex_ptr,complex_count-1); i<count; i++)
+			print_varity(format_str, complex_count - 1, complex_ptr, (char*)content_ptr + esize * i);
+		if(GET_COMPLEX_TYPE(complex_ptr[complex_count - 1]) != COMPLEX_ARRAY)
+			gdbout("\n");
+		break;
+	}
+}
+void varity_info::echo(char *format_str)
+{
+	int type = this->get_type();
+	switch(type) {
+	case INT:
+	case LONG:
+		gdbout(format_str, INT_VALUE(this->content_ptr));
+		break;
+	}
+}
+#endif
+
 int varity::destroy_local_varity_cur_depth(void)
 {
 	varity_info* varity_ptr;

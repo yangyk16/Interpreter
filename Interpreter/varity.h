@@ -2,6 +2,7 @@
 #ifndef VARITY_H
 #define VARITY_H
 
+#include "config.h"
 #include "type.h"
 #include "data_struct.h"
 
@@ -84,6 +85,9 @@ public:
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
 	void set_type(int type);
 	void reset(void);
+#if DEBUG_EN
+	void echo(char*);
+#endif
 	~varity_info(){this->reset();}
 };
 
@@ -112,6 +116,7 @@ void inc_varity_ref(varity_info *varity_ptr);
 void *get_basic_info(int basic_type, void *info_ptr, struct_define *struct_define_ptr);
 int get_element_size(int complex_arg_count, PLATFORM_WORD *comlex_info_ptr);
 int destroy_varity_stack(stack *stack_ptr);
+void print_varity(char *format_str, int complex_count, PLATFORM_WORD *complex_ptr, void *content_ptr);
 
 extern const char type_key[15][19];
 extern const char sizeof_type[15];

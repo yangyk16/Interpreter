@@ -28,9 +28,38 @@ list_stack bp_stack;
 
 inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t' || ch == '/');}
 
-static int print(int argc, char **argv, c_interpreter *cptr)
+int gdb::print(int argc, char **argv, c_interpreter *cptr)
 {
-
+	int ret;
+	int format = 0;
+	varity_info *varity_ptr;
+	if(argc < 2)
+		return ERROR_GDB_ARGC;
+	ret = cptr->open_eval(argv[1], false);
+	if(!ret) {
+		switch(((node_attribute_t*)cptr->sentence_analysis_data_struct.tree_root->value)->node_type) {
+		case TOKEN_NAME:
+		{
+			char *name = ((node_attribute_t*)cptr->sentence_analysis_data_struct.tree_root->value)->value.ptr_value;
+			if(name[0] == TMP_VAIRTY_PREFIX || name[0] == LINK_VARITY_PREFIX) {
+				varity_ptr = (varity_info*)cptr->mid_varity_stack.visit_element_by_index(0);
+			} else {
+				varity_ptr = cptr->varity_declare->find(name);
+			}
+			if(varity_ptr->get_type() == ARRAY) {
+				gdbout("%s = \n", name);
+				print_varity("%d", varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr(), varity_ptr->get_content_ptr());
+			} else {
+				gdbout("%s = ", argv[1]);
+				varity_ptr->echo("%d");
+				gdbout("\n");
+			}
+			break;
+		}
+		case TOKEN_CONST_VALUE:
+			break;
+		}
+	}
 	return ERROR_NO;
 }
 
@@ -74,6 +103,7 @@ int gdb::breakpoint(int argc, char **argv, c_interpreter *cptr)
 			gdbout("Breakpoint duplicated.\n");
 			return ERROR_NO;
 		}
+		gdbout("Breakpoint set @ 0x%X\n", fptr->row_code_ptr[line]);
 		fptr->row_code_ptr[line]->break_flag |= BREAKPOINT_REAL;
 		bp_info_t *bp_info_ptr = (bp_info_t*)vmalloc(sizeof(bp_info_t));
 		node *bpnode_ptr = (node*)vmalloc(sizeof(node));
@@ -112,7 +142,7 @@ int info_ask(int argc, char **argv, c_interpreter *cptr)
 		int i;
 		node *nptr;
 		for(nptr=bp_stack.get_head()->right, i=0; i<bp_stack.get_count(); i++, nptr=nptr->right) {
-			gdbout("breakpoint @ 0x%x, id = %d\n", ((bp_info_t*)nptr->value)->bp_addr, ((bp_info_t*)nptr->value)->no);
+			gdbout("breakpoint @ 0x%X, id = %d\n", ((bp_info_t*)nptr->value)->bp_addr, ((bp_info_t*)nptr->value)->no);
 		}
 	}
 	return ERROR_NO;
@@ -157,8 +187,8 @@ int gdb::print_mid_code(int argc, char **argv, c_interpreter *cptr)
 }
 
 cmd_t cmd_tab[] = {
-	{"print", print},
-	{"p", print},
+	{"print", gdb::print},
+	{"p", gdb::print},
 	{"b", gdb::breakpoint},
 	{"c", continue_exec},
 	{"d", del_breakpoint},

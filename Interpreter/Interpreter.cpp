@@ -1073,10 +1073,12 @@ int c_interpreter::find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fpt
 			if(j < 0)
 				j = 0;
 			do {
+#if DEBUG_EN
 				if(this->nonseq_info->row_info_node[j].row_code_ptr <= mid_code_ptr) {
 					*line_ptr = j;
 					break;
 				}
+#endif
 			} while(--j >= 0);
 		}
 		return ERROR_NO;
@@ -1089,6 +1091,7 @@ int c_interpreter::find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fpt
 			func_code_count = this->language_elment_space.function_node[i].mid_code_stack.get_count();
 			if(mid_code_ptr >= func_pc && mid_code_ptr < func_pc + func_code_count) {
 				fptr = &this->language_elment_space.function_node[i];
+#if DEBUG_EN
 				if(line_ptr) {
 					for(int j=fptr->row_line-1; j>=0; j--) {
 						if(fptr->row_code_ptr[j] <= mid_code_ptr) {
@@ -1097,6 +1100,7 @@ int c_interpreter::find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fpt
 						}
 					}
 				}
+#endif
 				return ERROR_NO;
 			}
 		}
@@ -1435,7 +1439,9 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 	int struct_end_flag = 0;
 	int ret = ERROR_NO;
  	int current_brace_level = 0;
+#if DEBUG_EN
 	nonseq_info->row_info_node[nonseq_info->row_num].row_code_ptr = (mid_code*)this->mid_code_stack.get_current_ptr();
+#endif
 	nonseq_info->last_non_seq_check_ret = nonseq_info->non_seq_check_ret;
 	nonseq_info->non_seq_check_ret = node_ptr[0].node_type == TOKEN_KEYWORD_NONSEQ ? node_ptr[0].value.int_value : 0;
 	current_brace_level = nonseq_info->brace_depth;
@@ -2093,6 +2099,7 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 	//		debug("%d %d\n",tmp->data,tmp->value_type);
 	//}
 	node *root = expression_stack.pop();
+	this->sentence_analysis_data_struct.tree_root = root;
 	if(!root) {
 		warning("No token found.\n");
 		return 0;//TODO:找个合适的返回值
@@ -2201,7 +2208,8 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 				instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
 			instruction_ptr->opdb_addr = (int)varity_ptr->get_content_ptr();
 			instruction_ptr->opdb_varity_type = varity_ptr->get_type();
-			new_varity_ptr->set_type(instruction_ptr->opdb_varity_type);
+			//new_varity_ptr->set_type(instruction_ptr->opdb_varity_type);
+			new_varity_ptr->config_complex_info(varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr());
 			inc_varity_ref(new_varity_ptr);
 		}
 	} else {
@@ -3278,20 +3286,25 @@ void c_interpreter::print_code(mid_code *ptr, int n)
 	}
 }
 
-int user_eval(char *str)
+int c_interpreter::open_eval(char *str, bool need_semicolon)
 {
 	int ret, len = kstrlen(str), count;
-	mid_code *base_bak = (mid_code*)myinterpreter.mid_code_stack.get_base_addr();
-	int count_bak = myinterpreter.mid_code_stack.get_count();
-	mid_code *pc_bak = myinterpreter.pc;
-	myinterpreter.mid_code_stack.set_base(base_bak + count_bak);
-	myinterpreter.mid_code_stack.set_count(0);
-	count = myinterpreter.generate_token_list(str, len);
-	ret = myinterpreter.eval(myinterpreter.token_node_ptr, count);
-	myinterpreter.mid_code_stack.set_base(base_bak);
-	myinterpreter.mid_code_stack.set_count(count_bak);
-	myinterpreter.pc = pc_bak;
+	mid_code *base_bak = (mid_code*)this->mid_code_stack.get_base_addr();
+	int count_bak = this->mid_code_stack.get_count();
+	mid_code *pc_bak = this->pc;
+	this->mid_code_stack.set_base(base_bak + count_bak);
+	this->mid_code_stack.set_count(0);
+	count = this->generate_token_list(str, len);
+	ret = this->sentence_exec(this->token_node_ptr, count, need_semicolon);
+	this->mid_code_stack.set_base(base_bak);
+	this->mid_code_stack.set_count(count_bak);
+	this->pc = pc_bak;
 	return ret;
+}
+
+int user_eval(char *str)
+{
+	return myinterpreter.open_eval(str, true);
 }
 
 extern "C" void run_interpreter(void)

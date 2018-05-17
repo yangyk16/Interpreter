@@ -58,7 +58,9 @@ typedef int (c_interpreter::*opt_calc )(char*, uint*);
 
 typedef struct row_info_relative_nonseq_s {
 	char* row_ptr;
+#if DEBUG_EN
 	mid_code *row_code_ptr;
+#endif
 	short row_len;
 	char non_seq_depth;
 	char non_seq_info;
@@ -141,6 +143,7 @@ typedef struct sentence_analysis_data_struct_s {
 	void *label_addr[MAX_LABEL_COUNT];
 	char label_name[MAX_LABEL_COUNT][MAX_LABEL_NAME_LEN];
 	int label_count;
+	node *tree_root;
 } sentence_analysis_data_struct_t;
 
 typedef struct call_func_info_s {
@@ -237,6 +240,7 @@ class c_interpreter {
 	int basic_type_check(node_attribute_t*, int &count, struct_info *&struct_info_ptr);
 	bool gdb_check(void);
 	int find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fptr, int *line_ptr = 0);
+	int open_eval(char*, bool);
 	////////////////////////////opt handle////////////////////////
 	static int opt_asl_handle(c_interpreter *interpreter_ptr);
 	static int opt_asr_handle(c_interpreter *interpreter_ptr);

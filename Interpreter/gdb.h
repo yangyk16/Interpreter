@@ -7,11 +7,13 @@ class mid_code;
 
 #define MAX_GDBCMD_ARGC 8
 #define ARG_SPACE_SIZE	256
+#define MAX_ARG_LEN		8
 
 class gdb {
 	static int argc;
 	static char *argv[MAX_GDBCMD_ARGC];
 	static char args[ARG_SPACE_SIZE - sizeof(argv)];
+	static char argstr[MAX_ARG_LEN];
 	static mid_code *bp_todo;
 public:
 	static int parse(char *cmd_str);
@@ -23,6 +25,7 @@ public:
 	static int print_code(int argc, char **argv, c_interpreter *cptr);
 	static int print_mid_code(int argc, char **argv, c_interpreter *cptr);
 	static int breakpoint(int argc, char **argv, c_interpreter *cptr);
+	static int print(int argc, char **argv, c_interpreter *cptr);
 };
 
 int breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *mid_code_ptr);
