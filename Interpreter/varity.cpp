@@ -226,10 +226,15 @@ void print_varity(char *format_str, int complex_count, PLATFORM_WORD *complex_pt
 		switch(GET_COMPLEX_DATA(complex_ptr[complex_count])) {
 		case INT:
 		case LONG:
+			if(!format_str[0]) ksprintf(format_str, "%%d");
 			gdbout(format_str, INT_VALUE(content_ptr));
-			gdbout(" ");
+			break;
+		case PTR:
+			if(!format_str[0]) ksprintf(format_str, "%%x");
+			gdbout(format_str, PTR_VALUE(content_ptr));
 			break;
 		}
+		gdbout(" ");
 		break;
 	case COMPLEX_ARRAY:
 		count = GET_COMPLEX_DATA(complex_ptr[complex_count]);

@@ -14,6 +14,7 @@ class gdb {
 	static char *argv[MAX_GDBCMD_ARGC];
 	static char args[ARG_SPACE_SIZE - sizeof(argv)];
 	static char argstr[MAX_ARG_LEN];
+	static char *wptr;
 	static mid_code *bp_todo;
 public:
 	static int parse(char *cmd_str);

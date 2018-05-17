@@ -22,16 +22,19 @@ int gdb::argc;
 char *gdb::argv[MAX_GDBCMD_ARGC];
 char gdb::args[ARG_SPACE_SIZE - sizeof(argv)];
 mid_code *gdb::bp_todo = 0;
+char *gdb::wptr = 0;
+char gdb::argstr[MAX_ARG_LEN];
 
 int bp_info_t::total_no = 0;
 list_stack bp_stack;
 
-inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t' || ch == '/');}
+static inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
 
 int gdb::print(int argc, char **argv, c_interpreter *cptr)
 {
 	int ret;
 	int format = 0;
+	char fstr[8];
 	varity_info *varity_ptr;
 	if(argc < 2)
 		return ERROR_GDB_ARGC;
@@ -40,6 +43,28 @@ int gdb::print(int argc, char **argv, c_interpreter *cptr)
 		switch(((node_attribute_t*)cptr->sentence_analysis_data_struct.tree_root->value)->node_type) {
 		case TOKEN_NAME:
 		{
+			if(argstr[0] == 0) {
+				fstr[0] = 0;
+			} else {
+				switch(argstr[1]) {
+				case 'x':
+				case 'a':
+					ksprintf(fstr, "%x");
+					break;
+				case 'd':
+					ksprintf(fstr, "%d");
+					break;
+				case 'u':
+					ksprintf(fstr, "%lu");
+					break;
+				case 'f':
+					ksprintf(fstr, "%f");
+					break;
+				case 'c':
+					ksprintf(fstr, "%c");
+					break;
+				}
+			}
 			char *name = ((node_attribute_t*)cptr->sentence_analysis_data_struct.tree_root->value)->value.ptr_value;
 			if(name[0] == TMP_VAIRTY_PREFIX || name[0] == LINK_VARITY_PREFIX) {
 				varity_ptr = (varity_info*)cptr->mid_varity_stack.visit_element_by_index(0);
@@ -48,10 +73,10 @@ int gdb::print(int argc, char **argv, c_interpreter *cptr)
 			}
 			if(varity_ptr->get_type() == ARRAY) {
 				gdbout("%s = \n", name);
-				print_varity("%d", varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr(), varity_ptr->get_content_ptr());
+				print_varity(fstr, varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr(), varity_ptr->get_content_ptr());
 			} else {
 				gdbout("%s = ", argv[1]);
-				varity_ptr->echo("%d");
+				print_varity(fstr, varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr(), varity_ptr->get_content_ptr());
 				gdbout("\n");
 			}
 			break;
@@ -210,10 +235,14 @@ begin:
 	bool inword = false;
 	argc = -1;
 	char ch;
+	kmemset(argstr, 0, sizeof(argstr));
 	while(*cmd_str)
 	{
 		ch = *cmd_str++;
-		if(!IsSpace(ch) && IsSpace(last_char)) {
+		if(ch == '/') {
+			wptr = argstr;
+			char_index = 0;
+		} else if(!IsSpace(ch) && IsSpace(last_char)) {
 			if(argc >= 0) {
 				char_total_index++;
 				if(char_total_index > ARG_SPACE_SIZE) {
@@ -229,6 +258,7 @@ begin:
 				return -2;
 			}
 			argv[argc] = &args[char_total_index];
+			wptr = argv[argc];
 			inword = true;
 		}
 		if(IsSpace(ch) && !IsSpace(last_char)) {
@@ -240,7 +270,7 @@ begin:
 				gdbout("Cmd error: cmd too long\r\n");
 				return -3;
 			}			
-			argv[argc][char_index++] = ch;
+			wptr[char_index++] = ch;
 		}
 		last_char = ch;
 	}
