@@ -1687,6 +1687,9 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 						}
 					}
 				}
+#if DEBUG_EN
+				current_function_ptr->copy_local_varity_stack(this->varity_declare->local_varity_stack);
+#endif
 				this->function_flag_set.function_flag = 0;
 				this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 				current_function_ptr->stack_frame_size = this->varity_declare->local_varity_stack->offset;
@@ -2629,11 +2632,15 @@ int c_interpreter::get_varity_type(node_attribute_t *node_ptr, int &count, char 
 				array_def:
 				array_flag = 0;
 				((node_attribute_t*)expression_final_stack.get_lastest_element()->value)->value.int_value = this->sentence_analysis_data_struct.last_token.value.int_value;
-			} else if(node_ptr[i].data == OPT_MUL) {
+			} else if(node_ptr[i].data == OPT_MUL || node_ptr[i].data == OPT_PTR_CONTENT) {
 				cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[i]);
 				node_ptr[i].data = OPT_PTR_CONTENT;
 			} else if(node_ptr[i].data == OPT_COMMA || node_ptr[i].data == OPT_EDGE || node_ptr[i].data == OPT_ASSIGN) {
 varity_end:
+				while(expression_tmp_stack.get_count()) {//TODO:确认这里是否需要改token_flag；没有函数指针时不用是可以的，不知道加入以后会不会有问题
+					stack_top_node_ptr = (node_attribute_t*)expression_tmp_stack.get_lastest_element()->value;
+					expression_final_stack.push(expression_tmp_stack.pop());
+				}
 				int node_count = expression_final_stack.get_count();
 				PLATFORM_WORD *complex_info = 0, *cur_complex_info_ptr;
 				int basic_info_node_count = 1;

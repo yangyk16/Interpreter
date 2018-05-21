@@ -30,53 +30,76 @@ list_stack bp_stack;
 
 static inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
 
+void *gdb::get_real_addr(void *addr, int type, c_interpreter *cptr)
+{
+	switch(type) {
+	case VARITY_SCOPE_TMP:
+		return (void*)(cptr->tmp_varity_stack_pointer - addr - 8);
+		break;
+	case VARITY_SCOPE_GLOBAL:
+		return addr;
+		break;
+	case VARITY_SCOPE_LOCAL:
+		return cptr->stack_pointer + (PLATFORM_WORD)addr;
+		break;
+	}
+	return addr;
+}
+
 int gdb::print(int argc, char **argv, c_interpreter *cptr)
 {
 	int ret;
 	int format = 0;
-	char fstr[8];
 	varity_info *varity_ptr;
+	function_info *function_ptr;
+	indexed_stack *lvsp_bak = cptr->varity_declare->local_varity_stack;
+	cptr->find_fptr_by_code(cptr->pc, function_ptr, 0);
+	cptr->varity_declare->local_varity_stack = &function_ptr->local_varity_stack;
 	if(argc < 2)
 		return ERROR_GDB_ARGC;
-	ret = cptr->open_eval(argv[1], false);
+	ret = cptr->open_eval(argv[1], false);//TODO:后续算临时变量值时应当把栈向前推进一帧。
 	if(!ret) {
 		switch(((node_attribute_t*)cptr->sentence_analysis_data_struct.tree_root->value)->node_type) {
 		case TOKEN_NAME:
 		{
 			if(argstr[0] == 0) {
-				fstr[0] = 0;
+				format = 0;
 			} else {
 				switch(argstr[1]) {
 				case 'x':
 				case 'a':
-					ksprintf(fstr, "%x");
+					format = FORMAT_HEX;
 					break;
 				case 'd':
-					ksprintf(fstr, "%d");
+					format = FORMAT_DEC;
 					break;
 				case 'u':
-					ksprintf(fstr, "%lu");
+					format = FORMAT_UINT;
 					break;
 				case 'f':
-					ksprintf(fstr, "%f");
+					format = FORMAT_FLOAT;
 					break;
 				case 'c':
-					ksprintf(fstr, "%c");
+					format = FORMAT_CHAR;
 					break;
 				}
 			}
 			char *name = ((node_attribute_t*)cptr->sentence_analysis_data_struct.tree_root->value)->value.ptr_value;
+			int scope;
+			
 			if(name[0] == TMP_VAIRTY_PREFIX || name[0] == LINK_VARITY_PREFIX) {
 				varity_ptr = (varity_info*)cptr->mid_varity_stack.visit_element_by_index(0);
+				scope = VARITY_SCOPE_TMP;
 			} else {
-				varity_ptr = cptr->varity_declare->find(name);
+				varity_ptr = cptr->varity_declare->vfind(name, scope);
 			}
+			
 			if(varity_ptr->get_type() == ARRAY) {
 				gdbout("%s = \n", name);
-				print_varity(fstr, varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr(), varity_ptr->get_content_ptr());
+				print_varity(format, varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr(), get_real_addr(varity_ptr->get_content_ptr(), scope, cptr));
 			} else {
 				gdbout("%s = ", argv[1]);
-				print_varity(fstr, varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr(), varity_ptr->get_content_ptr());
+				print_varity(format, varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr(), get_real_addr(varity_ptr->get_content_ptr(), scope, cptr));
 				gdbout("\n");
 			}
 			break;
@@ -85,6 +108,7 @@ int gdb::print(int argc, char **argv, c_interpreter *cptr)
 			break;
 		}
 	}
+	cptr->varity_declare->local_varity_stack = lvsp_bak;
 	return ERROR_NO;
 }
 
@@ -222,7 +246,7 @@ cmd_t cmd_tab[] = {
 	{"ni", step_code},
 	{"si", step_code},
 	{"info", info_ask},
-	{"pcode", gdb::print_code},
+	{"list", gdb::print_code},
 	{"pmcode", gdb::print_mid_code},
 };
 

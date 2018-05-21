@@ -9,6 +9,13 @@ class mid_code;
 #define ARG_SPACE_SIZE	256
 #define MAX_ARG_LEN		8
 
+#define FORMAT_AUTO		0
+#define FORMAT_HEX		1
+#define FORMAT_DEC		2
+#define FORMAT_UINT		3
+#define FORMAT_FLOAT	4
+#define FORMAT_CHAR		5
+
 class gdb {
 	static int argc;
 	static char *argv[MAX_GDBCMD_ARGC];
@@ -16,6 +23,7 @@ class gdb {
 	static char argstr[MAX_ARG_LEN];
 	static char *wptr;
 	static mid_code *bp_todo;
+	static void *get_real_addr(void *addr, int type, c_interpreter *cptr);
 public:
 	static int parse(char *cmd_str);
 	static int breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *mid_code_ptr);

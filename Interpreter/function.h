@@ -17,6 +17,7 @@ public:
 	char **row_begin_pos;
 #if DEBUG_EN
 	mid_code **row_code_ptr;
+	indexed_stack local_varity_stack;
 #endif
 	int *row_len;
 	int stack_frame_size;
@@ -25,6 +26,9 @@ public:
 	int init(char *name, void* addr, stack *arg_list, char variable_arg_flag);
 	int reset(void);
 	int save_sentence(char* ,uint);
+#if DEBUG_EN
+	int copy_local_varity_stack(indexed_stack *lvsp);
+#endif
 	int print_line(int line);
 	int destroy_sentence(void);
 	int size_adapt(void);

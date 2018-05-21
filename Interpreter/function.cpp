@@ -35,6 +35,26 @@ int function_info::init(char *name, void* addr, stack *arg_list, char variable_a
 	return ERROR_NO;
 }
 
+#if DEBUG_EN
+int function_info::copy_local_varity_stack(indexed_stack *lvsp)
+{
+	varity_info *cur_varity_ptr;
+	int total_varity_count = lvsp->get_count();
+	void *bottom_addr = vmalloc(total_varity_count * sizeof(varity_info));
+	kmemcpy(&this->local_varity_stack, lvsp, sizeof(indexed_stack));
+	this->local_varity_stack.set_base(bottom_addr);
+	for(int i=0; i<total_varity_count; i++) {
+		varity_info *copied_varity_ptr = (varity_info*)lvsp->visit_element_by_index(i);
+		varity_info *copying_varity_ptr = (varity_info*)this->local_varity_stack.visit_element_by_index(i);
+		char *name_ptr = (char*)vmalloc(kstrlen(copied_varity_ptr->get_name()) + 1);
+		kmemcpy(copying_varity_ptr, copied_varity_ptr, sizeof(varity_info));
+		kstrcpy(name_ptr, copying_varity_ptr->get_name());
+		copying_varity_ptr->set_name(name_ptr);
+	}
+	return ERROR_NO;
+}
+#endif
+
 int function_info::reset(void)
 {
 	if(this->name)

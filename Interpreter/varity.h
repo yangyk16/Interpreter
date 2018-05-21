@@ -13,8 +13,9 @@
 #define PRODUCED_DECLARE	1
 #define PRODUCED_ALL		3
 
+#define VARITY_SCOPE_TMP		2
 #define VARITY_SCOPE_GLOBAL  	1
-#define VARITY_SCOPE_LOCAL   	(!VARITY_SCOPE_GLOBAL)
+#define VARITY_SCOPE_LOCAL   	0
 
 #define COMPLEX_ARRAY	1u
 #define COMPLEX_PTR		2u
@@ -84,10 +85,8 @@ public:
 	void set_size(uint size) {this->size = size;}
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
 	void set_type(int type);
+	void set_name(char *name_ptr) {this->name = name_ptr;}
 	void reset(void);
-#if DEBUG_EN
-	void echo(char*);
-#endif
 	~varity_info(){this->reset();}
 };
 
@@ -116,7 +115,9 @@ void inc_varity_ref(varity_info *varity_ptr);
 void *get_basic_info(int basic_type, void *info_ptr, struct_define *struct_define_ptr);
 int get_element_size(int complex_arg_count, PLATFORM_WORD *comlex_info_ptr);
 int destroy_varity_stack(stack *stack_ptr);
-void print_varity(char *format_str, int complex_count, PLATFORM_WORD *complex_ptr, void *content_ptr);
+#if DEBUG_EN
+void print_varity(int format, int complex_count, PLATFORM_WORD *complex_ptr, void *content_ptr);
+#endif
 
 extern const char type_key[15][19];
 extern const char sizeof_type[15];

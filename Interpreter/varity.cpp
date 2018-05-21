@@ -5,6 +5,7 @@
 #include "operator.h"
 #include "string_lib.h"
 #include "cstdlib.h"
+#include "gdb.h"
 
 #if PLATFORM_WORD_LEN == 4
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "long", "unsigned int", "unsigned long", "long long", "unsigned long long", "float", "double", "void", "struct"};
@@ -217,41 +218,71 @@ varity_info* varity::find(char* name)
 }
 
 #if DEBUG_EN
-void print_varity(char *format_str, int complex_count, PLATFORM_WORD *complex_ptr, void *content_ptr)
+void print_varity(int format, int complex_count, PLATFORM_WORD *complex_ptr, void *content_ptr)
 {
 	int type = GET_COMPLEX_TYPE(complex_ptr[complex_count]);
 	int count;
+	char format_str[8];
+	switch(format) {
+	case FORMAT_DEC:
+		ksprintf(format_str, "%%d");
+		break;
+	case FORMAT_HEX:
+		ksprintf(format_str, "0x%%08X");
+		break;
+	case FORMAT_CHAR:
+		ksprintf(format_str, "0x%%c");
+		break;
+	case FORMAT_FLOAT:
+		ksprintf(format_str, "0x%%f");
+		break;
+	}
 	switch(type) {
 	case COMPLEX_BASIC:
 		switch(GET_COMPLEX_DATA(complex_ptr[complex_count])) {
 		case INT:
 		case LONG:
-			if(!format_str[0]) ksprintf(format_str, "%%d");
+			if(!format) ksprintf(format_str, "%%d");
 			gdbout(format_str, INT_VALUE(content_ptr));
 			break;
 		case PTR:
-			if(!format_str[0]) ksprintf(format_str, "%%x");
+			if(!format) ksprintf(format_str, "0x%%08X");
 			gdbout(format_str, PTR_VALUE(content_ptr));
 			break;
+		case SHORT:
+		case U_SHORT:
+			if(format == FORMAT_HEX) format_str[4] = '4';
+			else if(!format) {ksprintf(format_str, GET_COMPLEX_DATA(complex_ptr[complex_count]) == SHORT ? "%%d" : "%%lu");}
+			gdbout(format_str, SHORT_VALUE(content_ptr));
+			break;
+		case CHAR:
+		case U_CHAR:
+			if(format == FORMAT_HEX) format_str[4] = '2';
+			else if(!format) {ksprintf(format_str, GET_COMPLEX_DATA(complex_ptr[complex_count]) == CHAR ? "%%c" : "%%lu");}
+			gdbout(format_str, CHAR_VALUE(content_ptr));
+			break;
+		case FLOAT:
+			if(!format) ksprintf(format_str, "%%f");
+			if(format != FORMAT_HEX)
+				gdbout(format_str, (double)FLOAT_VALUE(content_ptr));
+			else
+				gdbout("0x%08x", INT_VALUE(content_ptr));
+			break;
+		case DOUBLE:
+			if(!format) ksprintf(format_str, "%%f");
+			if(format != FORMAT_HEX)
+				gdbout(format_str, DOUBLE_VALUE(content_ptr));
+			else
+				gdbout("0x%016x", LONG_LONG_VALUE(content_ptr));
 		}
 		gdbout(" ");
 		break;
 	case COMPLEX_ARRAY:
 		count = GET_COMPLEX_DATA(complex_ptr[complex_count]);
 		for(int i=0, esize=get_varity_size(0,complex_ptr,complex_count-1); i<count; i++)
-			print_varity(format_str, complex_count - 1, complex_ptr, (char*)content_ptr + esize * i);
+			print_varity(format, complex_count - 1, complex_ptr, (char*)content_ptr + esize * i);
 		if(GET_COMPLEX_TYPE(complex_ptr[complex_count - 1]) != COMPLEX_ARRAY)
 			gdbout("\n");
-		break;
-	}
-}
-void varity_info::echo(char *format_str)
-{
-	int type = this->get_type();
-	switch(type) {
-	case INT:
-	case LONG:
-		gdbout(format_str, INT_VALUE(this->content_ptr));
 		break;
 	}
 }
