@@ -236,7 +236,7 @@ class c_interpreter {
 	int generate_expression_value(stack *code_stack_ptr, node_attribute_t *opt_node_ptr);
 	int generate_token_list(char *str, uint len);
 	int token_convert(node_attribute_t *node_ptr, int &count);
-	void print_code(mid_code *ptr, int n);
+	void print_code(mid_code *ptr, int n, int echo);
 	int basic_type_check(node_attribute_t*, int &count, struct_info *&struct_info_ptr);
 	bool gdb_check(void);
 	int find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fptr, int *line_ptr = 0);

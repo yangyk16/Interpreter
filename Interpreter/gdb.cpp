@@ -34,7 +34,7 @@ void *gdb::get_real_addr(void *addr, int type, c_interpreter *cptr)
 {
 	switch(type) {
 	case VARITY_SCOPE_TMP:
-		return (void*)(cptr->tmp_varity_stack_pointer - addr - 8);
+		return (void*)(cptr->tmp_varity_stack_pointer - (char*)addr - 8);
 		break;
 	case VARITY_SCOPE_GLOBAL:
 		return addr;
@@ -117,6 +117,11 @@ static int continue_exec(int argc, char **argv, c_interpreter *cptr)
 	return OK_GDB_RUN;
 }
 
+static int print_call_stack(int argc, char **argv, c_interpreter *cptr)
+{
+	return cptr->print_call_stack();
+}
+
 static int step_code(int argc, char **argv, c_interpreter *cptr)
 {
 	return OK_GDB_STEPRUN_CODE;
@@ -173,9 +178,9 @@ int del_breakpoint(int argc, char **argv, c_interpreter *cptr)
 	int i;
 	for(nptr=bp_stack.get_head()->right, i=0; i<=bp_stack.get_count(); i++, nptr=nptr->right) {
 		if(((bp_info_t*)nptr->value)->no == no) {
-			gdbout("Delete breakpoint %d.\n", no);
+			gdbout("Delete breakpoint %d @ 0x%x.\n", no, (mid_code*)((bp_info_t*)nptr->value)->bp_addr);
 			bp_stack.del(nptr);
-			((mid_code*)nptr->value)->break_flag &= ~BREAKPOINT_REAL;
+			((mid_code*)((bp_info_t*)nptr->value)->bp_addr)->break_flag &= ~BREAKPOINT_REAL;
 			vfree(nptr->value);
 			vfree(nptr);
 			return ERROR_NO;
@@ -223,14 +228,14 @@ int gdb::print_mid_code(int argc, char **argv, c_interpreter *cptr)
 	if(argc == 1)
 		return ERROR_NO;
 	if(!kstrcmp(argv[1], "main")) {
-		cptr->print_code((mid_code*)cptr->mid_code_stack.get_base_addr(), cptr->mid_code_stack.get_count());
+		cptr->print_code((mid_code*)cptr->mid_code_stack.get_base_addr(), cptr->mid_code_stack.get_count(), 1);
 		return ERROR_NO;
 	}
 	fptr = cptr->function_declare->find(argv[1]);
 	if(!fptr)
 		gdbout("Function not found.\n");
 	else {
-		cptr->print_code((mid_code*)fptr->mid_code_stack.get_base_addr(), fptr->mid_code_stack.get_count());
+		cptr->print_code((mid_code*)fptr->mid_code_stack.get_base_addr(), fptr->mid_code_stack.get_count(), 1);
 	}
 	return ERROR_NO;
 }
@@ -248,6 +253,7 @@ cmd_t cmd_tab[] = {
 	{"info", info_ask},
 	{"list", gdb::print_code},
 	{"pmcode", gdb::print_mid_code},
+	{"bt", print_call_stack},
 };
 
 int gdb::parse(char *cmd_str)

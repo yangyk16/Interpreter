@@ -2075,6 +2075,7 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 {
 	if(count == 0 || node_ptr->node_type == TOKEN_OTHER)return ERROR_NO;
 	int ret = ERROR_NO;
+	node *root;
 	ret = this->ctl_analysis(node_ptr, count);
 	if(ret != OK_CTL_NOT_FOUND)
 		return ret;
@@ -2101,7 +2102,7 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 	//	else
 	//		debug("%d %d\n",tmp->data,tmp->value_type);
 	//}
-	node *root = expression_stack.pop();
+	root = expression_stack.pop();
 	this->sentence_analysis_data_struct.tree_root = root;
 	if(!root) {
 		warning("No token found.\n");
@@ -2278,7 +2279,7 @@ int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 		debug("exec non seq struct\n");
 		nonseq_info->non_seq_exec = 0;
 		if(this->exec_flag) {
-			this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
+			this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count(), INTERPRETER_DEBUG);
 			this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
 			this->cur_mid_code_stack_ptr->empty();
 		}
@@ -2800,7 +2801,7 @@ int c_interpreter::sentence_exec(node_attribute_t* node_ptr, uint count, bool ne
 	}
 	if(this->exec_flag) {
 		int mid_code_count = this->cur_mid_code_stack_ptr->get_count();
-		this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
+		this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count(), INTERPRETER_DEBUG);
 		this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), mid_code_count);
 		this->cur_mid_code_stack_ptr->empty();
 	}
@@ -3181,8 +3182,9 @@ normal_bracket:
 	return wptr;
 }
 
-void c_interpreter::print_code(mid_code *ptr, int n)
+void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 {
+	if(!echo) return;
 	for(int i=0; i<n; i++, ptr++) {
 		gdbout("%03d ", i);
 		if(ptr->ret_operand_type == OPERAND_T_VARITY) {

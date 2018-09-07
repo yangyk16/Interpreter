@@ -5,11 +5,12 @@
 #define PLATFORM_X86	1
 #define PLATFORM_ARM	0
 ////////////////config//////////////////
+#define INTERPRETER_DEBUG		0
 #define SECTION_OPTIMIZE		0
 #define DEBUG_EN				1
 #define HW_PLATFORM				PLATFORM_X86//0:ARM 1:X86
 #define TTY_TYPE				0
-#define HEAPSIZE				1048576
+#define HEAPSIZE				(768 * 1024)
 #define MAX_VARITY_TYPE_COUNT	16
 #define DYNAMIC_ARRAY_EN		0
 #define MAX_LABEL_COUNT			3
@@ -54,8 +55,12 @@
 #define DTCM_BSS
 #endif
 
-#define debug	kprintf
-#define error	kprintf
-#define warning kprintf
-#define gdbout	kprintf
+#if INTERPRETER_DEBUG
+#define debug(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
+#else
+#define debug(fmt, ...) //kprintf(fmt, ##ARGS)
+#endif
+#define error(fmt, ...)	kprintf(fmt, ##__VA_ARGS__)
+#define warning(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
+#define gdbout(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #endif

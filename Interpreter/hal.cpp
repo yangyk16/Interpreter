@@ -1,12 +1,12 @@
 #include "hal.h"
 #include "config.h"
+#include "kmalloc.h"
 #include "cstdlib.h"
 #include "error.h"
-#if TTY_TYPE == 0
-#include <stdio.h>
-#endif
 
 #if TTY_TYPE == 0
+#include <iostream>
+using namespace std;
 int tty::readline(char* str)//最后必须补0
 {
 	char ch;
@@ -24,19 +24,21 @@ int tty::readline(char* str)//最后必须补0
 
 int tty::puts(char* str)
 {
-	printf("%s", str);
+	cout << str;
 	return 0;
 }
 #elif TTY_TYPE == 1
 extern "C" int uart_getstring(char *str);
+extern "C" void uart_sendstring(char *str);
 int uart::readline(char* str)
 {
-	return uart_getstring(str);
+	int i = uart_getstring(str);
+	return i;
 };
-extern "C" void UartSendString(char * src );
+
 int uart::puts(char* str)
 {
-	UartSendString(str);
+	uart_sendstring(str);
 	return 0;
 }
 #endif
@@ -46,7 +48,7 @@ int kfputs(char *str)
 #if TTY_TYPE == 0
 	printf("%s", str);
 #else
-	UartSendString(str);
+	uart_sendstring(str);
 #endif
 	return 0;
 }
