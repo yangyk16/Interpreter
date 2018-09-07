@@ -2005,10 +2005,11 @@ int c_interpreter::ctl_analysis(node_attribute_t *node_ptr, int count)
 				return ret;
 			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 			int func_ret_type = ((varity_info*)this->function_declare->get_current_node()->arg_list->visit_element_by_index(0))->get_type();
-			if((mid_code_ptr - 1)->ret_operand_type == OPERAND_T_VARITY) {//$0已填入
-				if((mid_code_ptr - 1)->ret_varity_type != func_ret_type) {
+			if(((node_attribute_t*)root->value)->node_type == TOKEN_NAME && ((node_attribute_t*)root->value)->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {//$0已填入
+				varity_info *ret_varity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(0);//because ((node_attribute_t*)root->value)->value.ptr_value[1]==0
+				if(ret_varity_ptr->get_type() != func_ret_type) {
 					mid_code_ptr->ret_varity_type = mid_code_ptr->opda_varity_type = func_ret_type;
-					mid_code_ptr->opdb_varity_type = (mid_code_ptr - 1)->ret_varity_type;
+					mid_code_ptr->opdb_varity_type = ret_varity_ptr->get_type();
 					mid_code_ptr->opda_operand_type = mid_code_ptr->opdb_operand_type = mid_code_ptr->ret_operand_type = OPERAND_T_VARITY;
 					mid_code_ptr->ret_addr = mid_code_ptr->opda_addr = mid_code_ptr->opdb_addr = 0;
 					mid_code_ptr->ret_operator = OPT_ASSIGN;
@@ -2075,7 +2076,6 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 {
 	if(count == 0 || node_ptr->node_type == TOKEN_OTHER)return ERROR_NO;
 	int ret = ERROR_NO;
-	node *root;
 	ret = this->ctl_analysis(node_ptr, count);
 	if(ret != OK_CTL_NOT_FOUND)
 		return ret;

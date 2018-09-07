@@ -181,6 +181,7 @@ void clear_arglist(stack *arg_stack_ptr);
 class c_interpreter {
 	static language_elment_space_t language_elment_space;
 	static varity_type_stack_t varity_type_stack;
+	node *root;
 	char sentence_buf[MAX_SENTENCE_LENGTH];
 	terminal* tty_used;
 	char pretreat_buf[MAX_PRETREAT_BUFLEN];
