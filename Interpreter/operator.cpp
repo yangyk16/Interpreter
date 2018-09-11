@@ -2040,8 +2040,10 @@ int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 	gdbret = gdb::breakpoint_handle(interpreter_ptr, instruction_ptr);
 	if(gdbret < 0)
 		return gdbret;
+	if(gdb::get_trace_status())
+		interpreter_ptr->print_code(instruction_ptr, 1, 1);
+		//gdbout("addr=%x,opt=%d\n", instruction_ptr, instruction_ptr->ret_operator);
 #endif
-	//gdbout("addr=%x,opt=%d\n", instruction_ptr, instruction_ptr->ret_operator);
 	if(opt_handle[instruction_ptr->ret_operator]) {
 		//tick1 = HWREG(0x2040018);
 		ret = opt_handle[instruction_ptr->ret_operator](interpreter_ptr);
@@ -2067,7 +2069,7 @@ int try_assign_handle(int opda_type, int opdb_type, int opda_complex_count, int 
 			goto wrong;
 		else {
 			if(opda_complex_count == 2 && opda_type_info[1] == BASIC_TYPE_SET(VOID) && GET_COMPLEX_TYPE(opda_type_info[2]) == COMPLEX_PTR)
-				return ERROR_NO;
+				return PTR;
 			else {
 				if(opda_complex_count != opdb_complex_count)
 					goto wrong;
@@ -2085,7 +2087,7 @@ int try_assign_handle(int opda_type, int opdb_type, int opda_complex_count, int 
 		if(opdb_type < CHAR || opdb_type > DOUBLE)
 			goto wrong;
 	}
-	return ERROR_NO;
+	return opda_type;
 wrong:
 	error("Can't assign.\n");
 	return ERROR_ILLEGAL_OPERAND;

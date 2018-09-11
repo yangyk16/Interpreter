@@ -18,6 +18,7 @@ typedef struct bp_info {
 	char en_flag;
 } bp_info_t;
 
+int gdb::trace_en = 0;
 int gdb::argc;
 char *gdb::argv[MAX_GDBCMD_ARGC];
 char gdb::args[ARG_SPACE_SIZE - sizeof(argv)];
@@ -44,6 +45,14 @@ void *gdb::get_real_addr(void *addr, int type, c_interpreter *cptr)
 		break;
 	}
 	return addr;
+}
+
+int gdb::trace_ctl(int argc, char **argv, c_interpreter *cptr)
+{
+	if(argc < 2)
+		return ERROR_GDB_ARGC;
+	gdb::trace_en = katoi(argv[1]);
+	return ERROR_NO;
 }
 
 int gdb::print(int argc, char **argv, c_interpreter *cptr)
@@ -254,6 +263,7 @@ cmd_t cmd_tab[] = {
 	{"list", gdb::print_code},
 	{"pmcode", gdb::print_mid_code},
 	{"bt", print_call_stack},
+	{"trace", gdb::trace_ctl},
 };
 
 int gdb::parse(char *cmd_str)

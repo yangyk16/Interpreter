@@ -2750,7 +2750,7 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 			}
 			node_ptr += complex_part_count;
 			count -= complex_part_count;
-			if(this->sentence_analysis_data_struct.last_token.data == OPT_ASSIGN) {
+			if(this->sentence_analysis_data_struct.last_token.data == OPT_ASSIGN) {//TODO: generate mid code from varity_name to ;
 				node_attribute_t node = {0, TOKEN_OPERATOR, opt_prio[OPT_COMMA], OPT_COMMA, 0, 0};
 				int exp_len = find_token_with_bracket_level(node_ptr, count, &node, 0);
 				if(exp_len == -1) {
