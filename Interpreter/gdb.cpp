@@ -162,6 +162,10 @@ int gdb::breakpoint(int argc, char **argv, c_interpreter *cptr)
 	if(!fptr)
 		gdbout("Function not found.\n");
 	else {
+		if(!fptr->row_code_ptr[line]) {
+			gdbout("Line not exist.\n");
+			return ERROR_NO;
+		}
 		if(fptr->row_code_ptr[line]->break_flag & BREAKPOINT_REAL) {
 			gdbout("Breakpoint duplicated.\n");
 			return ERROR_NO;
