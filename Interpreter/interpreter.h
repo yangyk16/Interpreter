@@ -153,6 +153,7 @@ typedef struct call_func_info_s {
 	int cur_stack_frame_size[MAX_FUNCTION_DEPTH];
 	int offset[MAX_FUNCTION_DEPTH];
 	int function_depth;
+	int para_offset;
 } call_func_info_t;
 
 class mid_code {
