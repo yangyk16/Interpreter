@@ -487,6 +487,9 @@ assign_general:
 		(instruction_ptr + 1)->opdb_addr = 1;
 		(instruction_ptr + 1)->opdb_operand_type = OPERAND_CONST;
 		(instruction_ptr + 1)->opdb_varity_type = INT;
+		if(instruction_ptr->opda_varity_type >= PTR) {
+			(instruction_ptr + 1)->data = bvarity_ptr->get_first_order_sub_struct_size();
+		}
 		break;
 	case OPT_ADDRESS_OF://TODO:取址时先验证扩展位是否为0再扩展，否则覆盖其他变量类型。
 	{
@@ -3148,12 +3151,14 @@ normal_bracket:
 				break;
 			case OPT_MUL:
 			case OPT_BIT_AND:
-				if(node_ptr[i - 1].node_type == TOKEN_OPERATOR 
+				if(i == 0
+					|| node_ptr[i - 1].node_type == TOKEN_OPERATOR 
 					&& node_ptr[i - 1].data != OPT_R_SMALL_BRACKET 
 					&& node_ptr[i - 1].data != OPT_L_MINUS_MINUS 
 					&& node_ptr[i - 1].data != OPT_L_PLUS_PLUS
 					&& node_ptr[i - 1].data != OPT_R_PLUS_PLUS
-					&& node_ptr[i - 1].data != OPT_R_MINUS_MINUS) {
+					&& node_ptr[i - 1].data != OPT_R_MINUS_MINUS
+					&& node_ptr[i - 1].data != OPT_TYPE_CONVERT){
 					this->token_node_ptr[wptr] = node_ptr[i];
 					if(node_ptr[i].data == OPT_MUL)
 						this->token_node_ptr[wptr].data = OPT_PTR_CONTENT;
