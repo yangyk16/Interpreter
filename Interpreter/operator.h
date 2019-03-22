@@ -93,6 +93,7 @@
 #define CTL_GOTO				87
 #define CTL_BXLR				88
 #define CTL_SP_ADD				89
+#define CTL_CMD_NO				CTL_BRANCH
 
 class c_interpreter;
 

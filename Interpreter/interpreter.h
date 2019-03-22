@@ -37,11 +37,12 @@
 #define CTL_KEY_GOTO		3
 #define CTL_KEY_RETURN		4
 
-#define OPERAND_G_VARITY	(0)
-#define OPERAND_L_VARITY	(1)
-#define OPERAND_T_VARITY	(2)
-#define OPERAND_LINK_VARITY	(4)
-#define OPERAND_CONST   	(8)
+#define OPERAND_G_VARITY	(1)
+#define OPERAND_L_VARITY	(2)
+#define OPERAND_T_VARITY	(4)
+#define OPERAND_LINK_VARITY	(8)
+#define OPERAND_STRING		(16)
+#define OPERAND_CONST   	(32)
 
 #define EXEC_FLAG_TRUE	true
 #define EXEC_FLAG_FALSE	false
@@ -158,7 +159,7 @@ typedef struct call_func_info_s {
 
 class mid_code {
 public:
-	int ret_addr;         //结果地址
+	long ret_addr;         //结果地址
 	long opda_addr;        //操作数1地址，务必保持在操作数1的4个相关量的第一个位置 TODO:定义联合体，合并addr与doublespace方便位数不同的平台移植
 	int double_space1;    //操作数1为double立即数时使用的空间
 	char opda_varity_type;//操作数1变量类型
@@ -225,6 +226,7 @@ class c_interpreter {
 	bool is_operator_convert(char *str, char &type, int &opt_len, char &prio);
 	int post_order_expression(node_attribute_t *node_ptr, int count, list_stack&);
 	int generate_mid_code(node_attribute_t*, int count, bool need_semicolon);
+	int ulink(stack *stack_ptr);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int ctl_analysis(node_attribute_t*, int);
 	int exec_mid_code(mid_code *pc, uint count);

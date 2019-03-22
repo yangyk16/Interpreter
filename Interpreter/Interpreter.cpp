@@ -94,6 +94,85 @@ int c_interpreter::list_to_tree(node* tree_node, list_stack* post_order_stack)
 	return ERROR_NO;
 }
 
+int c_interpreter::ulink(stack *stack_ptr)
+{
+	mid_code *mid_code_ptr = (mid_code*)stack_ptr->get_base_addr();
+	unsigned int code_count = stack_ptr->get_count();
+	int i, link_ret = 0;
+	void *obj_ptr;
+	char *symbol_name;
+	for(i=0; i<code_count; i++) {
+		void *opda_addr = NULL, *opdb_addr = NULL, *ret_addr = NULL;
+		int opda_flag = 0, opdb_flag = 0, ret_flag = 0;
+		if(mid_code_ptr[i].ret_operand_type == OPERAND_G_VARITY) {
+			ret_flag = 1;
+			if((obj_ptr = (void*)this->varity_declare->find((char*)mid_code_ptr[i].ret_addr)) != NULL)
+				ret_addr = ((varity_info*)obj_ptr)->get_content_ptr();
+			else {
+				symbol_name = (char*)mid_code_ptr[i].ret_addr;
+				link_ret = ERROR_VARITY_NONEXIST;
+				break;
+			}
+		} else if (mid_code_ptr[i].ret_operand_type == OPERAND_STRING) {
+			mid_code_ptr[i].ret_operand_type = OPERAND_G_VARITY;
+		}
+		if(mid_code_ptr[i].opda_operand_type == OPERAND_G_VARITY) {
+			opda_flag = 1;
+			if((obj_ptr = (void*)this->varity_declare->find((char*)mid_code_ptr[i].opda_addr)) != NULL)
+				opda_addr = ((varity_info*)obj_ptr)->get_content_ptr();
+			else {
+				symbol_name = (char*)mid_code_ptr[i].opda_addr;
+				link_ret = ERROR_VARITY_NONEXIST;
+				break;
+			}
+		} else if (mid_code_ptr[i].opda_operand_type == OPERAND_STRING) {
+			mid_code_ptr[i].opda_operand_type = OPERAND_G_VARITY;
+		}
+		if(mid_code_ptr[i].opdb_operand_type == OPERAND_G_VARITY) {
+			opdb_flag = 1;
+			if((obj_ptr = (void*)this->varity_declare->find((char*)mid_code_ptr[i].opdb_addr)) != NULL)
+				opdb_addr = ((varity_info*)obj_ptr)->get_content_ptr();
+			else {
+				symbol_name = (char*)mid_code_ptr[i].opdb_addr;
+				link_ret = ERROR_VARITY_NONEXIST;
+				break;
+			}
+		} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_STRING) {
+			mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;
+		}
+		if(mid_code_ptr[i].ret_operator == OPT_CALL_FUNC) {
+			opda_flag = 1;
+			if((obj_ptr = (void*)this->function_declare->find((char*)mid_code_ptr[i].opda_addr)) != NULL)
+				opda_addr = obj_ptr;
+			else {
+				symbol_name = (char*)mid_code_ptr[i].opda_addr;
+				link_ret = ERROR_NO_FUNCTION;
+				break;
+			}
+		}
+		if(!(opda_flag != 0 ^ opda_addr != NULL) && !(opdb_flag != 0 ^ opdb_addr != NULL) && !(ret_flag != 0 ^ ret_addr != NULL) && mid_code_ptr[i].ret_operator < CTL_CMD_NO) {
+			if(ret_flag)
+				mid_code_ptr[i].ret_addr = (long)ret_addr;
+			if(opda_flag)
+				mid_code_ptr[i].opda_addr = (long)opda_addr;
+			if(opdb_flag)
+				mid_code_ptr[i].opdb_addr = (long)opdb_addr;
+		}
+	}
+	switch(link_ret) {
+	case ERROR_NO:
+		return link_ret;
+	case ERROR_VARITY_NONEXIST:
+		error("varity %s not exist\n", symbol_name);
+		break;
+	case ERROR_NO_FUNCTION:
+		error("function %s not exist\n", symbol_name);
+		break;
+	}
+	error("link error\n");
+	return link_ret;
+}
+
 #define RETURN(x) if(avarity_use_flag && !PTR_N_VALUE(avarity_ptr->get_complex_ptr())) \
 		vfree(avarity_ptr->get_complex_ptr()); \
 	if(bvarity_use_flag && !PTR_N_VALUE(bvarity_ptr->get_complex_ptr())) \
@@ -117,7 +196,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			instruction_ptr->opda_varity_type = node_attribute->value_type;
 			kmemcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_STRING) {
-			instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
+			instruction_ptr->opda_operand_type = OPERAND_STRING;
 			instruction_ptr->opda_varity_type = ARRAY;
 			kmemcpy(&instruction_ptr->opda_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
@@ -149,7 +228,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 						instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
 					else
 						instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
-					instruction_ptr->opda_addr = (int)avarity_ptr->get_content_ptr();
+					instruction_ptr->opda_addr = (int)avarity_ptr->get_name();
 					instruction_ptr->opda_varity_type = avarity_ptr->get_type();
 				}
 			}
@@ -162,7 +241,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			instruction_ptr->opdb_varity_type = node_attribute->value_type;
 			kmemcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_STRING) {
-			instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
+			instruction_ptr->opdb_operand_type = OPERAND_STRING;
 			instruction_ptr->opdb_varity_type = ARRAY;
 			kmemcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 		} else if(node_attribute->node_type == TOKEN_NAME) {
@@ -193,7 +272,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 						instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
 					else
 						instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
-					instruction_ptr->opdb_addr = (int)bvarity_ptr->get_content_ptr();
+					instruction_ptr->opdb_addr = (int)bvarity_ptr->get_name();
 					instruction_ptr->opdb_varity_type = bvarity_ptr->get_type();
 				}
 			}
@@ -731,7 +810,7 @@ assign_general:
 			instruction_ptr++->opda_addr = make_align((PLATFORM_WORD)this->varity_declare->local_varity_stack->offset, 4) + this->call_func_info.para_offset;
 			code_stack_ptr->push();
 			return_varity_ptr = (varity_info*)function_ptr->arg_list->visit_element_by_index(0);
-			instruction_ptr->opda_addr = (int)function_ptr;
+			instruction_ptr->opda_addr = (int)function_ptr->get_name();
 			instruction_ptr->ret_operator = opt;
 			instruction_ptr->ret_varity_type = return_varity_ptr->get_type();
 			varity_number = this->mid_varity_stack.get_count();
@@ -848,7 +927,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 				instruction_ptr->opdb_varity_type = node_attribute->value_type;
 				kmemcpy(&instruction_ptr->opdb_addr, &node_attribute->value, 8);
 			} else if(node_attribute->node_type == TOKEN_STRING) {
-				instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
+				instruction_ptr->opdb_operand_type = OPERAND_STRING;
 				instruction_ptr->opdb_varity_type = ARRAY;
 				instruction_ptr->opdb_addr = (int)node_attribute->value.ptr_value;
 			} else if(node_attribute->node_type == TOKEN_NAME) {
@@ -2282,6 +2361,7 @@ int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 		debug("exec non seq struct\n");
 		nonseq_info->non_seq_exec = 0;
 		if(this->exec_flag) {
+			this->ulink(this->cur_mid_code_stack_ptr);
 			this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count(), INTERPRETER_DEBUG);
 			this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
 			this->cur_mid_code_stack_ptr->empty();
@@ -2804,6 +2884,9 @@ int c_interpreter::sentence_exec(node_attribute_t* node_ptr, uint count, bool ne
 	}
 	if(this->exec_flag) {
 		int mid_code_count = this->cur_mid_code_stack_ptr->get_count();
+		ret = this->ulink(this->cur_mid_code_stack_ptr);
+		if(ret)
+			return ret;
 		this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count(), INTERPRETER_DEBUG);
 		this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), mid_code_count);
 		this->cur_mid_code_stack_ptr->empty();
