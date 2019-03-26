@@ -227,6 +227,7 @@ class c_interpreter {
 	int post_order_expression(node_attribute_t *node_ptr, int count, list_stack&);
 	int generate_mid_code(node_attribute_t*, int count, bool need_semicolon);
 	int ulink(stack *stack_ptr);
+	int mem_rearrange(void);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int ctl_analysis(node_attribute_t*, int);
 	int exec_mid_code(mid_code *pc, uint count);

@@ -1,0 +1,35 @@
+ucc [-v] [-f] [-g] [-s] [-c] [-o name] [-l] [-i]
+-v：保留变量名称，import后可使用全局变量
+-f：保留函数源码，可直接由elf导出源码
+-g：保留行数，debug时可看到断点所在行数
+-s：保留结构体定义，import后可使用结构体
+
+-i：解释器模式
+-c：只编译
+-o：输出文件名
+-l：链接
+
+可执行文件格式：
+struct {
+	uint total_size;
+	uint function_size;
+	uint variable_size;
+	uint string_size;
+	uint struct_size;
+	ushort function_part;
+}
+function_count
+function_info
+function_name
+function_code
+function_source
+string_info
+string_content
+struct_stack
+struct_info
+struct_name
+struct_variable
+variable_stack
+variable_info_base
+variable_name_base
+variable_content_space

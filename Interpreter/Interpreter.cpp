@@ -94,6 +94,17 @@ int c_interpreter::list_to_tree(node* tree_node, list_stack* post_order_stack)
 	return ERROR_NO;
 }
 
+int c_interpreter::mem_rearrange(void)
+{
+	int count;
+	int i;
+	count = this->function_declare->function_stack_ptr->get_count();
+	for(i=0; i<count; i++) {
+
+	}
+	return ERROR_NO;
+}
+
 int c_interpreter::ulink(stack *stack_ptr)
 {
 	mid_code *mid_code_ptr = (mid_code*)stack_ptr->get_base_addr();
