@@ -135,9 +135,24 @@ int c_interpreter::mem_rearrange(void)
 	}
 	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%//
 	count = string_stack.get_count();
+	unsigned int string_total_len = 0;
+	string_info *string_ptr = (string_info*)string_stack.get_base_addr();
+	for(i=0; i<count; i++)
+		string_total_len += kstrlen(string_ptr[i].get_name()) + 1;
+	base = (char*)kmalloc(sizeof(unsigned int) + sizeof(string_info) * count + string_total_len);
+	U_INT_VALUE(base) = string_total_len;
+	base += sizeof(unsigned int);
 	for(i=0; i<count; i++) {
-
+		copy_len = sizeof(string_info);
+		kmemcpy(base, &string_ptr[i], copy_len);
+		base += copy_len;
 	}
+	for(i=0; i<count; i++) {
+		copy_len = kstrlen(string_ptr[i].get_name()) + 1;
+		kstrcpy(base, string_ptr[i].get_name());
+		base += copy_len;
+	}
+	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%//
 	return ERROR_NO;
 }
 
