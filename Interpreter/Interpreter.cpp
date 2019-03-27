@@ -98,9 +98,40 @@ int c_interpreter::mem_rearrange(void)
 {
 	int count;
 	int i;
+	char *base;
+	unsigned int copy_len;
+	unsigned int name_total_len = 0;
+	unsigned int source_total_len = 0;
+	unsigned int code_total_len = 0;
 	count = this->function_declare->function_stack_ptr->get_count();
+	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 	for(i=0; i<count; i++) {
-
+		name_total_len += kstrlen(function_ptr[i].get_name()) + 1;
+		source_total_len += function_ptr[i].wptr;
+		code_total_len += function_ptr[i].mid_code_stack.get_count() * sizeof(mid_code);
+	}
+	base = (char*)kmalloc(sizeof(unsigned int) + sizeof(function_info) * count + name_total_len + source_total_len + code_total_len);
+	U_INT_VALUE(base) = name_total_len + source_total_len + code_total_len;
+	base += sizeof(unsigned int);
+	for(i=0; i<count; i++) {
+		copy_len = sizeof(function_info);
+		kmemcpy(base, &function_ptr[i], copy_len);
+		base += copy_len;
+	}
+	for(i=0; i<count; i++) {
+		copy_len = function_ptr[i].mid_code_stack.get_count() * sizeof(mid_code);
+		kmemcpy(base, function_ptr[i].mid_code_stack.get_base_addr(), copy_len);
+		base += copy_len;
+	}
+	for(i=0; i<count; i++) {
+		copy_len = function_ptr[i].get_name() + 1;
+		kstrcpy(base, function_ptr[i].get_name());
+		base += copy_len;
+	}
+	for(i=0; i<count; i++) {
+		copy_len = function_ptr[i].wptr;
+		kmemcpy(base, function_ptr[i].buffer, copy_len);
+		base += copy_len;
 	}
 	return ERROR_NO;
 }

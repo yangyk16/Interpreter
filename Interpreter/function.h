@@ -5,9 +5,9 @@
 
 class mid_code;
 class function_info: public element {
+public:
 	char *buffer;
 	int wptr;
-public:
 	char variable_para_flag;
 	char compile_func_flag;
 	void *func_addr;

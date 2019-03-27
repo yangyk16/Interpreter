@@ -21,6 +21,9 @@ struct {
 function_count
 function_info
 function_name
+local_varity_stack
+	variable_info_base
+	variable_name_base
 function_code
 function_source
 string_info
