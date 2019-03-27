@@ -3,6 +3,7 @@
 #include "cstdlib.h"
 #include "interpreter.h"
 #include "string_lib.h"
+#include "kmalloc.h"
 
 stack::stack()
 {
@@ -36,8 +37,10 @@ stack::stack(int esize, void* base_addr, int capacity)
 
 void stack::push(void* eptr)
 {
-	if(this->is_full())
-		return;
+	if(this->is_full()) {
+		this->length *= 2;
+		this->bottom_addr = krealloc(this->bottom_addr, this->element_size * this->length);
+	}
 	kmemcpy((char*)this->bottom_addr + this->top, eptr, this->element_size);
 	this->top += this->element_size;
 	this->count++;

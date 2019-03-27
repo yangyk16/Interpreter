@@ -10,6 +10,7 @@ class element {
 protected:
 	char*	name;
 public:
+	inline void set_name(char *s) {name = s;}
 	inline char* get_name(void) {return name;}
 };
 

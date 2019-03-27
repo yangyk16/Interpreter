@@ -18,7 +18,7 @@ varity_type_stack_t c_interpreter::varity_type_stack;
 language_elment_space_t c_interpreter::language_elment_space;
 c_interpreter myinterpreter;
 round_queue token_fifo;
-list_stack string_stack;
+stack string_stack;
 
 char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
 char ctl_key[][9] = {"break", "continue", "goto", "return"};
@@ -124,7 +124,7 @@ int c_interpreter::mem_rearrange(void)
 		base += copy_len;
 	}
 	for(i=0; i<count; i++) {
-		copy_len = function_ptr[i].get_name() + 1;
+		copy_len = kstrlen(function_ptr[i].get_name()) + 1;
 		kstrcpy(base, function_ptr[i].get_name());
 		base += copy_len;
 	}
@@ -132,6 +132,11 @@ int c_interpreter::mem_rearrange(void)
 		copy_len = function_ptr[i].wptr;
 		kmemcpy(base, function_ptr[i].buffer, copy_len);
 		base += copy_len;
+	}
+	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%//
+	count = string_stack.get_count();
+	for(i=0; i<count; i++) {
+
 	}
 	return ERROR_NO;
 }
@@ -1376,11 +1381,10 @@ int c_interpreter::post_treat(void)
 	static int str_count_bak = 0;
 	token_fifo.content_reset();
 	if(exec_flag) {
-		node *ptr;
+		string_info *ptr;
 		while(string_stack.get_count() > str_count_bak) {
-			ptr = string_stack.pop();
-			vfree(ptr->value);
-			vfree(ptr);
+			ptr = (string_info*)string_stack.pop();
+			vfree(ptr->get_name());
 		}
 	}
 	str_count_bak = string_stack.get_count();
@@ -1464,6 +1468,7 @@ int c_interpreter::init(terminal* tty_used)
 			tmp_varity_name[i][1] = link_varity_name[i][1] = i;
 			tmp_varity_name[i][2] = link_varity_name[i][2] = 0;
 		}
+		string_stack.init(sizeof(string_info), kmalloc(DEFAULT_STRING_NODE * sizeof(string_info)), DEFAULT_STRING_NODE);
 		c_interpreter::language_elment_space.init_done = 1;
 	}
 	this->tty_used = tty_used;
@@ -3060,16 +3065,16 @@ int_value_handle:
 					}
 				}
 				symbol_ptr[count] = 0;
-				node *str_node_ptr = string_stack.find_val(symbol_ptr);
+				string_info *str_node_ptr = (string_info*)string_stack.find(symbol_ptr);
 				if(str_node_ptr) {
-					//vfree(p);
-					p = (char*)str_node_ptr->value;
+					p = (char*)str_node_ptr->get_name();
 				} else {
+					string_info str_info;
 					p = (char*)vmalloc(count + 1);
-					str_node_ptr = (node*)vmalloc(sizeof(node));
-					str_node_ptr->value = p;
+					str_info.set_name(p);
+					str_info.index = string_stack.get_count();
 					kstrcpy(p, symbol_ptr);
-					string_stack.push(str_node_ptr);
+					string_stack.push(&str_info);
 				}
 				info->node_type = TOKEN_STRING;
 				info->value.ptr_value = p;
