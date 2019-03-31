@@ -175,6 +175,23 @@ public:
 	int data;
 };
 
+typedef struct compile_info_s {
+	unsigned int total_size;
+	unsigned int function_flag;
+	unsigned int varity_flag;
+	unsigned int struct_flag;
+} compile_info_t;
+
+typedef struct compile_function_info_s {
+	unsigned int function_count;
+	unsigned int mid_code_size;
+	unsigned int function_flag;
+} compile_function_info_t;
+
+typedef struct compile_string_info_s {
+	unsigned int string_count;
+} compile_string_info_t;
+
 typedef struct string_info_s: public element {
 	unsigned int index;
 } string_info;
@@ -232,6 +249,7 @@ class c_interpreter {
 	int generate_mid_code(node_attribute_t*, int count, bool need_semicolon);
 	int ulink(stack *stack_ptr);
 	int mem_rearrange(void);
+	int load_ofile(char *file);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int ctl_analysis(node_attribute_t*, int);
 	int exec_mid_code(mid_code *pc, uint count);

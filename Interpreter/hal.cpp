@@ -53,6 +53,20 @@ int kfputs(char *str)
 	return 0;
 }
 
+void *kfopen(char *filename)
+{
+#if TTY_TYPE == 0
+	return fopen(filename, "r");
+#endif
+}
+
+unsigned int kfread(void *buffer, unsigned int size, unsigned int nmemb, void *fileptr)
+{
+#if TTY_TYPE == 0
+	return fread(buffer, size, nmemb, (FILE*)fileptr);
+#endif
+}
+
 int hard_fault_check(int addr)
 {
 #if TTY_TYPE == 1

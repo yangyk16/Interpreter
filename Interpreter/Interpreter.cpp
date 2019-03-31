@@ -235,6 +235,39 @@ int c_interpreter::ulink(stack *stack_ptr)
 	return link_ret;
 }
 
+int c_interpreter::load_ofile(char *file)
+{
+	void *file_ptr = kfopen(file);
+	unsigned int function_count, function_total_size;
+	compile_info_t compile_info;
+	compile_function_info_t compile_function_info;
+	int i;
+	kfread(&compile_info, sizeof(compile_info_t), 1, file_ptr);
+	void *base = kmalloc(compile_info.total_size);
+	kfread(&compile_function_info, sizeof(compile_function_info_t), 1, file_ptr);
+	function_info *function_info_ptr = (function_info*)base;
+	mid_code *mid_code_ptr = (mid_code*)((char*)base + sizeof(function_info) * compile_function_info.function_count);
+	char *name_ptr = (char*)mid_code_ptr + compile_function_info.mid_code_size;
+	for(i=0; i<compile_function_info.function_count; i++) {
+		function_info_ptr[i].mid_code_stack.set_base(mid_code_ptr);
+		mid_code_ptr += function_info_ptr[i].mid_code_stack.get_count();
+		function_info_ptr[i].set_name(name_ptr);
+		name_ptr += kstrlen(name_ptr);
+	}
+	compile_string_info_t compile_string_info;
+	kfread(&compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
+	//base set
+	string_info *string_info_ptr = (string_info*)base;
+	kfread(string_info_ptr, sizeof(string_info), compile_string_info.string_count, file_ptr);
+	base += compile_string_info.string_count;
+	for(i=0; i<compile_string_info.string_count; i++) {
+		kfread((char*)base, 1, kstrlen(base), file_ptr);
+		string_info_ptr[i].set_name(base);
+		base += kstrlen(base);
+	}
+	return ERROR_NO;
+}
+
 #define RETURN(x) if(avarity_use_flag && !PTR_N_VALUE(avarity_ptr->get_complex_ptr())) \
 		vfree(avarity_ptr->get_complex_ptr()); \
 	if(bvarity_use_flag && !PTR_N_VALUE(bvarity_ptr->get_complex_ptr())) \
