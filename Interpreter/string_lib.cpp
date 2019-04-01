@@ -151,6 +151,16 @@ int make_align(PLATFORM_WORD value, int align_byte)
 	return value % align_byte == 0 ? value : value + align_byte - (value % align_byte);
 }
 
+int memcheck(void *src, char ch, unsigned int len)
+{
+	char *s = (char*)src;
+	for(int i=0; i<len; i++) {
+		if(s[i] != ch)
+			return 1;
+	}
+	return 0;
+}
+
 bool is_valid_c_char(unsigned char ch)
 {
 	if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || ch == '_' || ch >= 128)//TODO: 128 use macro, also as varity.cpp

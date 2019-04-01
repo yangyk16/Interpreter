@@ -186,7 +186,15 @@ typedef struct compile_function_info_s {
 	unsigned int function_count;
 	unsigned int mid_code_size;
 	unsigned int function_flag;
+	unsigned int function_size;
 } compile_function_info_t;
+
+typedef struct compile_varity_info_s {
+	unsigned int varity_count;
+	unsigned int bss_size;
+	unsigned int data_size;
+	unsigned int varity_size;
+} compile_varity_info_t;
 
 typedef struct compile_string_info_s {
 	unsigned int string_count;

@@ -14,7 +14,7 @@ typedef struct head_head_s{
 static char heap[HEAPSIZE];
 char* heapbase = heap;
 
-inline uint align_size(uint size)
+static inline uint align_size(uint size)
 {
 	return size + (size % ALIGN_BYTE == 0 ? 0 : (ALIGN_BYTE - size % ALIGN_BYTE));
 }

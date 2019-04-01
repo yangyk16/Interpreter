@@ -18,4 +18,5 @@ bool is_letter(unsigned char ch);
 bool is_non_zero(int type, void* addr);
 int find_token_with_bracket_level(node_attribute_t*, int, node_attribute_t*, int);
 int get_escape_char(char *str, char &ch);
+int memcheck(void *src, char ch, unsigned int len);
 #endif

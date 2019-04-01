@@ -133,7 +133,7 @@ int c_interpreter::mem_rearrange(void)
 		kmemcpy(base, function_ptr[i].buffer, copy_len);
 		base += copy_len;
 	}
-	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%//
+	//%%%%%function rearrange end%%%%%%%%%%%%//
 	count = string_stack.get_count();
 	unsigned int string_total_len = 0;
 	string_info *string_ptr = (string_info*)string_stack.get_base_addr();
@@ -152,7 +152,26 @@ int c_interpreter::mem_rearrange(void)
 		kstrcpy(base, string_ptr[i].get_name());
 		base += copy_len;
 	}
-	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%//
+	//%%%%%string rearrange end%%%%%%%%%%%%%%//
+	count = this->varity_declare->global_varity_stack->get_count();
+	varity_info *varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr();
+	name_total_len = 0;
+	unsigned int bss_len = 0, data_len = 0;
+	for(i=0; i<count; i++) {
+		int align_byte, varity_size;
+		name_total_len += kstrlen(varity_ptr[i].get_name()) + 1;
+		align_byte = varity_ptr[i].get_element_size();
+		varity_size = get_varity_size(0, varity_ptr->get_complex_ptr(), varity_ptr->get_complex_arg_count());
+		if(memcheck(varity_ptr->get_content_ptr(), 0, varity_size)) {
+			data_len = make_align(data_len, align_byte);
+			data_len += varity_size;
+		} else {
+			bss_len = make_align(bss_len, align_byte);
+			bss_len += varity_size;
+		}
+	}
+	base = (char*)kmalloc(sizeof(unsigned int) + sizeof(varity_info) * count + data_len + bss_len + name_total_len);
+
 	return ERROR_NO;
 }
 
@@ -252,19 +271,32 @@ int c_interpreter::load_ofile(char *file)
 		function_info_ptr[i].mid_code_stack.set_base(mid_code_ptr);
 		mid_code_ptr += function_info_ptr[i].mid_code_stack.get_count();
 		function_info_ptr[i].set_name(name_ptr);
-		name_ptr += kstrlen(name_ptr);
+		name_ptr += kstrlen(name_ptr) + 1;
 	}
 	compile_string_info_t compile_string_info;
 	kfread(&compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
-	//base set
+	base = (char*)base + compile_function_info.function_size;
 	string_info *string_info_ptr = (string_info*)base;
 	kfread(string_info_ptr, sizeof(string_info), compile_string_info.string_count, file_ptr);
-	base += compile_string_info.string_count;
+	base = (char*)base + compile_string_info.string_count;
 	for(i=0; i<compile_string_info.string_count; i++) {
-		kfread((char*)base, 1, kstrlen(base), file_ptr);
-		string_info_ptr[i].set_name(base);
-		base += kstrlen(base);
+		kfread((char*)base, 1, kstrlen((char*)base) + 1, file_ptr);
+		string_info_ptr[i].set_name((char*)base);
+		base = (char*)base + kstrlen((char*)base) + 1;
 	}
+	base = (void*)make_align((long)base, 4);
+	compile_varity_info_t compile_varity_info;
+	kfread(&compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
+	varity_info *varity_info_ptr = (varity_info*)base;
+	kfread(varity_info_ptr, sizeof(varity_info), compile_varity_info.varity_count, file_ptr);
+	for(i=0; i<compile_varity_info.varity_count; i++) {
+		kfread((char*)base, 1, kstrlen((char*)base) + 1, file_ptr);
+		varity_info_ptr[i].set_name((char*)base);
+		base = (char*)base + kstrlen((char*)base) + 1;
+	}
+	base = (void*)make_align((long)base, 4);
+	kfread((char*)base, 1, compile_varity_info.data_size, file_ptr);
+
 	return ERROR_NO;
 }
 
