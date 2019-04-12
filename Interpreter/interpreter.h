@@ -193,6 +193,7 @@ typedef struct compile_varity_info_s {
 	unsigned int varity_count;
 	unsigned int bss_size;
 	unsigned int data_size;
+	unsigned int name_size;
 	unsigned int varity_size;
 } compile_varity_info_t;
 
@@ -257,7 +258,7 @@ class c_interpreter {
 	int generate_mid_code(node_attribute_t*, int count, bool need_semicolon);
 	int ulink(stack *stack_ptr);
 	int mem_rearrange(void);
-	int load_ofile(char *file);
+	int load_ofile(char *file, int flag);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int ctl_analysis(node_attribute_t*, int);
 	int exec_mid_code(mid_code *pc, uint count);
