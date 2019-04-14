@@ -264,25 +264,27 @@ int c_interpreter::load_ofile(char *file, int flag)
 	kfread(&compile_info, sizeof(compile_info_t), 1, file_ptr);
 	void *base = vmalloc(compile_info.total_size);
 	kfread(&compile_function_info, sizeof(compile_function_info_t), 1, file_ptr);
-	function_info *function_info_ptr = (function_info*)base;
-	mid_code *mid_code_ptr = (mid_code*)((char*)base + sizeof(function_info) * compile_function_info.function_count);
+	function_info *function_info_ptr = (function_info*)vmalloc(sizeof(function_info));
+	mid_code *mid_code_ptr = (mid_code*)base;
 	char *name_ptr = (char*)mid_code_ptr + compile_function_info.mid_code_size;
 	for(i=0; i<compile_function_info.function_count; i++) {
-		function_info_ptr[i].mid_code_stack.set_base(mid_code_ptr);
-		mid_code_ptr += function_info_ptr[i].mid_code_stack.get_count();
-		function_info_ptr[i].set_name(name_ptr);
+		kfread(function_info_ptr, sizeof(function_info), 1, file_ptr);
+		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
+		mid_code_ptr += function_info_ptr->mid_code_stack.get_count();
+		function_info_ptr->set_name(name_ptr);
 		name_ptr += kstrlen(name_ptr) + 1;
+		this->function_declare->function_stack_ptr->push(function_info_ptr);
 	}
 	compile_string_info_t compile_string_info;
 	kfread(&compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
 	base = (char*)base + compile_function_info.function_size;
-	string_info *string_info_ptr = (string_info*)base;
-	kfread(string_info_ptr, sizeof(string_info), compile_string_info.string_count, file_ptr);
-	base = (char*)base + compile_string_info.string_count;
+	string_info *string_info_ptr = (string_info*)function_info_ptr;
+	kfread((char*)base, 1, compile_string_info.string_size, file_ptr);
 	for(i=0; i<compile_string_info.string_count; i++) {
-		kfread((char*)base, 1, kstrlen((char*)base) + 1, file_ptr);
-		string_info_ptr[i].set_name((char*)base);
+		kfread(string_info_ptr, sizeof(string_info), 1, file_ptr);
+		string_info_ptr->set_name((char*)base);
 		base = (char*)base + kstrlen((char*)base) + 1;
+		string_stack.push(string_info_ptr);
 	}
 	base = (void*)make_align((long)base, 4);
 	compile_varity_info_t compile_varity_info;
