@@ -287,19 +287,35 @@ int c_interpreter::load_ofile(char *file, int flag)
 		string_stack.push(string_info_ptr);
 	}
 	base = (void*)make_align((long)base, 4);
+	varity_type_stack_t *varity_type_stack_ptr = (varity_type_stack_t*)function_info_ptr;
+	kfread(varity_type_stack_ptr, sizeof(varity_type_stack), 1, file_ptr);
+	unsigned int varity_type_size = 0;
+	for(i=0; i<varity_type_stack_ptr->count; i++)
+		varity_type_size += varity_type_stack_ptr->arg_count[i];
+	void *varity_type_info_ptr = vmalloc(sizeof(varity_type_stack_t) + varity_type_size * PLATFORM_WORD_LEN + sizeof(varity_info));
+	kmemcpy(varity_type_info_ptr, varity_type_stack_ptr, sizeof(varity_type_stack));
+	void *varity_type_ptr = (char*)varity_type_info_ptr + sizeof(varity_type_stack);
+	kfread(varity_type_ptr, varity_type_size * PLATFORM_WORD_LEN, 1, file_ptr);
 	compile_varity_info_t compile_varity_info;
 	kfread(&compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
-	varity_info *varity_info_ptr = (varity_info*)base;
-	kfread(varity_info_ptr, sizeof(varity_info), compile_varity_info.varity_count, file_ptr);
-	base = (char*)base + sizeof(varity_info) * compile_varity_info.varity_count;
-	kfread(base, 1, compile_varity_info.name_size, file_ptr);
+	varity_info *varity_info_ptr = (varity_info*)((char*)varity_type_ptr + varity_type_size * PLATFORM_WORD_LEN);
 	for(i=0; i<compile_varity_info.varity_count; i++) {
-		varity_info_ptr[i].set_name((char*)base);
+		kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
+		kfread(base, 1, compile_varity_info.name_size, file_ptr);
+		varity_info_ptr->set_name((char*)base);
 		base = (char*)base + kstrlen((char*)base) + 1;
+		int type_no = this->varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), varity_info_ptr->get_complex_ptr());
+		if(type_no >= 0) {
+			varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), (PLATFORM_WORD*)this->varity_type_stack.type_info_addr[type_no]);
+		} else {
+			this->varity_type_stack.arg_count[this->varity_type_stack.count] = varity_info_ptr->get_complex_arg_count();
+			this->varity_type_stack.type_info_addr[this->varity_type_stack.count] = varity_info_ptr->get_complex_ptr();
+		}
+		this->varity_declare->global_varity_stack->push(varity_info_ptr);
 	}
+	vfree(varity_type_info_ptr);
 	base = (void*)make_align((long)base, 4);
 	kfread((char*)base, 1, compile_varity_info.data_size, file_ptr);
-
 	return ERROR_NO;
 }
 
