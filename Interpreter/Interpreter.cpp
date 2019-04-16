@@ -16,6 +16,8 @@ uart stdio;
 
 varity_type_stack_t c_interpreter::varity_type_stack;
 language_elment_space_t c_interpreter::language_elment_space;
+compile_info_t c_interpreter::compile_info;
+compile_function_info_t c_interpreter::compile_function_info;
 c_interpreter myinterpreter;
 round_queue token_fifo;
 stack string_stack;
@@ -258,21 +260,21 @@ int c_interpreter::load_ofile(char *file, int flag)
 {
 	void *file_ptr = kfopen(file);
 	unsigned int function_count, function_total_size;
-	compile_info_t compile_info;
-	compile_function_info_t compile_function_info;
 	int i;
-	kfread(&compile_info, sizeof(compile_info_t), 1, file_ptr);
-	void *base = vmalloc(compile_info.total_size);
-	kfread(&compile_function_info, sizeof(compile_function_info_t), 1, file_ptr);
+	kfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr);
+	void *base = vmalloc(this->compile_info.total_size);
+	kfread(&this->compile_function_info, sizeof(compile_function_info_t), 1, file_ptr);
 	function_info *function_info_ptr = (function_info*)vmalloc(sizeof(function_info));
 	mid_code *mid_code_ptr = (mid_code*)base;
-	char *name_ptr = (char*)mid_code_ptr + compile_function_info.mid_code_size;
+	char *name_ptr = (char*)mid_code_ptr + this->compile_function_info.mid_code_size;
 	for(i=0; i<compile_function_info.function_count; i++) {
 		kfread(function_info_ptr, sizeof(function_info), 1, file_ptr);
 		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
 		mid_code_ptr += function_info_ptr->mid_code_stack.get_count();
-		function_info_ptr->set_name(name_ptr);
-		name_ptr += kstrlen(name_ptr) + 1;
+		if(this->compile_info.import_flag & IMPORT_FLAG_DEBUG) {
+			function_info_ptr->set_name(name_ptr);
+			name_ptr += kstrlen(name_ptr) + 1;
+		}
 		this->function_declare->function_stack_ptr->push(function_info_ptr);
 	}
 	compile_string_info_t compile_string_info;
@@ -288,34 +290,63 @@ int c_interpreter::load_ofile(char *file, int flag)
 	}
 	base = (void*)make_align((long)base, 4);
 	varity_type_stack_t *varity_type_stack_ptr = (varity_type_stack_t*)function_info_ptr;
-	kfread(varity_type_stack_ptr, sizeof(varity_type_stack), 1, file_ptr);
 	unsigned int varity_type_size = 0;
-	for(i=0; i<varity_type_stack_ptr->count; i++)
-		varity_type_size += varity_type_stack_ptr->arg_count[i];
+	if(this->compile_info.import_flag & IMPORT_FLAG_REF) {
+		kfread(varity_type_stack_ptr, sizeof(varity_type_stack), 1, file_ptr);
+		for(i=0; i<varity_type_stack_ptr->count; i++)
+			varity_type_size += varity_type_stack_ptr->arg_count[i];
+	}
 	void *varity_type_info_ptr = vmalloc(sizeof(varity_type_stack_t) + varity_type_size * PLATFORM_WORD_LEN + sizeof(varity_info));
 	kmemcpy(varity_type_info_ptr, varity_type_stack_ptr, sizeof(varity_type_stack));
 	void *varity_type_ptr = (char*)varity_type_info_ptr + sizeof(varity_type_stack);
 	kfread(varity_type_ptr, varity_type_size * PLATFORM_WORD_LEN, 1, file_ptr);
 	compile_varity_info_t compile_varity_info;
 	kfread(&compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
-	varity_info *varity_info_ptr = (varity_info*)((char*)varity_type_ptr + varity_type_size * PLATFORM_WORD_LEN);
-	for(i=0; i<compile_varity_info.varity_count; i++) {
-		kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
-		kfread(base, 1, compile_varity_info.name_size, file_ptr);
-		varity_info_ptr->set_name((char*)base);
-		base = (char*)base + kstrlen((char*)base) + 1;
-		int type_no = this->varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), varity_info_ptr->get_complex_ptr());
-		if(type_no >= 0) {
-			varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), (PLATFORM_WORD*)this->varity_type_stack.type_info_addr[type_no]);
-		} else {
-			this->varity_type_stack.arg_count[this->varity_type_stack.count] = varity_info_ptr->get_complex_arg_count();
-			this->varity_type_stack.type_info_addr[this->varity_type_stack.count] = varity_info_ptr->get_complex_ptr();
+	if(this->compile_info.import_flag & IMPORT_FLAG_DEBUG) {
+		varity_info *varity_info_ptr = (varity_info*)((char*)varity_type_ptr + varity_type_size * PLATFORM_WORD_LEN);
+		for(i=0; i<compile_varity_info.varity_count; i++) {
+			kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
+			kfread(base, 1, compile_varity_info.name_size, file_ptr);
+			varity_info_ptr->set_name((char*)base);
+			base = (char*)base + kstrlen((char*)base) + 1;
+			int type_no = this->varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), varity_info_ptr->get_complex_ptr());
+			if(type_no >= 0) {
+				varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), (PLATFORM_WORD*)this->varity_type_stack.type_info_addr[type_no]);
+			} else {
+				this->varity_type_stack.arg_count[this->varity_type_stack.count] = varity_info_ptr->get_complex_arg_count();
+				this->varity_type_stack.type_info_addr[this->varity_type_stack.count] = varity_info_ptr->get_complex_ptr();
+			}
+			this->varity_declare->global_varity_stack->push(varity_info_ptr);
 		}
-		this->varity_declare->global_varity_stack->push(varity_info_ptr);
+		vfree(varity_type_info_ptr);
 	}
-	vfree(varity_type_info_ptr);
 	base = (void*)make_align((long)base, 4);
 	kfread((char*)base, 1, compile_varity_info.data_size, file_ptr);
+	return ERROR_NO;
+}
+
+int c_interpreter::write_ofile(char *file)
+{
+	int count, i;
+	unsigned int f_name_total_len = 0;
+	unsigned int source_total_len = 0;
+	unsigned int code_total_len = 0;
+	unsigned int string_total_len = 0;
+	void *file_ptr = kfopen(file);
+	count = this->function_declare->function_stack_ptr->get_count();
+	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
+	for(i=0; i<count; i++) {
+		if(this->compile_info.import_flag & IMPORT_FLAG_DEBUG) {
+			f_name_total_len += kstrlen(function_ptr[i].get_name()) + 1;
+			source_total_len += function_ptr[i].wptr;
+		}
+		code_total_len += function_ptr[i].mid_code_stack.get_count() * sizeof(mid_code);
+	}
+	count = string_stack.get_count();
+	string_info *string_info_ptr = (string_info*)string_stack.get_base_addr();
+	for(i=0; i<count; i++) {
+		string_total_len += kstrlen(string_info_ptr->get_name()) + 1;
+	}
 	return ERROR_NO;
 }
 

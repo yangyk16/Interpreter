@@ -11,6 +11,9 @@
 #include "operator.h"
 #include "data_struct.h"
 
+#define IMPORT_FLAG_DEBUG		1
+#define IMPORT_FLAG_REF			(2 | IMPORT_FLAG_DEBUG)
+
 #define TOKEN_KEYWORD_TYPE		1
 #define TOKEN_KEYWORD_CTL		2
 #define TOKEN_ARG_LIST			3
@@ -177,8 +180,7 @@ public:
 
 typedef struct compile_info_s {
 	unsigned int total_size;
-	unsigned int function_flag;
-	unsigned int varity_flag;
+	unsigned int import_flag;
 	unsigned int struct_flag;
 } compile_info_t;
 
@@ -242,6 +244,8 @@ class c_interpreter {
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	bool exec_flag;
 	call_func_info_t call_func_info;
+	static compile_info_t compile_info;
+	static compile_function_info_t compile_function_info;
 	int save_sentence(char*, uint);
 	int function_analysis(node_attribute_t*, int);
 	int struct_analysis(node_attribute_t*, uint);
@@ -260,6 +264,7 @@ class c_interpreter {
 	int ulink(stack *stack_ptr);
 	int mem_rearrange(void);
 	int load_ofile(char *file, int flag);
+	int write_ofile(char *file);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int ctl_analysis(node_attribute_t*, int);
 	int exec_mid_code(mid_code *pc, uint count);
