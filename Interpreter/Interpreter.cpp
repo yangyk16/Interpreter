@@ -258,7 +258,7 @@ int c_interpreter::ulink(stack *stack_ptr)
 
 int c_interpreter::load_ofile(char *file, int flag)
 {
-	void *file_ptr = kfopen(file);
+	void *file_ptr = kfopen(file, "r");
 	unsigned int function_count, function_total_size;
 	int i;
 	kfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr);
@@ -325,20 +325,25 @@ int c_interpreter::load_ofile(char *file, int flag)
 	return ERROR_NO;
 }
 
-int c_interpreter::write_ofile(char *file)
+int c_interpreter::write_ofile(char *file, int flag)
 {
 	int count, i;
 	unsigned int f_name_total_len = 0;
 	unsigned int source_total_len = 0;
 	unsigned int code_total_len = 0;
 	unsigned int string_total_len = 0;
-	void *file_ptr = kfopen(file);
+	unsigned int data_total_len = 0;
+	unsigned int v_name_total_len = 0;
+	void *file_ptr = kfopen(file, "w");
 	count = this->function_declare->function_stack_ptr->get_count();
+	this->compile_function_info.function_count = count;
 	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 	for(i=0; i<count; i++) {
-		if(this->compile_info.import_flag & IMPORT_FLAG_DEBUG) {
+		if(this->compile_info.import_flag >= IMPORT_FLAG_LINK) {
 			f_name_total_len += kstrlen(function_ptr[i].get_name()) + 1;
-			source_total_len += function_ptr[i].wptr;
+			if(this->compile_info.import_flag >= IMPORT_FLAG_DEBUG) {
+				source_total_len += function_ptr[i].wptr;
+			}
 		}
 		code_total_len += function_ptr[i].mid_code_stack.get_count() * sizeof(mid_code);
 	}
@@ -347,6 +352,21 @@ int c_interpreter::write_ofile(char *file)
 	for(i=0; i<count; i++) {
 		string_total_len += kstrlen(string_info_ptr->get_name()) + 1;
 	}
+	count = this->varity_declare->global_varity_stack->get_count();
+	varity_info *varity_info_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr();
+	for(i=0; i<count; i++) {
+		data_total_len += get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
+		if(this->compile_info.import_flag >= IMPORT_FLAG_LINK) {
+			f_name_total_len += kstrlen(varity_info_ptr[i].get_name()) + 1;
+		}
+	}
+	this->compile_info.import_flag = flag;
+	this->compile_info.total_size = f_name_total_len + source_total_len + code_total_len + string_total_len + data_total_len + v_name_total_len;
+	kfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr);
+	this->compile_function_info.mid_code_size = code_total_len;
+	this->compile_function_info.function_size = f_name_total_len + source_total_len + code_total_len;
+
+	kfclose(file_ptr);
 	return ERROR_NO;
 }
 

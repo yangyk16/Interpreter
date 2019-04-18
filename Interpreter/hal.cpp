@@ -53,10 +53,17 @@ int kfputs(char *str)
 	return 0;
 }
 
-void *kfopen(char *filename)
+void *kfopen(char *filename, char *mode)
 {
 #if TTY_TYPE == 0
-	return fopen(filename, "r");
+	return fopen(filename, mode);
+#endif
+}
+
+int kfclose(void *fp)
+{
+#if TTY_TYPE == 0
+	return fclose((FILE*)fp);
 #endif
 }
 
@@ -64,6 +71,13 @@ unsigned int kfread(void *buffer, unsigned int size, unsigned int nmemb, void *f
 {
 #if TTY_TYPE == 0
 	return fread(buffer, size, nmemb, (FILE*)fileptr);
+#endif
+}
+
+unsigned int kfwrite(void *buffer, unsigned int size, unsigned int count, void *fileptr)
+{
+#if TTY_TYPE == 0
+	return fwrite(buffer, size, count, (FILE*)fileptr);
 #endif
 }
 

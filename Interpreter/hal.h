@@ -26,7 +26,9 @@ public:
 #endif
 
 int kfputs(char *str);
-void *kfopen(char *filename);
-unsigned int kfread(void *buffer, unsigned int size, unsigned int nmemb, void *fileptr);
+void *kfopen(char *filename, char *mode);
+int kfclose(void*);
+unsigned int kfread(void *buffer, unsigned int size, unsigned int count, void *fileptr);
+unsigned int kfwrite(void *buffer, unsigned int size, unsigned int count, void *fileptr);
 int hard_fault_check(int addr);
 #endif

@@ -11,8 +11,10 @@
 #include "operator.h"
 #include "data_struct.h"
 
-#define IMPORT_FLAG_DEBUG		1
-#define IMPORT_FLAG_REF			(2 | IMPORT_FLAG_DEBUG)
+#define IMPORT_FLAG_EXEC		1//code+data+string
+#define IMPORT_FLAG_LINK		2//name+code+data+string
+#define IMPORT_FLAG_DEBUG		4//name+varity_type+source+code+data+string
+#define IMPORT_FLAG_REF			8//name+varity_type+source+code+data+string+struct
 
 #define TOKEN_KEYWORD_TYPE		1
 #define TOKEN_KEYWORD_CTL		2
@@ -264,7 +266,7 @@ class c_interpreter {
 	int ulink(stack *stack_ptr);
 	int mem_rearrange(void);
 	int load_ofile(char *file, int flag);
-	int write_ofile(char *file);
+	int write_ofile(char *file, int flag);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int ctl_analysis(node_attribute_t*, int);
 	int exec_mid_code(mid_code *pc, uint count);
