@@ -446,6 +446,15 @@ int kmemcmp(void *mem1, void *mem2, unsigned int size)
 	return 0;
 }
 
+int kmemchk(void *s, char ch, unsigned int size)
+{
+	for(int i=0; i<size; i++) {
+		if(((char*)s)[i] != ch)
+			return i + 1;
+	}
+	return 0;
+}
+
 unsigned int kstrlen(const char *str)
 {
 	unsigned int i = 0;

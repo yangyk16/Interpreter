@@ -10,6 +10,7 @@ int ksprintf(char *buf, const char *fmt, ...);
 void* kmemcpy(void *d, const void *s, unsigned int size);
 void* kmemmove(void *d, const void *s, unsigned int size);
 void* kmemset(void *d, int ch, unsigned int size);
+int kmemchk(void *s, char ch, unsigned int size);
 unsigned int kstrlen(const char *str);
 int kmemcmp(void *mem1, void *mem2, unsigned int size);
 int kstrcmp(const char *str1, const char *str2);

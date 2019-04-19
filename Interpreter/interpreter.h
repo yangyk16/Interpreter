@@ -189,8 +189,9 @@ typedef struct compile_info_s {
 typedef struct compile_function_info_s {
 	unsigned int function_count;
 	unsigned int mid_code_size;
+	unsigned int name_size;
+	unsigned int source_code_size;
 	unsigned int function_flag;
-	unsigned int function_size;
 } compile_function_info_t;
 
 typedef struct compile_varity_info_s {
@@ -248,6 +249,8 @@ class c_interpreter {
 	call_func_info_t call_func_info;
 	static compile_info_t compile_info;
 	static compile_function_info_t compile_function_info;
+	static compile_string_info_t compile_string_info;
+	static compile_varity_info_t compile_varity_info;
 	int save_sentence(char*, uint);
 	int function_analysis(node_attribute_t*, int);
 	int struct_analysis(node_attribute_t*, uint);
