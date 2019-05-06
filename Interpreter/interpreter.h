@@ -268,8 +268,6 @@ class c_interpreter {
 	int generate_mid_code(node_attribute_t*, int count, bool need_semicolon);
 	int ulink(stack *stack_ptr);
 	int mem_rearrange(void);
-	int load_ofile(char *file, int flag);
-	int write_ofile(char *file, int flag);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int ctl_analysis(node_attribute_t*, int);
 	int exec_mid_code(mid_code *pc, uint count);
@@ -342,9 +340,13 @@ class c_interpreter {
 	friend int user_eval(char *str);
 	friend class gdb;
 public:
+	int load_ofile(char *file, int flag);
+	int write_ofile(char *file, int flag);
 	void set_break_flag(int flag) {break_flag = flag;}
 	int print_call_stack(void);
 	int init(terminal*);
 	int run_interpreter(void);
 };
+
+#define UCC_DEBUG 1
 #endif

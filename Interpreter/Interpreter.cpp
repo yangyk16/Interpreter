@@ -301,20 +301,20 @@ int c_interpreter::load_ofile(char *file, int flag)
 		for(i=0; i<varity_type_stack_ptr->count; i++)
 			varity_type_size += varity_type_stack_ptr->arg_count[i];
 	}
-	void *varity_type_info_ptr = vmalloc(sizeof(varity_type_stack_t) + varity_type_size * PLATFORM_WORD_LEN + sizeof(varity_info));
-	kmemcpy(varity_type_info_ptr, varity_type_stack_ptr, sizeof(varity_type_stack));
-	void *varity_type_ptr = (char*)varity_type_info_ptr + sizeof(varity_type_stack);
+	varity_type_stack_t *varity_type_info_ptr = (varity_type_stack_t*)vmalloc(sizeof(varity_type_stack_t) + varity_type_size * PLATFORM_WORD_LEN + sizeof(varity_info));
+	kmemcpy(varity_type_info_ptr, varity_type_stack_ptr, sizeof(varity_type_stack_t));
+	void *varity_type_ptr = (char*)varity_type_info_ptr + sizeof(varity_type_stack_t);
 	kfread(varity_type_ptr, varity_type_size * PLATFORM_WORD_LEN, 1, file_ptr);
 	compile_varity_info_t compile_varity_info;
 	kfread(&compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
+	kfread(base, 1, compile_varity_info.name_size, file_ptr);
 	if(this->compile_info.import_flag & IMPORT_FLAG_DEBUG) {
 		varity_info *varity_info_ptr = (varity_info*)((char*)varity_type_ptr + varity_type_size * PLATFORM_WORD_LEN);
 		for(i=0; i<compile_varity_info.varity_count; i++) {
 			kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
-			kfread(base, 1, compile_varity_info.name_size, file_ptr);
 			varity_info_ptr->set_name((char*)base);
 			base = (char*)base + kstrlen((char*)base) + 1;
-			int type_no = this->varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), varity_info_ptr->get_complex_ptr());
+			int type_no = this->varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), (void*)((char*)varity_type_ptr +(int) varity_type_info_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()]));
 			if(type_no >= 0) {
 				varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), (PLATFORM_WORD*)this->varity_type_stack.type_info_addr[type_no]);
 			} else {
@@ -380,8 +380,10 @@ int c_interpreter::write_ofile(char *file, int flag)
 		kfwrite(function_ptr[i].mid_code_stack.get_base_addr(), sizeof(mid_code), function_ptr[i].mid_code_stack.get_count(), file_ptr);
 	for(i=0; i<this->compile_function_info.function_count; i++)
 		kfwrite(function_ptr[i].get_name(), 1, kstrlen(function_ptr[i].get_name()) + 1, file_ptr);
-	for(i=0; i<this->compile_function_info.function_count; i++)
-		kfwrite(function_ptr[i].buffer, 1, kstrlen(function_ptr[i].buffer) + 1, file_ptr);
+	for(i=0; i<this->compile_function_info.function_count; i++) {
+		if(function_ptr[i].buffer)
+			kfwrite(function_ptr[i].buffer, 1, kstrlen(function_ptr[i].buffer) + 1, file_ptr);
+	}
 	kfwrite(this->function_declare->function_stack_ptr->get_base_addr(), sizeof(function_info), this->compile_function_info.function_count, file_ptr);
 	kfwrite(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
 	for(i=0; i<this->compile_string_info.string_count; i++)
@@ -1588,6 +1590,7 @@ int c_interpreter::run_interpreter(void)
 {
 	int ret;
 	this->init(&stdio);
+	this->load_ofile("testcc.o", 1);
 	this->generate_compile_func();
 	while(1) {
 		int len;
@@ -1901,6 +1904,10 @@ int c_interpreter::generate_compile_func(void)
 	static stack strcmp_stack;
 	this->generate_arg_list("int,char*,char*;", 3, strcmp_stack);
 	this->function_declare->add_compile_func("strcmp", (void*)kstrcmp, &strcmp_stack, 0);
+	static stack compile_stack;
+	int compile(char *file, int flag);
+	this->generate_arg_list("int,char*,int;", 3, compile_stack);
+	this->function_declare->add_compile_func("ucompile", (void*)compile, &compile_stack, 0);
 	return ERROR_NO;
 }
 
@@ -3630,6 +3637,13 @@ int user_eval(char *str)
 {
 	return myinterpreter.open_eval(str, true);
 }
+
+#if UCC_DEBUG == 1
+int compile(char *file, int flag)
+{
+	return myinterpreter.write_ofile(file, flag);
+}
+#endif
 
 extern "C" void run_interpreter(void)
 {
