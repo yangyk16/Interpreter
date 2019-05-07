@@ -189,6 +189,7 @@ typedef struct compile_info_s {
 typedef struct compile_function_info_s {
 	unsigned int function_count;
 	unsigned int mid_code_size;
+	unsigned int arg_size;
 	unsigned int name_size;
 	unsigned int source_code_size;
 	unsigned int function_flag;

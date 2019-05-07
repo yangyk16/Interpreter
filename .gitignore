@@ -21,3 +21,4 @@ Interpreter/Debug/Interpreter.exe.embed.manifest.res
 Debug/Interpreter.exp
 Interpreter/jk
 *.tmp
+*.o

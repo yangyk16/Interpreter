@@ -268,13 +268,18 @@ int c_interpreter::load_ofile(char *file, int flag)
 	kfread(&this->compile_function_info, sizeof(compile_function_info_t), 1, file_ptr);
 	function_info *function_info_ptr = (function_info*)vmalloc(sizeof(function_info));
 	mid_code *mid_code_ptr = (mid_code*)base;
-	char *name_ptr = (char*)mid_code_ptr + this->compile_function_info.mid_code_size;
+	stack *arg_varity_ptr = (stack*)((char*)mid_code_ptr + this->compile_function_info.mid_code_size);
+	char *name_ptr = (char*)arg_varity_ptr + this->compile_function_info.arg_size;
 	char *source_code_ptr = name_ptr + this->compile_function_info.name_size;
-	kfread(base, 1, this->compile_function_info.mid_code_size, file_ptr);
+	kfread(mid_code_ptr, 1, this->compile_function_info.mid_code_size, file_ptr);
+	kfread(arg_varity_ptr, 1, this->compile_function_info.arg_size, file_ptr);
 	kfread(name_ptr, 1, this->compile_function_info.name_size, file_ptr);
 	for(i=0; i<compile_function_info.function_count; i++) {
 		kfread(function_info_ptr, sizeof(function_info), 1, file_ptr);
 		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
+		function_info_ptr->arg_list = (stack*)arg_varity_ptr++;
+		function_info_ptr->arg_list->set_base(arg_varity_ptr);
+		arg_varity_ptr = (stack*)((varity_info*)arg_varity_ptr + arg_varity_ptr->get_count());
 		mid_code_ptr += function_info_ptr->mid_code_stack.get_count();
 		if(this->compile_info.import_flag >= IMPORT_FLAG_LINK) {
 			function_info_ptr->set_name(name_ptr);
@@ -350,6 +355,7 @@ int c_interpreter::write_ofile(char *file, int flag)
 			}
 		}
 		this->compile_function_info.mid_code_size += function_ptr[i].mid_code_stack.get_count() * sizeof(mid_code);
+		this->compile_function_info.arg_size += function_ptr[i].arg_list->get_count() * sizeof(varity_info) + sizeof(stack);
 	}
 	count = string_stack.get_count();
 	this->compile_string_info.string_count = count;
@@ -373,12 +379,17 @@ int c_interpreter::write_ofile(char *file, int flag)
 	}
 	this->compile_info.import_flag = flag;
 	this->compile_info.total_size = compile_function_info.name_size + compile_function_info.source_code_size 
-								+ compile_function_info.mid_code_size + compile_string_info.string_size 
-								+ compile_varity_info.data_size + compile_varity_info.name_size;
+								+ compile_function_info.mid_code_size + compile_function_info.arg_size
+								+ compile_string_info.string_size + compile_varity_info.data_size
+								+ compile_varity_info.name_size;
 	kfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr);
 	kfwrite(&this->compile_function_info, sizeof(compile_function_info), 1, file_ptr);
 	for(i=0; i<this->compile_function_info.function_count; i++)
 		kfwrite(function_ptr[i].mid_code_stack.get_base_addr(), sizeof(mid_code), function_ptr[i].mid_code_stack.get_count(), file_ptr);
+	for(i=0; i<this->compile_function_info.function_count; i++) {
+		kfwrite(function_ptr[i].arg_list, sizeof(stack), 1, file_ptr);
+		kfwrite(function_ptr[i].arg_list->get_base_addr(), sizeof(varity_info), function_ptr[i].arg_list->get_count(), file_ptr);
+	}
 	if(this->compile_info.import_flag >= IMPORT_FLAG_LINK)//this->compile_function_info.name_size)
 		for(i=0; i<this->compile_function_info.function_count; i++)
 			kfwrite(function_ptr[i].get_name(), 1, kstrlen(function_ptr[i].get_name()) + 1, file_ptr);
@@ -391,6 +402,7 @@ int c_interpreter::write_ofile(char *file, int flag)
 	kfwrite(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
 	for(i=0; i<this->compile_string_info.string_count; i++)
 		kfwrite(string_info_ptr[i].get_name(), 1, kstrlen(string_info_ptr[i].get_name()) + 1, file_ptr);
+	kfwrite(string_info_ptr, sizeof(string_info), this->compile_string_info.string_count, file_ptr);
 	kfwrite(&this->compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
 	for(i=0; i<this->compile_varity_info.varity_count; i++)
 		kfwrite(varity_info_ptr[i].get_name(), 1, kstrlen(varity_info_ptr[i].get_name()) + 1, file_ptr);
@@ -1593,7 +1605,7 @@ int c_interpreter::run_interpreter(void)
 {
 	int ret;
 	this->init(&stdio);
-	this->load_ofile("testcc.o", 1);
+	//this->load_ofile("testcc.o", 1);
 	this->generate_compile_func();
 	while(1) {
 		int len;
