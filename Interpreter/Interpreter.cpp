@@ -276,7 +276,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 		kfread(function_info_ptr, sizeof(function_info), 1, file_ptr);
 		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
 		mid_code_ptr += function_info_ptr->mid_code_stack.get_count();
-		if(this->compile_info.import_flag & IMPORT_FLAG_DEBUG) {
+		if(this->compile_info.import_flag >= IMPORT_FLAG_LINK) {
 			function_info_ptr->set_name(name_ptr);
 			name_ptr += kstrlen(name_ptr) + 1;
 		}
@@ -296,7 +296,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	base = (void*)make_align((long)base, 4);
 	varity_type_stack_t *varity_type_stack_ptr = (varity_type_stack_t*)function_info_ptr;
 	unsigned int varity_type_size = 0;
-	if(this->compile_info.import_flag & IMPORT_FLAG_REF) {
+	if(this->compile_info.import_flag >= IMPORT_FLAG_REF) {
 		kfread(varity_type_stack_ptr, sizeof(varity_type_stack), 1, file_ptr);
 		for(i=0; i<varity_type_stack_ptr->count; i++)
 			varity_type_size += varity_type_stack_ptr->arg_count[i];
@@ -308,7 +308,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	compile_varity_info_t compile_varity_info;
 	kfread(&compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
 	kfread(base, 1, compile_varity_info.name_size, file_ptr);
-	if(this->compile_info.import_flag & IMPORT_FLAG_DEBUG) {
+	if(this->compile_info.import_flag >= IMPORT_FLAG_DEBUG) {
 		varity_info *varity_info_ptr = (varity_info*)((char*)varity_type_ptr + varity_type_size * PLATFORM_WORD_LEN);
 		for(i=0; i<compile_varity_info.varity_count; i++) {
 			kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
@@ -338,6 +338,7 @@ int c_interpreter::write_ofile(char *file, int flag)
 	kmemset(&this->compile_function_info, 0, sizeof(compile_function_info_t));
 	kmemset(&this->compile_string_info, 0, sizeof(compile_string_info_t));
 	kmemset(&this->compile_varity_info, 0, sizeof(compile_varity_info));
+	this->compile_info.import_flag = flag;
 	count = this->function_declare->function_stack_ptr->get_count();
 	this->compile_function_info.function_count = count;
 	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
@@ -378,12 +379,14 @@ int c_interpreter::write_ofile(char *file, int flag)
 	kfwrite(&this->compile_function_info, sizeof(compile_function_info), 1, file_ptr);
 	for(i=0; i<this->compile_function_info.function_count; i++)
 		kfwrite(function_ptr[i].mid_code_stack.get_base_addr(), sizeof(mid_code), function_ptr[i].mid_code_stack.get_count(), file_ptr);
-	for(i=0; i<this->compile_function_info.function_count; i++)
-		kfwrite(function_ptr[i].get_name(), 1, kstrlen(function_ptr[i].get_name()) + 1, file_ptr);
-	for(i=0; i<this->compile_function_info.function_count; i++) {
-		if(function_ptr[i].buffer)
-			kfwrite(function_ptr[i].buffer, 1, kstrlen(function_ptr[i].buffer) + 1, file_ptr);
-	}
+	if(this->compile_info.import_flag >= IMPORT_FLAG_LINK)//this->compile_function_info.name_size)
+		for(i=0; i<this->compile_function_info.function_count; i++)
+			kfwrite(function_ptr[i].get_name(), 1, kstrlen(function_ptr[i].get_name()) + 1, file_ptr);
+	if(this->compile_info.import_flag >= IMPORT_FLAG_DEBUG)
+		for(i=0; i<this->compile_function_info.function_count; i++) {
+			if(function_ptr[i].buffer)
+				kfwrite(function_ptr[i].buffer, 1, kstrlen(function_ptr[i].buffer) + 1, file_ptr);
+		}
 	kfwrite(this->function_declare->function_stack_ptr->get_base_addr(), sizeof(function_info), this->compile_function_info.function_count, file_ptr);
 	kfwrite(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
 	for(i=0; i<this->compile_string_info.string_count; i++)
@@ -1974,7 +1977,6 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 		} else if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == R_BIG_BRACKET) {
 			this->function_flag_set.brace_depth--;
 			if(!this->function_flag_set.brace_depth) {
-				
 				mid_code *mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr(), *code_end_ptr = mid_code_ptr;
 				mid_code_ptr->ret_operator = CTL_BXLR;
 				this->cur_mid_code_stack_ptr->push();
