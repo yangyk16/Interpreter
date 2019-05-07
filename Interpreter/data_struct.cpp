@@ -227,6 +227,13 @@ int varity_type_stack_t::find(char arg_count, void *type_info_addr)
 	return -1;
 }
 
+int varity_type_stack_t::init(void)
+{
+	this->arg_count = (char*)vmalloc(MAX_VARITY_TYPE_COUNT);
+	this->type_info_addr = (void**)vmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN);
+	return 0;
+}
+
 node* list_stack::find_val(char *str)
 {
 	node *ptr;

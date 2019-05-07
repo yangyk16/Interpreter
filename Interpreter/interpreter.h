@@ -201,6 +201,7 @@ typedef struct compile_varity_info_s {
 	unsigned int data_size;
 	unsigned int name_size;
 	unsigned int varity_size;
+	unsigned int type_size;
 } compile_varity_info_t;
 
 typedef struct compile_string_info_s {

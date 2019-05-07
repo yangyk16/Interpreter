@@ -109,8 +109,9 @@ public:
 
 typedef struct varity_type_stack_s {
 	int count;
-	char arg_count[MAX_VARITY_TYPE_COUNT];
-	void *type_info_addr[MAX_VARITY_TYPE_COUNT];
+	char *arg_count;
+	void **type_info_addr;
 	int find(char arg_count, void *type_info_addr);
+	int init(void);
 } varity_type_stack_t;
 #endif
