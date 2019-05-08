@@ -253,6 +253,7 @@ class c_interpreter {
 	static compile_function_info_t compile_function_info;
 	static compile_string_info_t compile_string_info;
 	static compile_varity_info_t compile_varity_info;
+	int str_count_bak;
 	int save_sentence(char*, uint);
 	int function_analysis(node_attribute_t*, int);
 	int struct_analysis(node_attribute_t*, uint);
