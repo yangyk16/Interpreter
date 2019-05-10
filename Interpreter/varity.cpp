@@ -21,7 +21,7 @@ const char type_len[] = {5, 6, 4, 6, 5, 18, 9, 13, 4, 12, 3, 14, 5, 13, 4};
 void inc_varity_ref(varity_info *varity_ptr)
 {
 	PTR_N_VALUE(varity_ptr->get_complex_ptr())++;
-	debug("inc %x\n", varity_ptr);
+	debug("inc %x,%s\n", varity_ptr, varity_ptr->get_name());
 }
 
 void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag)

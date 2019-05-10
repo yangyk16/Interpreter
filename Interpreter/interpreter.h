@@ -16,6 +16,12 @@
 #define IMPORT_FLAG_DEBUG		4//name+varity_type+source+code+data+string
 #define IMPORT_FLAG_REF			8//name+varity_type+source+code+data+string+struct
 
+#define EXPORT_FLAG_EXEC		1
+#define EXPORT_FLAG_UNLINK		2
+
+#define LINK_ADDR				0//for execute
+#define LINK_NUMBER				1//for output exe file
+
 #define TOKEN_KEYWORD_TYPE		1
 #define TOKEN_KEYWORD_CTL		2
 #define TOKEN_ARG_LIST			3
@@ -48,6 +54,7 @@
 #define OPERAND_LINK_VARITY	(8)
 #define OPERAND_STRING		(16)
 #define OPERAND_CONST   	(32)
+#define OPERAND_NONE		(64)
 
 #define EXEC_FLAG_TRUE	true
 #define EXEC_FLAG_FALSE	false
@@ -182,7 +189,8 @@ public:
 
 typedef struct compile_info_s {
 	unsigned int total_size;
-	unsigned int import_flag;
+	unsigned short import_flag;
+	unsigned short compile_flag;
 	unsigned int struct_flag;
 } compile_info_t;
 
@@ -221,6 +229,7 @@ void clear_arglist(stack *arg_stack_ptr);
 class c_interpreter {
 	static language_elment_space_t language_elment_space;
 	static varity_type_stack_t varity_type_stack;
+	static int cstdlib_func_count;
 	node *root;
 	char sentence_buf[MAX_SENTENCE_LENGTH];
 	terminal* tty_used;
@@ -269,7 +278,8 @@ class c_interpreter {
 	bool is_operator_convert(char *str, char &type, int &opt_len, char &prio);
 	int post_order_expression(node_attribute_t *node_ptr, int count, list_stack&);
 	int generate_mid_code(node_attribute_t*, int count, bool need_semicolon);
-	int ulink(stack *stack_ptr);
+	int ulink(stack *stack_ptr, int mode);//link one function
+	
 	int mem_rearrange(void);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int ctl_analysis(node_attribute_t*, int);
@@ -343,6 +353,7 @@ class c_interpreter {
 	friend int user_eval(char *str);
 	friend class gdb;
 public:
+	int tlink(int mode);//link all function
 	int load_ofile(char *file, int flag);
 	int write_ofile(char *file, int flag);
 	void set_break_flag(int flag) {break_flag = flag;}

@@ -20,6 +20,7 @@ compile_info_t c_interpreter::compile_info;
 compile_function_info_t c_interpreter::compile_function_info;
 compile_string_info_t c_interpreter::compile_string_info;
 compile_varity_info_t c_interpreter::compile_varity_info;
+int c_interpreter::cstdlib_func_count;
 c_interpreter myinterpreter;
 round_queue token_fifo;
 stack string_stack;
@@ -179,7 +180,7 @@ int c_interpreter::mem_rearrange(void)
 	return ERROR_NO;
 }
 
-int c_interpreter::ulink(stack *stack_ptr)
+int c_interpreter::ulink(stack *stack_ptr, int mode)
 {
 	mid_code *mid_code_ptr = (mid_code*)stack_ptr->get_base_addr();
 	unsigned int code_count = stack_ptr->get_count();
@@ -194,7 +195,10 @@ int c_interpreter::ulink(stack *stack_ptr)
 		if(mid_code_ptr[i].ret_operand_type == OPERAND_G_VARITY) {
 			ret_flag = 1;
 			if((obj_ptr = (void*)this->varity_declare->find((char*)mid_code_ptr[i].ret_addr)) != NULL)
-				ret_addr = ((varity_info*)obj_ptr)->get_content_ptr();
+				if(mode == LINK_ADDR)
+					ret_addr = ((varity_info*)obj_ptr)->get_content_ptr();
+				else
+					ret_addr = (void*)((varity_info*)obj_ptr - (varity_info*)this->varity_declare->global_varity_stack->get_base_addr());
 			else {
 				symbol_name = (char*)mid_code_ptr[i].ret_addr;
 				link_ret = ERROR_VARITY_NONEXIST;
@@ -206,7 +210,10 @@ int c_interpreter::ulink(stack *stack_ptr)
 		if(mid_code_ptr[i].opda_operand_type == OPERAND_G_VARITY) {
 			opda_flag = 1;
 			if((obj_ptr = (void*)this->varity_declare->find((char*)mid_code_ptr[i].opda_addr)) != NULL)
-				opda_addr = ((varity_info*)obj_ptr)->get_content_ptr();
+				if(mode == LINK_ADDR)
+					opda_addr = ((varity_info*)obj_ptr)->get_content_ptr();
+				else
+					opda_addr = (void*)((varity_info*)obj_ptr - (varity_info*)this->varity_declare->global_varity_stack->get_base_addr());
 			else {
 				symbol_name = (char*)mid_code_ptr[i].opda_addr;
 				link_ret = ERROR_VARITY_NONEXIST;
@@ -218,7 +225,10 @@ int c_interpreter::ulink(stack *stack_ptr)
 		if(mid_code_ptr[i].opdb_operand_type == OPERAND_G_VARITY) {
 			opdb_flag = 1;
 			if((obj_ptr = (void*)this->varity_declare->find((char*)mid_code_ptr[i].opdb_addr)) != NULL)
-				opdb_addr = ((varity_info*)obj_ptr)->get_content_ptr();
+				if(mode == LINK_ADDR)
+					opdb_addr = ((varity_info*)obj_ptr)->get_content_ptr();
+				else
+					opdb_addr = (void*)((varity_info*)obj_ptr - (varity_info*)this->varity_declare->global_varity_stack->get_base_addr());
 			else {
 				symbol_name = (char*)mid_code_ptr[i].opdb_addr;
 				link_ret = ERROR_VARITY_NONEXIST;
@@ -230,7 +240,10 @@ int c_interpreter::ulink(stack *stack_ptr)
 		if(mid_code_ptr[i].ret_operator == OPT_CALL_FUNC) {
 			opda_flag = 1;
 			if((obj_ptr = (void*)this->function_declare->find((char*)mid_code_ptr[i].opda_addr)) != NULL)
-				opda_addr = obj_ptr;
+				if(mode == LINK_ADDR)
+					opda_addr = obj_ptr;
+				else
+					opda_addr = (void*)((function_info*)obj_ptr - (function_info*)this->function_declare->function_stack_ptr->get_base_addr());
 			else {
 				symbol_name = (char*)mid_code_ptr[i].opda_addr;
 				link_ret = ERROR_NO_FUNCTION;
@@ -260,6 +273,17 @@ int c_interpreter::ulink(stack *stack_ptr)
 	return link_ret;
 }
 
+int c_interpreter::tlink(int mode)
+{
+	int count = this->function_declare->function_stack_ptr->get_count();
+	for(int i=0; i<count; i++) {
+		function_info *function_info_ptr = (function_info*)this->function_declare->function_stack_ptr->visit_element_by_index(i);
+		if(!function_info_ptr->compile_func_flag)
+			this->ulink(&function_info_ptr->mid_code_stack, mode);
+	}
+	return ERROR_NO;
+}
+
 int c_interpreter::load_ofile(char *file, int flag)
 {
 	void *file_ptr = kfopen(file, "r");
@@ -277,6 +301,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	kfread(arg_varity_ptr, 1, this->compile_function_info.arg_size, file_ptr);
 	kfread(name_ptr, 1, this->compile_function_info.name_size, file_ptr);
 	unsigned int function_begin_count = this->function_declare->function_stack_ptr->get_count();
+	unsigned int varity_begin_count = this->varity_declare->global_varity_stack->get_count();
 	for(i=0; i<compile_function_info.function_count; i++) {
 		kfread(function_info_ptr, sizeof(function_info), 1, file_ptr);
 		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
@@ -343,6 +368,36 @@ int c_interpreter::load_ofile(char *file, int flag)
 	vfree(varity_type_info_ptr);
 	base = (void*)make_align((long)base, 4);
 	kfread((char*)base, 1, compile_varity_info.data_size, file_ptr);
+	if(compile_info.compile_flag == LINK_NUMBER) {
+		varity_info *varity_base = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr() + varity_begin_count;
+		function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr() + function_begin_count;
+		for(int j=0; j<compile_function_info.function_count; j++) {
+			unsigned int code_count = function_base[j].mid_code_stack.get_count();
+			mid_code_ptr = (mid_code*)function_base[j].mid_code_stack.get_base_addr();
+			for(i=0; i<code_count; i++) {
+				if(mid_code_ptr[i].ret_operator >= CTL_CMD_NO)
+					continue;
+				if(mid_code_ptr[i].ret_operand_type == OPERAND_G_VARITY) {
+					mid_code_ptr[i].ret_addr = (PLATFORM_WORD)&varity_base[mid_code_ptr[i].ret_addr];
+				} else if (mid_code_ptr[i].ret_operand_type == OPERAND_STRING) {
+					mid_code_ptr[i].ret_operand_type = OPERAND_G_VARITY;
+				}
+				if(mid_code_ptr[i].opda_operand_type == OPERAND_G_VARITY) {
+					mid_code_ptr[i].opda_addr = (PLATFORM_WORD)&varity_base[mid_code_ptr[i].opda_addr];
+				} else if (mid_code_ptr[i].opda_operand_type == OPERAND_STRING) {
+					mid_code_ptr[i].opda_operand_type = OPERAND_G_VARITY;
+				}
+				if(mid_code_ptr[i].opdb_operand_type == OPERAND_G_VARITY) {
+					mid_code_ptr[i].opdb_addr = (PLATFORM_WORD)&varity_base[mid_code_ptr[i].opdb_addr];
+				} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_STRING) {
+					mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;
+				}
+				if(mid_code_ptr[i].ret_operator == OPT_CALL_FUNC) {
+					mid_code_ptr[i].opda_addr = (PLATFORM_WORD)&function_base[mid_code_ptr[i].opda_addr - this->cstdlib_func_count];
+				}
+			}
+		}
+	}
 	return ERROR_NO;
 }
 
@@ -354,7 +409,8 @@ int c_interpreter::write_ofile(char *file, int flag)
 	kmemset(&this->compile_function_info, 0, sizeof(compile_function_info_t));
 	kmemset(&this->compile_string_info, 0, sizeof(compile_string_info_t));
 	kmemset(&this->compile_varity_info, 0, sizeof(compile_varity_info));
-	this->compile_info.import_flag = flag;
+	this->compile_info.import_flag = flag & 0xFFFF;//TODO:use macro
+	this->compile_info.compile_flag = flag >> 16;
 	count = this->function_declare->function_stack_ptr->get_count();
 	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 	for(this->compile_function_info.function_count=0,i=0; i<count; i++) {
@@ -503,11 +559,14 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 						error("Varity not exist.\n");
 						return ERROR_VARITY_NONEXIST;
 					}
-					if(varity_scope == VARITY_SCOPE_GLOBAL)
+					if(varity_scope == VARITY_SCOPE_GLOBAL) {
 						instruction_ptr->opda_operand_type = OPERAND_G_VARITY;
-					else
+						instruction_ptr->opda_addr = (int)avarity_ptr->get_name();
+					} else {
 						instruction_ptr->opda_operand_type = OPERAND_L_VARITY;
-					instruction_ptr->opda_addr = (int)avarity_ptr->get_name();
+						instruction_ptr->opda_addr = (int)avarity_ptr->get_content_ptr();
+					}
+					
 					instruction_ptr->opda_varity_type = avarity_ptr->get_type();
 				}
 			}
@@ -547,11 +606,13 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 						error("Varity not exist.\n");
 						return ERROR_VARITY_NONEXIST;
 					}
-					if(varity_scope == VARITY_SCOPE_GLOBAL)
+					if(varity_scope == VARITY_SCOPE_GLOBAL) {
 						instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
-					else
+						instruction_ptr->opdb_addr = (int)bvarity_ptr->get_name();
+					} else {
 						instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
-					instruction_ptr->opdb_addr = (int)bvarity_ptr->get_name();
+						instruction_ptr->opdb_addr = (int)bvarity_ptr->get_content_ptr();
+					}
 					instruction_ptr->opdb_varity_type = bvarity_ptr->get_type();
 				}
 			}
@@ -1639,8 +1700,8 @@ int c_interpreter::run_interpreter(void)
 {
 	int ret;
 	this->init(&stdio);
-	this->load_ofile("testcc.o", 1);
 	this->generate_compile_func();
+	this->load_ofile("testcc.elf", 1);
 	while(1) {
 		int len;
 		len = this->row_pretreat_fifo.readline(sentence_buf);
@@ -1687,6 +1748,7 @@ int c_interpreter::init(terminal* tty_used)
 		c_interpreter::language_elment_space.c_function.init(&c_interpreter::language_elment_space.function_list);
 		c_interpreter::language_elment_space.struct_list.init(sizeof(struct_info), c_interpreter::language_elment_space.struct_node, MAX_STRUCT_NODE);
 		c_interpreter::language_elment_space.c_struct.init(&c_interpreter::language_elment_space.struct_list);
+		c_interpreter::cstdlib_func_count = 0;
 		this->varity_declare = &c_interpreter::language_elment_space.c_varity;
 		this->nonseq_info = &c_interpreter::language_elment_space.nonseq_info_s;
 		this->function_declare = &c_interpreter::language_elment_space.c_function;
@@ -1958,6 +2020,7 @@ int c_interpreter::generate_compile_func(void)
 	int compile(char *file, int flag);
 	this->generate_arg_list("int,char*,int;", 3, compile_stack);
 	this->function_declare->add_compile_func("ucompile", (void*)compile, &compile_stack, 0);
+	this->cstdlib_func_count = this->function_declare->function_stack_ptr->get_count();
 	return ERROR_NO;
 }
 
@@ -2059,6 +2122,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 				this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 				this->varity_declare->destroy_local_varity();
 				this->sentence_analysis_data_struct.label_count = 0;
+				//this->ulink(&current_function_ptr->mid_code_stack);
 				return OK_FUNC_FINISH;
 			}
 		}
@@ -2097,99 +2161,20 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 			arg_stack_ptr->set_count(arg_count + 1);
 			all_arg_ptr->config_complex_info(complex_count - 2, complex_info);
 			inc_varity_ref(all_arg_ptr);
-			this->function_declare->declare(function_name, arg_stack_ptr);
+			ret_function_define = this->function_declare->declare(function_name, arg_stack_ptr);
+			if(ret_function_define) {
+				clear_arglist(arg_stack_ptr);
+				vfree(complex_info);
+				destroy_varity_stack(this->varity_declare->local_varity_stack);
+				//TODO:函数重复声明后变量inc/dec不平衡
+				return ret_function_define;
+			}
 			this->cur_mid_code_stack_ptr = &this->function_declare->get_current_node()->mid_code_stack;
 			this->exec_flag = false;
 			this->function_declare->save_sentence(this->sentence_buf, kstrlen(this->sentence_buf));
 			return OK_FUNC_DEFINE;
 		} else if(complex_count < 0)
 			return complex_count;
-		//while(v_len > 0) {
-		//	token_len = get_token(str_bak, &node_ptr);
-		//	if(node_ptr.node_type == TOKEN_NAME) {
-		//		kstrcpy(function_name, node_ptr.value.ptr_value);
-		//		get_token(str_bak + token_len, &node_ptr);
-		//		if(node_ptr.node_type == TOKEN_OPERATOR && (node_ptr.data == OPT_L_SMALL_BRACKET || node_ptr.data == OPT_TYPE_CONVERT) || node_ptr.node_type == TOKEN_ARG_LIST) {
-		//			str = str_bak;
-		//			function_declare_flag = 1;
-		//			break;
-		//		}
-		//	}
-		//	v_len -= token_len;
-		//	str_bak += token_len;
-		//}
-		//int l_bracket_pos = find_ch_with_bracket_level(str, '(', 0);
-		//int r_bracket_pos = find_ch_with_bracket_level(str, ')', 1);
-		//if(function_declare_flag) {
-		//	if(!this->exec_flag) {
-		//		error("Cannot define function here.\n");
-		//		return ERROR_FUNC_DEF_POS;
-		//	}
-		//	int keylen = kstrlen(type_key[ret_function_define]);
-		//	stack* arg_stack;
-		//	this->function_flag_set.function_flag = 1;
-		//	this->function_flag_set.function_begin_flag = 1;
-		//	varity_info* arg_node_ptr = (varity_info*)vmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC);
-		//	arg_stack = (stack*)vmalloc(sizeof(stack));
-		//	arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
-		//	arg_node_ptr->arg_init("", ret_function_define, sizeof_type[ret_function_define], 0);
-		//	arg_stack->push(arg_node_ptr++);
-		//	bool void_flag = false;
-		//	int offset = 0;
-		//	this->varity_global_flag = VARITY_SCOPE_LOCAL;
-		//	for(int i=l_bracket_pos+1; i<r_bracket_pos;) {
-		//		char varity_name[32];
-		//		int type;
-		//		struct_info *struct_info_ptr;
-		//		PLATFORM_WORD *varity_complex_ptr;
-		//		int type_len, complex_node_count;
-		//		token_len = get_token(str + i, &node_ptr);
-		//		if(token_len > r_bracket_pos - i) {
-		//			break;
-		//		}
-		//		type = basic_type_check(str + i, type_len, struct_info_ptr);
-		//		//int pos = key_match(str + i, r_bracket_pos-i+1, &type);
-		//		if(type < 0) {     
-		//			error("arg type error.\n");
-		//			ARG_RETURN(ERROR_FUNC_ARG_LIST);
-		//		}
-		//		i += type_len;
-		//		type_len = r_bracket_pos - i;
-		//		complex_node_count = get_varity_type(str + i, type_len, varity_name, type, struct_info_ptr, varity_complex_ptr);
-		//		i += type_len;
-		//		if(type == VOID) {
-		//			if(complex_node_count == 1 || (complex_node_count > 1 && varity_complex_ptr[complex_node_count] != PTR)) {
-		//				if(arg_stack->get_count() > 1) {
-		//					error("arg list error.\n");
-		//					ARG_RETURN(ERROR_FUNC_ARG_LIST);
-		//				}
-		//			}
-		//			void_flag = true;
-		//		} else {
-		//			if(void_flag) {
-		//				error("arg cannot use void type.\n");
-		//				ARG_RETURN(ERROR_FUNC_ARG_LIST);
-		//			}
-		//		}
-		//		if(!void_flag) {
-		//			arg_node_ptr->arg_init(varity_name, type, sizeof_type[type], (void*)make_align(offset, PLATFORM_WORD_LEN));
-		//			arg_node_ptr->config_complex_info(complex_node_count, varity_complex_ptr);
-		//			this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, type, sizeof_type[type], complex_node_count, varity_complex_ptr);
-		//			arg_stack->push(arg_node_ptr++);
-		//		} else {
-		//			if(varity_name[0] != 0) {
-		//				error("arg cannot use void type.\n");
-		//				ARG_RETURN(ERROR_FUNC_ARG_LIST);
-		//			}
-		//		}
-		//		offset = make_align(offset, PLATFORM_WORD_LEN) + sizeof_type[type];
-		//	}
-		//	this->function_declare->declare(function_name, arg_stack);
-		//	this->cur_mid_code_stack_ptr = &this->function_declare->get_current_node()->mid_code_stack;
-		//	this->exec_flag = false;
-		//	this->function_declare->save_sentence(str, len);
-		//	return OK_FUNC_DEFINE;
-		//}
 	}
 	return OK_FUNC_NOFUNC;
 }
@@ -2558,7 +2543,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 			instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 		} else if(node_attribute->value.ptr_value[0] == LINK_VARITY_PREFIX) {
 			instruction_ptr->opdb_operand_type = OPERAND_LINK_VARITY;
-			instruction_ptr->opdb_addr = (int)((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
+			instruction_ptr->opdb_addr = (PLATFORM_WORD)((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_content_ptr();
 			instruction_ptr->opdb_varity_type = ((varity_info*)this->mid_varity_stack.visit_element_by_index(node_attribute->value.ptr_value[1]))->get_type();
 		} else {
 			varity_info *varity_ptr;
@@ -2569,11 +2554,13 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 				error("Varity not exist.\n");
 				return ERROR_VARITY_NONEXIST;
 			}
-			if(varity_scope == VARITY_SCOPE_GLOBAL)
+			if(varity_scope == VARITY_SCOPE_GLOBAL) {
 				instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
-			else
+				instruction_ptr->opdb_addr = (PLATFORM_WORD)varity_ptr->get_name();
+			} else {
 				instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
-			instruction_ptr->opdb_addr = (int)varity_ptr->get_content_ptr();
+				instruction_ptr->opdb_addr = (PLATFORM_WORD)varity_ptr->get_content_ptr();
+			}
 			instruction_ptr->opdb_varity_type = varity_ptr->get_type();
 			//new_varity_ptr->set_type(instruction_ptr->opdb_varity_type);
 			new_varity_ptr->config_complex_info(varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr());
@@ -2644,7 +2631,7 @@ int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 		debug("exec non seq struct\n");
 		nonseq_info->non_seq_exec = 0;
 		if(this->exec_flag) {
-			this->ulink(this->cur_mid_code_stack_ptr);
+			this->ulink(this->cur_mid_code_stack_ptr, LINK_ADDR);
 			this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count(), INTERPRETER_DEBUG);
 			this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
 			this->cur_mid_code_stack_ptr->empty();
@@ -3167,7 +3154,7 @@ int c_interpreter::sentence_exec(node_attribute_t* node_ptr, uint count, bool ne
 	}
 	if(this->exec_flag) {
 		int mid_code_count = this->cur_mid_code_stack_ptr->get_count();
-		ret = this->ulink(this->cur_mid_code_stack_ptr);
+		ret = this->ulink(this->cur_mid_code_stack_ptr, LINK_ADDR);
 		if(ret)
 			return ret;
 		this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count(), INTERPRETER_DEBUG);
@@ -3690,6 +3677,7 @@ int user_eval(char *str)
 #if UCC_DEBUG == 1
 int compile(char *file, int flag)
 {
+	myinterpreter.tlink(LINK_NUMBER);
 	return myinterpreter.write_ofile(file, flag);
 }
 #endif

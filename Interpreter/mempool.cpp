@@ -173,6 +173,6 @@ void vfree(void *ptr)
 void* vrealloc(void* addr, unsigned int size)
 {
 	void *ret = krealloc(addr, size);
-	debug("realloc %x, %d\n", addr, size);
+	debug("realloc %x to %x, %d\n", addr, ret, size);
 	return ret;
 }
