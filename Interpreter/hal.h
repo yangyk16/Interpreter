@@ -24,6 +24,13 @@ public:
 	virtual int puts(char*);
 };
 #endif
+class file: public terminal {
+	void *file_ptr;
+public:
+	virtual int readline(char*);
+	virtual int puts(char*){return 0;}
+	int init(char*);
+};
 
 int kfputs(char *str);
 void *kfopen(char *filename, char *mode);

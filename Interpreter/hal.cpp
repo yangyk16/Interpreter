@@ -43,6 +43,29 @@ int uart::puts(char* str)
 }
 #endif
 
+int file::init(char *filename)
+{
+	file_ptr = fopen(filename, "r");
+	return 0;
+}
+
+int file::readline(char *str)
+{
+	int i = 0;
+	int len;
+	while(len = kfread(str + i, 1, 1, file_ptr)) {
+		if((str[i] == 0) | (str[i] == '\n'))
+			break;
+		if(str[i] == '\r')
+			continue;
+		i++;
+	}
+	if(len == 0 && i == 0)
+		return -1;
+	str[i] = 0;
+	return i;
+}
+
 int kfputs(char *str)
 {
 #if TTY_TYPE == 0

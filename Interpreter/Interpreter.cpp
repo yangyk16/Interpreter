@@ -13,6 +13,7 @@ tty stdio;
 #elif TTY_TYPE == 1
 uart stdio;
 #endif
+file fileio;
 
 varity_type_stack_t c_interpreter::varity_type_stack;
 language_elment_space_t c_interpreter::language_elment_space;
@@ -275,11 +276,23 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 
 int c_interpreter::tlink(int mode)
 {
+	int entry_flag = 0;
 	int count = this->function_declare->function_stack_ptr->get_count();
+	function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 	for(int i=0; i<count; i++) {
-		function_info *function_info_ptr = (function_info*)this->function_declare->function_stack_ptr->visit_element_by_index(i);
-		if(!function_info_ptr->compile_func_flag)
-			this->ulink(&function_info_ptr->mid_code_stack, mode);
+		if(!entry_flag && !kstrcmp(function_base[i].get_name(), "main")) {
+			function_info tmp;
+			kmemcpy(&tmp, &function_base[i], sizeof(function_info));
+			kmemcpy(&function_base[i], &function_base[this->cstdlib_func_count], sizeof(function_info));
+			kmemcpy(&function_base[this->cstdlib_func_count], &tmp, sizeof(function_info));
+			entry_flag = 1;
+		}
+		if(!function_base[i].compile_func_flag)
+			this->ulink(&function_base[i].mid_code_stack, mode);
+	}
+	if(!entry_flag) {
+		error("no main function.\n");
+		return ERROR_NOMAIN;
 	}
 	return ERROR_NO;
 }
@@ -1699,17 +1712,19 @@ bool c_interpreter::gdb_check(void)
 int c_interpreter::run_interpreter(void)
 {
 	int ret;
-	this->init(&stdio);
 	this->generate_compile_func();
-	this->load_ofile("testcc.elf", 1);
+	//this->load_ofile("testcc.elf", 1);
 	while(1) {
 		int len;
 		len = this->row_pretreat_fifo.readline(sentence_buf);
 		if(len > 0) {
 
 		} else {
-			kprintf(">>> ");
+			if(this->tty_used == &stdio)
+				kprintf(">>> ");
 			len = tty_used->readline(sentence_buf);
+			if(len == -1)
+				return ERROR_NO;
 		}
 		len = pre_treat(len);
 		if(len < 0)
@@ -3677,7 +3692,12 @@ int user_eval(char *str)
 #if UCC_DEBUG == 1
 int compile(char *file, int flag)
 {
-	myinterpreter.tlink(LINK_NUMBER);
+	int ret;
+	ret = myinterpreter.tlink(LINK_NUMBER);
+	if(ret) {
+		error("link error\n");
+		return ret;
+	}
 	return myinterpreter.write_ofile(file, flag);
 }
 #endif

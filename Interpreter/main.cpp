@@ -18,10 +18,18 @@ void ouch(int sig)
 	myinterpreter.print_call_stack();
 }
 
+extern tty stdio;
+extern file fileio;
 int _tmain(int argc, _TCHAR* argv[])
 {
 	signal(SIGINT, ouch);
 	global_init();
+	if(argc == 1)
+		myinterpreter.init(&stdio);
+	else {
+		myinterpreter.init(&fileio);
+		fileio.init("test.txt");
+	}
 	myinterpreter.run_interpreter();
 	//getchar();
 	return 0;
