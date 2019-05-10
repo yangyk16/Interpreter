@@ -18,17 +18,31 @@ void ouch(int sig)
 	myinterpreter.print_call_stack();
 }
 
+void tch2ch(char *src)
+{
+	char *dest = src;
+	for(; *src;) {
+		*dest++ = *src;
+		if(*(src + 1))
+			*dest++ = *(src + 1);
+		src += 2;
+	}
+	*dest = 0;
+}
+
 extern tty stdio;
 extern file fileio;
 int _tmain(int argc, _TCHAR* argv[])
 {
 	signal(SIGINT, ouch);
+	for(int i=1; i<argc; i++)
+		tch2ch((char*)argv[i]);
 	global_init();
 	if(argc == 1)
 		myinterpreter.init(&stdio);
 	else {
 		myinterpreter.init(&fileio);
-		fileio.init("test.txt");
+		fileio.init((char*)argv[1]);
 	}
 	myinterpreter.run_interpreter();
 	//getchar();
