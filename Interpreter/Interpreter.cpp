@@ -207,6 +207,7 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 			}
 		} else if (mid_code_ptr[i].ret_operand_type == OPERAND_STRING) {
 			mid_code_ptr[i].ret_operand_type = OPERAND_G_VARITY;
+			mid_code_ptr[i].ret_addr = (PLATFORM_WORD)((string_info*)string_stack.visit_element_by_index(mid_code_ptr[i].ret_addr))->get_name();
 		}
 		if(mid_code_ptr[i].opda_operand_type == OPERAND_G_VARITY) {
 			opda_flag = 1;
@@ -222,6 +223,7 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 			}
 		} else if (mid_code_ptr[i].opda_operand_type == OPERAND_STRING) {
 			mid_code_ptr[i].opda_operand_type = OPERAND_G_VARITY;
+			mid_code_ptr[i].opda_addr = (PLATFORM_WORD)((string_info*)string_stack.visit_element_by_index(mid_code_ptr[i].opda_addr))->get_name();
 		}
 		if(mid_code_ptr[i].opdb_operand_type == OPERAND_G_VARITY) {
 			opdb_flag = 1;
@@ -237,6 +239,7 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 			}
 		} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_STRING) {
 			mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;
+			mid_code_ptr[i].opdb_addr = (PLATFORM_WORD)((string_info*)string_stack.visit_element_by_index(mid_code_ptr[i].opdb_addr))->get_name();
 		}
 		if(mid_code_ptr[i].ret_operator == OPT_CALL_FUNC) {
 			opda_flag = 1;
@@ -3306,16 +3309,17 @@ int_value_handle:
 				string_info *str_node_ptr = (string_info*)string_stack.find(symbol_ptr);
 				if(str_node_ptr) {
 					p = (char*)str_node_ptr->get_name();
+					info->value.int_value = str_node_ptr->index;
 				} else {
 					string_info str_info;
 					p = (char*)vmalloc(count + 1);
 					str_info.set_name(p);
 					str_info.index = string_stack.get_count();
+					info->value.int_value = str_info.index;
 					kstrcpy(p, symbol_ptr);
 					string_stack.push(&str_info);
 				}
 				info->node_type = TOKEN_STRING;
-				info->value.ptr_value = p;
 				return i + 1;
 			}
 			i++;
