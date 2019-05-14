@@ -67,19 +67,19 @@ int c_interpreter::list_to_tree(node* tree_node, list_stack* post_order_stack)
 		}
 		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)tree_node->value)->data == OPT_CALL_FUNC) {
 			function_info *function_ptr = this->function_declare->find(((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
-			stack *arg_list;
+			unsigned int arg_count;
 			if(!function_ptr) {
 				varity_info *varity_info_ptr = this->varity_declare->find(((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
 				if(!varity_info_ptr) {
 					error("Function not found.\n");
 					return ERROR_NO_FUNCTION;
 				} else {
-					arg_list = (stack*)varity_info_ptr->get_complex_ptr()[2];
+					arg_count = ((stack*)varity_info_ptr->get_complex_ptr()[2])->get_count();
 				}
 			} else {
-				arg_list = function_ptr->arg_list;
+				arg_count = function_ptr->arg_list->get_count() - 1;
 			}
-			if(arg_list->get_count() == 1) {//无参数函数
+			if(arg_count == 0) {//无参数函数
 				tree_node->left = last_node;
 				tree_node->right = 0;
 				return ERROR_NO;
@@ -1294,6 +1294,8 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		break;
 	case OPT_CALL_FUNC:
 		this->call_func_info.function_ptr[this->call_func_info.function_depth] = this->function_declare->find(((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value);
+		if(!this->call_func_info.function_ptr[this->call_func_info.function_depth])
+			this->call_func_info.function_ptr[this->call_func_info.function_depth] = (function_info*)this->varity_declare->find(((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value)->get_content_ptr();
 		this->call_func_info.arg_count[this->call_func_info.function_depth] = this->call_func_info.function_ptr[this->call_func_info.function_depth]->arg_list->get_count();
 		this->call_func_info.cur_arg_number[this->call_func_info.function_depth] = 0;
 		this->call_func_info.offset[this->call_func_info.function_depth] = 0;
@@ -1777,7 +1779,7 @@ int c_interpreter::run_interpreter(void)
 	return ERROR_NO;
 }
 
-int c_interpreter::init(terminal* tty_used)
+int c_interpreter::init(terminal* tty_used, int rtl_flag)
 {
 	if(!c_interpreter::language_elment_space.init_done) {
 		c_interpreter::varity_type_stack.init();
@@ -1813,6 +1815,7 @@ int c_interpreter::init(terminal* tty_used)
 		handle_init();
 		c_interpreter::language_elment_space.init_done = 1;
 	}
+	this->real_time_link = rtl_flag;
 	this->tty_used = tty_used;
 	this->row_pretreat_fifo.set_base(this->pretreat_buf);
 	this->row_pretreat_fifo.set_length(sizeof(this->pretreat_buf));
@@ -2168,6 +2171,8 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 				this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 				this->varity_declare->destroy_local_varity();
 				this->sentence_analysis_data_struct.label_count = 0;
+				if(this->real_time_link)
+					this->ulink(&current_function_ptr->mid_code_stack, LINK_ADDR);
 				//this->ulink(&current_function_ptr->mid_code_stack);
 				return OK_FUNC_FINISH;
 			}
@@ -3452,15 +3457,16 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 					i += v_count;
 					token_in_bracket -= v_count;
 					if(type == VOID) {
-						if(complex_node_count == 1 || (complex_node_count > 1 && varity_complex_ptr[complex_node_count] != PTR)) {
+						if(complex_node_count == 1 || (complex_node_count > 1 && GET_COMPLEX_TYPE(varity_complex_ptr[complex_node_count]) != COMPLEX_PTR)) {
 							if(arg_stack->get_count() >= 1) {
 								error("arg list error.\n");
 								clear_arglist(arg_stack);
 								this->token_node_ptr[wptr].node_type = TOKEN_ERROR;
 								return ERROR_FUNC_ARG_LIST;
 							}
+							void_flag = true;
 						}
-						void_flag = true;
+						//void_flag = true;
 					} else {
 						if(void_flag) {
 							error("arg cannot use void type.\n");

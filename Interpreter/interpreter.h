@@ -231,6 +231,7 @@ class c_interpreter {
 	static language_elment_space_t language_elment_space;
 	static varity_type_stack_t varity_type_stack;
 	static int cstdlib_func_count;
+	int real_time_link;
 	node *root;
 	char sentence_buf[MAX_SENTENCE_LENGTH];
 	terminal* tty_used;
@@ -359,7 +360,7 @@ public:
 	int write_ofile(char *file, int flag);
 	void set_break_flag(int flag) {break_flag = flag;}
 	int print_call_stack(void);
-	int init(terminal*);
+	int init(terminal*, int);
 	int run_interpreter(void);
 };
 

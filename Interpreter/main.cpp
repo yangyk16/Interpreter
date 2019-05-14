@@ -39,9 +39,9 @@ int _tmain(int argc, _TCHAR* argv[])
 		tch2ch((char*)argv[i]);
 	global_init();
 	if(argc == 1)
-		myinterpreter.init(&stdio);
+		myinterpreter.init(&stdio, 1);
 	else {
-		myinterpreter.init(&fileio);
+		myinterpreter.init(&fileio, 1);
 		fileio.init((char*)argv[1]);
 	}
 	myinterpreter.run_interpreter();
