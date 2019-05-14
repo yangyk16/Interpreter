@@ -67,11 +67,19 @@ int c_interpreter::list_to_tree(node* tree_node, list_stack* post_order_stack)
 		}
 		if(((node_attribute_t*)tree_node->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)tree_node->value)->data == OPT_CALL_FUNC) {
 			function_info *function_ptr = this->function_declare->find(((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
+			stack *arg_list;
 			if(!function_ptr) {
-				error("Function not found.\n");
-				return ERROR_NO_FUNCTION;
+				varity_info *varity_info_ptr = this->varity_declare->find(((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
+				if(!varity_info_ptr) {
+					error("Function not found.\n");
+					return ERROR_NO_FUNCTION;
+				} else {
+					arg_list = (stack*)varity_info_ptr->get_complex_ptr()[2];
+				}
+			} else {
+				arg_list = function_ptr->arg_list;
 			}
-			if(function_ptr->arg_list->get_count() == 1) {//无参数函数
+			if(arg_list->get_count() == 1) {//无参数函数
 				tree_node->left = last_node;
 				tree_node->right = 0;
 				return ERROR_NO;
@@ -240,6 +248,18 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 		} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_STRING) {
 			mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;
 			mid_code_ptr[i].opdb_addr = (PLATFORM_WORD)((string_info*)string_stack.visit_element_by_index(mid_code_ptr[i].opdb_addr))->get_name();
+		} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_FUNCTION) {
+			opdb_flag = 1;
+			if((obj_ptr = (void*)this->function_declare->find((char*)mid_code_ptr[i].opdb_addr)) != NULL)
+				if(mode == LINK_ADDR)
+					opdb_addr = ((function_info*)obj_ptr);
+				else
+					opdb_addr = (void*)((function_info*)obj_ptr - (function_info*)this->function_declare->function_stack_ptr->get_base_addr());
+			else {
+				symbol_name = (char*)mid_code_ptr[i].opdb_addr;
+				link_ret = ERROR_VARITY_NONEXIST;
+				break;
+			}
 		}
 		if(mid_code_ptr[i].ret_operator == OPT_CALL_FUNC) {
 			opda_flag = 1;
@@ -539,7 +559,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	register mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 	int varity_number;
 	bool avarity_use_flag = 0, bvarity_use_flag = 0;
-	void *avarity_info = 0, *bvarity_info = 0;
+	//void *avarity_info = 0, *bvarity_info = 0;
+	int function_flag = 0;
 	if(opt_number[opt] > 1) {
 		node_attribute = (node_attribute_t*)opt_node_ptr->left->value;//判断是否是双目，单目不能看左树
 		if(node_attribute->node_type == TOKEN_CONST_VALUE) {
@@ -619,17 +640,24 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				if(opt != OPT_MEMBER && opt != OPT_REFERENCE) {
 					bvarity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
 					if(!bvarity_ptr) {
-						error("Varity not exist.\n");
-						return ERROR_VARITY_NONEXIST;
-					}
-					if(varity_scope == VARITY_SCOPE_GLOBAL) {
-						instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
-						instruction_ptr->opdb_addr = (int)bvarity_ptr->get_name();
+						bvarity_ptr = (varity_info*)this->function_declare->find(node_attribute->value.ptr_value);
+						if(!bvarity_ptr) {
+							error("Varity not exist.\n");
+							return ERROR_VARITY_NONEXIST;
+						}
+						instruction_ptr->opdb_operand_type = OPERAND_FUNCTION;
+						instruction_ptr->opdb_addr = (int)((function_info*)bvarity_ptr)->get_name();
+						function_flag = 2;
 					} else {
-						instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
-						instruction_ptr->opdb_addr = (int)bvarity_ptr->get_content_ptr();
+						if(varity_scope == VARITY_SCOPE_GLOBAL) {
+							instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
+							instruction_ptr->opdb_addr = (int)bvarity_ptr->get_name();
+						} else {
+							instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
+							instruction_ptr->opdb_addr = (int)bvarity_ptr->get_content_ptr();
+						}
+						instruction_ptr->opdb_varity_type = bvarity_ptr->get_type();
 					}
-					instruction_ptr->opdb_varity_type = bvarity_ptr->get_type();
 				}
 			}
 		}
@@ -734,11 +762,11 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			kmemcpy(&instruction_ptr->opdb_addr, tmp, sizeof(tmp));
 		}
 		if(opt == OPT_PLUS)
-			ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+			ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr, avarity_ptr, bvarity_ptr);
 		else if(opt == OPT_MINUS)//减法可用两个指针减，改用cmp的try_handle
-			ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+			ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr, avarity_ptr, bvarity_ptr);
 		else
-			ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+			ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			RETURN(ret_type);
 		}
@@ -773,7 +801,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_SMALL_EQU:
 	case OPT_BIG:
 	case OPT_SMALL:
-		ret_type = try_call_opt_handle(OPT_EQU, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		ret_type = try_call_opt_handle(OPT_EQU, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			RETURN(ret_type);
 		}
@@ -802,20 +830,20 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		}
 		goto assign_general;
 	case OPT_ASSIGN:
-		ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			RETURN(ret_type);
 		}
 		goto assign_general;
 	case OPT_MUL_ASSIGN:
 	case OPT_DEVIDE_ASSIGN:
-		ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			RETURN(ret_type);
 		}
 		goto assign_general;
 	case OPT_ADD_ASSIGN:
-		ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			RETURN(ret_type);
 		}
@@ -829,14 +857,14 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		} else
 			goto assign_general;
 	case OPT_MINUS_ASSIGN:
-		ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			RETURN(ret_type);
 		}
 		if(ret_type == instruction_ptr->opda_varity_type)
-			ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, ret_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr());
+			ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr, avarity_ptr, bvarity_ptr);
 		else
-			ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr->opda_varity_type, ret_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+			ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			RETURN(ret_type);
 		}
@@ -973,7 +1001,7 @@ assign_general:
 	case OPT_MOD:
 	case OPT_ASL:
 	case OPT_ASR:
-		ret_type = try_call_opt_handle(OPT_MOD, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, avarity_ptr->get_complex_arg_count(), (int*)avarity_ptr->get_complex_ptr(), bvarity_ptr->get_complex_arg_count(), (int*)bvarity_ptr->get_complex_ptr());
+		ret_type = try_call_opt_handle(OPT_MOD, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			RETURN(ret_type);
 		}
@@ -1782,6 +1810,7 @@ int c_interpreter::init(terminal* tty_used)
 			tmp_varity_name[i][2] = link_varity_name[i][2] = 0;
 		}
 		string_stack.init(sizeof(string_info), vmalloc(DEFAULT_STRING_NODE * sizeof(string_info)), DEFAULT_STRING_NODE);
+		handle_init();
 		c_interpreter::language_elment_space.init_done = 1;
 	}
 	this->tty_used = tty_used;
@@ -1795,7 +1824,6 @@ int c_interpreter::init(terminal* tty_used)
 	this->call_func_info.para_offset = PLATFORM_WORD_LEN;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 	///////////
-	handle_init();
 	this->break_flag = 0;
 	this->token_node_ptr = this->sentence_analysis_data_struct.node_attribute;
 	this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;

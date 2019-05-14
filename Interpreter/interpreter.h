@@ -54,7 +54,8 @@
 #define OPERAND_LINK_VARITY	(8)
 #define OPERAND_STRING		(16)
 #define OPERAND_CONST   	(32)
-#define OPERAND_NONE		(64)
+#define OPERAND_FUNCTION	(64)
+#define OPERAND_NONE		(128)
 
 #define EXEC_FLAG_TRUE	true
 #define EXEC_FLAG_FALSE	false

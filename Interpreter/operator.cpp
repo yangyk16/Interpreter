@@ -2175,8 +2175,16 @@ wrong:
 	return ERROR_ILLEGAL_OPERAND;
 }
 
-int try_call_opt_handle(int opt, int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
+int try_call_opt_handle(int opt, mid_code* instruction_ptr, void *avarity_ptr, void *bvarity_ptr)
 {
+	int opda_type = instruction_ptr->opda_varity_type;
+	int opdb_type = instruction_ptr->opdb_varity_type;
+	int opda_complex_count = ((varity_info*)avarity_ptr)->get_complex_arg_count();
+	int opdb_complex_count = ((varity_info*)bvarity_ptr)->get_complex_arg_count();
+	int *opda_type_info = (int*)((varity_info*)avarity_ptr)->get_complex_ptr();
+	int *opdb_type_info = (int*)((varity_info*)bvarity_ptr)->get_complex_ptr();
+	if(instruction_ptr->opdb_operand_type == OPERAND_FUNCTION)
+		return ERROR_NO;
 	switch(opt) {
 	case OPT_ASSIGN:
 		return try_assign_handle(opda_type, opdb_type, opda_complex_count, opda_type_info, opdb_complex_count, opdb_type_info);

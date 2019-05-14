@@ -45,6 +45,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		fileio.init((char*)argv[1]);
 	}
 	myinterpreter.run_interpreter();
-	//getchar();
+	getchar();
 	return 0;
 }
