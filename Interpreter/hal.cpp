@@ -3,6 +3,7 @@
 #include "kmalloc.h"
 #include "cstdlib.h"
 #include "error.h"
+#include "interpreter.h"
 
 #if TTY_TYPE == 0
 #include <iostream>
@@ -102,6 +103,22 @@ unsigned int kfwrite(void *buffer, unsigned int size, unsigned int count, void *
 #if TTY_TYPE == 0
 	return fwrite(buffer, size, count, (FILE*)fileptr);
 #endif
+}
+
+void *irq_service[32];
+void *irq_data[32];
+extern c_interpreter irq_interpreter;
+void irq_entry(int irq_no)
+{
+	stack *mid_code_stack = &((function_info*)irq_service[irq_no])->mid_code_stack;
+	irq_interpreter.exec_mid_code((mid_code*)mid_code_stack->get_base_addr(), mid_code_stack->get_count());
+}
+
+void irq_reg(int irq_no, void *func_ptr, void *data)
+{
+	irq_service[irq_no] = func_ptr;
+	irq_data[irq_no] = data;
+	//intreg(irq_no, irq_entry, 0);
 }
 
 int hard_fault_check(int addr)

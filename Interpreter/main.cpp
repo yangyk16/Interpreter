@@ -11,6 +11,7 @@
 using namespace std;
 
 extern c_interpreter myinterpreter;
+extern c_interpreter irq_interpreter;
 
 void ouch(int sig)
 {
@@ -44,6 +45,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		myinterpreter.init(&fileio, 1);
 		fileio.init((char*)argv[1]);
 	}
+	irq_interpreter.init(0, 1);
 	myinterpreter.run_interpreter();
 	getchar();
 	return 0;

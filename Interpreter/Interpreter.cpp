@@ -23,6 +23,7 @@ compile_string_info_t c_interpreter::compile_string_info;
 compile_varity_info_t c_interpreter::compile_varity_info;
 int c_interpreter::cstdlib_func_count;
 c_interpreter myinterpreter;
+c_interpreter irq_interpreter;
 round_queue token_fifo;
 stack string_stack;
 
@@ -1194,6 +1195,7 @@ assign_general:
 			instruction_ptr++->opda_addr = make_align((PLATFORM_WORD)this->varity_declare->local_varity_stack->offset, 4) + this->call_func_info.para_offset;
 			code_stack_ptr->push();
 			return_varity_ptr = (varity_info*)function_ptr->arg_list->visit_element_by_index(0);
+			instruction_ptr->opdb_operand_type = OPERAND_CONST;
 			instruction_ptr->opda_addr = (int)function_ptr->get_name();
 			instruction_ptr->ret_operator = opt;
 			instruction_ptr->ret_varity_type = return_varity_ptr->get_type();
@@ -2069,6 +2071,9 @@ int c_interpreter::generate_compile_func(void)
 	int compile(char *file, int flag);
 	this->generate_arg_list("int,char*,int;", 3, compile_stack);
 	this->function_declare->add_compile_func("ucompile", (void*)compile, &compile_stack, 0);
+	static stack irqreg_stack;
+	this->generate_arg_list("void,int,void*,void*;", 4, irqreg_stack);
+	this->function_declare->add_compile_func("irq_reg", (void*)irq_reg, &irqreg_stack, 0);
 	this->cstdlib_func_count = this->function_declare->function_stack_ptr->get_count();
 	return ERROR_NO;
 }

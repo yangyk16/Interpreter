@@ -226,6 +226,7 @@ int user_eval(char *str);
 extern "C" void global_init(void);
 extern "C" void run_interpreter(void);
 void clear_arglist(stack *arg_stack_ptr);
+void irq_reg(int irq_no, void *func_ptr, void *data);
 
 class c_interpreter {
 	static language_elment_space_t language_elment_space;
@@ -285,7 +286,7 @@ class c_interpreter {
 	int mem_rearrange(void);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int ctl_analysis(node_attribute_t*, int);
-	int exec_mid_code(mid_code *pc, uint count);
+	
 	int nonseq_start_gen_mid_code(node_attribute_t*, int, int non_seq_type);
 	int nonseq_mid_gen_mid_code(node_attribute_t*, int);
 	int nonseq_end_gen_mid_code(int row_num, node_attribute_t*, int);
@@ -358,6 +359,7 @@ public:
 	int tlink(int mode);//link all function
 	int load_ofile(char *file, int flag);
 	int write_ofile(char *file, int flag);
+	int exec_mid_code(mid_code *pc, uint count);
 	void set_break_flag(int flag) {break_flag = flag;}
 	int print_call_stack(void);
 	int init(terminal*, int);
