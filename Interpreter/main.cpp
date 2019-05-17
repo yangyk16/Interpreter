@@ -1,7 +1,9 @@
 // Interpreter.cpp : 定义控制台应用程序的入口点。
 //
 
+#ifdef WIN32
 #include "stdafx.h"
+#endif
 #include "interpreter.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -33,7 +35,11 @@ void tch2ch(char *src)
 
 extern tty stdio;
 extern file fileio;
+#ifdef WIN32
 int _tmain(int argc, _TCHAR* argv[])
+#else
+int main(int argc, char *argv[])
+#endif
 {
 	signal(SIGINT, ouch);
 	for(int i=1; i<argc; i++)

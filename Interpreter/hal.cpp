@@ -7,6 +7,7 @@
 
 #if TTY_TYPE == 0
 #include <iostream>
+#include <stdio.h>
 using namespace std;
 int tty::readline(char* str)//×îºó±ØÐë²¹0
 {
