@@ -149,11 +149,11 @@ void heapinit(void) {
 	head->next = 0;
 }
 
-void* vmalloc(unsigned int size)
+void* dmalloc(unsigned int size, char *info)
 {
 	unsigned int a_size = size&7?size+(8-(size&7)):size;
 	void* ret = kmalloc(a_size);
-	debug("malloc %x, %d\n", ret, size);
+	debug("malloc %x, %d, %s\n", ret, size, info);
 	if(ret) {
 		//size = size&7?size+(8-size&7):size;
 		//debug("malloc %x, %d\n", ret, size);

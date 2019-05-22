@@ -22,7 +22,7 @@ bool kisdigit(unsigned char ch);
 bool kisupper(unsigned char ch);
 bool kislower(unsigned char ch);
 
-void *vmalloc(unsigned int size);
+void *dmalloc(unsigned int size, char *info);
 void vfree(void*);
 void* vrealloc(void* addr, unsigned int size);
 #endif

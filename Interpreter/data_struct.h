@@ -14,6 +14,10 @@ public:
 	inline char* get_name(void) {return name;}
 };
 
+typedef struct string_info_s: public element {
+	unsigned int index;
+} string_info;
+
 class data_struct {
 protected:
 	ushort count;
@@ -24,6 +28,14 @@ public:
 	inline void* get_base_addr(void) {return this->bottom_addr;}
 	inline int is_full(void) {return length==count?1:0;}
 	inline uint get_count(void) {return this->count;}
+};
+
+class strfifo: public data_struct {
+	uint wptr;
+public:
+	char* write(const char*);
+	int del(char*);
+	void init(uint count);
 };
 
 class round_queue: public data_struct {

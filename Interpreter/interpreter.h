@@ -218,10 +218,6 @@ typedef struct compile_string_info_s {
 	unsigned int string_size;
 } compile_string_info_t;
 
-typedef struct string_info_s: public element {
-	unsigned int index;
-} string_info;
-
 int user_eval(char *str);
 extern "C" void global_init(void);
 extern "C" void run_interpreter(void);

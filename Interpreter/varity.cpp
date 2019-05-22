@@ -6,6 +6,7 @@
 #include "string_lib.h"
 #include "cstdlib.h"
 #include "gdb.h"
+#include "global.h"
 
 #if PLATFORM_WORD_LEN == 4
 const char type_key[15][19] = {"empty", "char", "unsigned char", "short", "unsigned short", "int", "long", "unsigned int", "unsigned long", "long long", "unsigned long long", "float", "double", "void", "struct"};
@@ -77,11 +78,21 @@ void varity_info::arg_init(char* name, uint size, int arg_count, PLATFORM_WORD *
 
 void varity_info::init_varity(char *name, uint size, int arg_count, PLATFORM_WORD *complex_ptr)
 {
-	varity_info* varity_ptr = this;
+	varity_info *varity_ptr = this;
+	string_info *string_ptr;
 	if(name) {
-		int name_len = kstrlen(name);
-		varity_ptr->name = (char*)vmalloc(name_len+1);
-		kstrcpy(varity_ptr->name, name);
+		string_ptr = (string_info*)name_stack.find(name);
+		if(!string_ptr) {
+			string_info tmp;
+			varity_ptr->name = name_fifo.write(name);
+			tmp.set_name(varity_ptr->name);
+			name_stack.push(&tmp);
+		} else {
+			varity_ptr->name = string_ptr->get_name();
+		}
+		//int name_len = kstrlen(name);
+		//varity_ptr->name = (char*)dmalloc(name_len + 1, "");
+		//kstrcpy(varity_ptr->name, name);
 	}
 	varity_ptr->size = size;
 	varity_ptr->content_ptr = 0;
@@ -92,14 +103,14 @@ void varity_info::init_varity(char *name, uint size, int arg_count, PLATFORM_WOR
 	//}
 }
 
-varity_info::varity_info(char* name, int type, uint size)
+/*varity_info::varity_info(char* name, int type, uint size)
 {
 	int name_len = kstrlen(name);
-	this->name = (char*)vmalloc(name_len+1);
+	this->name = (char*)dmalloc(name_len + 1, "");
 	kstrcpy(this->name, name);
 	this->size = size;
 	this->content_ptr = 0;
-}
+}*/
 
 void varity_info::set_type(int type)
 {
@@ -129,7 +140,7 @@ int varity_info::apply_space(void)
 		this->content_ptr = 0;
 	}
 	if(this->size) {
-		this->content_ptr = vmalloc(this->size);
+		this->content_ptr = dmalloc(this->size, "");
 		if(this->content_ptr)
 			return 0;
 		else
@@ -312,7 +323,7 @@ int varity::destroy_local_varity(void)
 	varity_info *local_varity_ptr = (varity_info*)this->local_varity_stack->get_base_addr();
 	for(int i=0; i<this->local_varity_stack->count; i++, local_varity_ptr++) {
 		dec_varity_ref(local_varity_ptr, true);
-		vfree(local_varity_ptr->get_name());
+		//vfree(local_varity_ptr->get_name());
 	}
 	this->local_varity_stack->reset();
 	return 0;
@@ -363,7 +374,7 @@ int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count)
 {
 	if(GET_COMPLEX_TYPE(complex_info[complex_arg_count]) != COMPLEX_ARRAY)
 		return -1;//TODO:找一个返回值
-	PLATFORM_WORD *new_complex_info = (PLATFORM_WORD*)vmalloc((complex_arg_count + 1) * sizeof(PLATFORM_WORD));
+	PLATFORM_WORD *new_complex_info = (PLATFORM_WORD*)dmalloc((complex_arg_count + 1) * sizeof(PLATFORM_WORD), "");
 	kmemcpy(new_complex_info + 1, complex_info + 1, (complex_arg_count - 1) * sizeof(PLATFORM_WORD));
 	new_complex_info[complex_arg_count] = COMPLEX_PTR << COMPLEX_TYPE_BIT;
 	complex_info = new_complex_info;

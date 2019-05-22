@@ -5,17 +5,28 @@
 #include "config.h"
 #include "interpreter.h"
 #include "cstdlib.h"
+#include "global.h"
 
 int function_info::init(char* name, stack* arg_list)
 {//TODO: add malloc fail action.
 	int name_len = kstrlen(name);
-	this->name = (char*)vmalloc(name_len + 1);
-	kstrcpy(this->name, name);
-	this->buffer = (char*)vmalloc(MAX_FUNCTION_LEN);
-	this->row_begin_pos = (char**)vmalloc(MAX_FUNCTION_LINE * sizeof(char*));
-	this->row_len = (int*)vmalloc(MAX_FUNCTION_LINE * sizeof(int));
+	string_info *string_ptr;
+	string_ptr = (string_info*)name_stack.find(name);
+	if(!string_ptr) {
+		string_info tmp;
+		this->name = name_fifo.write(name);
+		tmp.set_name(this->name);
+		name_stack.push(&tmp);
+	} else {
+		this->name = string_ptr->get_name();
+	}
+	//this->name = (char*)dmalloc(name_len + 1, "");
+	//kstrcpy(this->name, name);
+	this->buffer = (char*)dmalloc(MAX_FUNCTION_LEN, "");
+	this->row_begin_pos = (char**)dmalloc(MAX_FUNCTION_LINE * sizeof(char*), "");
+	this->row_len = (int*)dmalloc(MAX_FUNCTION_LINE * sizeof(int), "");
 #if DEBUG_EN
-	this->row_code_ptr = (mid_code**)vmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*));
+	this->row_code_ptr = (mid_code**)dmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*), "");
 #endif
 	this->arg_list = arg_list;
 	this->compile_func_flag = 0;
@@ -26,8 +37,18 @@ int function_info::init(char* name, stack* arg_list)
 int function_info::init(char *name, void* addr, stack *arg_list, char variable_arg_flag)
 {
 	int name_len = kstrlen(name);
-	this->name = (char*)vmalloc(name_len + 1);
-	kstrcpy(this->name, name);
+	string_info *string_ptr;
+	string_ptr = (string_info*)name_stack.find(name);
+	if(!string_ptr) {
+		string_info tmp;
+		this->name = name_fifo.write(name);
+		tmp.set_name(this->name);
+		name_stack.push(&tmp);
+	} else {
+		this->name = string_ptr->get_name();
+	}
+	//this->name = (char*)dmalloc(name_len + 1, "");
+	//kstrcpy(this->name, name);
 	this->func_addr = addr;
 	this->compile_func_flag = 1;
 	this->variable_para_flag = variable_arg_flag;
@@ -40,16 +61,16 @@ int function_info::copy_local_varity_stack(indexed_stack *lvsp)
 {
 	varity_info *cur_varity_ptr;
 	int total_varity_count = lvsp->get_count();
-	void *bottom_addr = vmalloc(total_varity_count * sizeof(varity_info));
+	void *bottom_addr = dmalloc(total_varity_count * sizeof(varity_info), "");
 	kmemcpy(&this->local_varity_stack, lvsp, sizeof(indexed_stack));
 	this->local_varity_stack.set_base(bottom_addr);
 	for(int i=0; i<total_varity_count; i++) {
 		varity_info *copied_varity_ptr = (varity_info*)lvsp->visit_element_by_index(i);
 		varity_info *copying_varity_ptr = (varity_info*)this->local_varity_stack.visit_element_by_index(i);
-		char *name_ptr = (char*)vmalloc(kstrlen(copied_varity_ptr->get_name()) + 1);
 		kmemcpy(copying_varity_ptr, copied_varity_ptr, sizeof(varity_info));
-		kstrcpy(name_ptr, copying_varity_ptr->get_name());
-		copying_varity_ptr->set_name(name_ptr);
+		//char *name_ptr = (char*)dmalloc(kstrlen(copied_varity_ptr->get_name()) + 1, "");
+		//kstrcpy(name_ptr, copying_varity_ptr->get_name());
+		copying_varity_ptr->set_name(copying_varity_ptr->get_name());
 	}
 	return ERROR_NO;
 }

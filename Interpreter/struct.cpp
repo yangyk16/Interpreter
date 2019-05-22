@@ -4,12 +4,23 @@
 #include "varity.h"
 #include <stdlib.h>
 #include "cstdlib.h"
+#include "global.h"
 
 int struct_info::init(char* name, stack* varity_list)
 {//TODO: mallocÊ§°Ü
 	int name_len = kstrlen(name);
-	this->name = (char*)vmalloc(name_len + 1);
-	kstrcpy(this->name, name);
+	string_info *string_ptr;
+	string_ptr = (string_info*)name_stack.find(name);
+	if(!string_ptr) {
+		string_info tmp;
+		this->name = name_fifo.write(name);
+		tmp.set_name(this->name);
+		name_stack.push(&tmp);
+	} else {
+		this->name = string_ptr->get_name();
+	}
+	//this->name = (char*)dmalloc(name_len + 1, "");
+	//kstrcpy(this->name, name);
 	this->varity_stack_ptr = varity_list;
 	kmemcpy(this->type_info_ptr, basic_type_info[STRUCT], sizeof(int) * 3);
 	this->type_info_ptr[1] = (uint)this;

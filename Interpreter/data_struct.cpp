@@ -16,7 +16,7 @@ void stack::init(int esize, int capacity)
 	this->count = 0;
 	this->top = 0;	
 	this->element_size = esize;
-	this->bottom_addr = vmalloc(esize * capacity);
+	this->bottom_addr = dmalloc(esize * capacity, "");
 	this->length = capacity;
 }
 
@@ -113,7 +113,7 @@ void round_queue::init(uint count, uint element_size)
 {
 	this->length = count;
 	this->element_size = element_size;
-	this->bottom_addr = vmalloc(length * element_size);
+	this->bottom_addr = dmalloc(length * element_size, "");
 }
 
 round_queue::round_queue(uint length, void* base_addr)
@@ -229,8 +229,8 @@ int varity_type_stack_t::find(char arg_count, void *type_info_addr)
 
 int varity_type_stack_t::init(void)
 {
-	this->arg_count = (char*)vmalloc(MAX_VARITY_TYPE_COUNT);
-	this->type_info_addr = (void**)vmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN);
+	this->arg_count = (char*)dmalloc(MAX_VARITY_TYPE_COUNT, "");
+	this->type_info_addr = (void**)dmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN, "");
 	return 0;
 }
 
@@ -254,4 +254,37 @@ int list_stack::del(node *obj)
 	} else {
 		return -1;
 	}
+}
+
+char* strfifo::write(const char *str)
+{
+	char *ret = (char*)this->bottom_addr + this->wptr;
+	unsigned int len = kstrlen(str) + 1;
+	if(this->count - this->wptr < len) {
+		this->bottom_addr = krealloc(this->bottom_addr, this->count *= 2);
+		if(!this->bottom_addr)
+			return NULL;
+	}
+	kmemcpy((char*)this->bottom_addr + this->wptr, str, len);
+	this->wptr += len;
+	return ret;
+}
+
+void strfifo::init(uint count)
+{
+	this->bottom_addr = dmalloc(count, "");
+	this->element_size = 1;
+	this->wptr = 0;
+	this->count = count;
+}
+
+int strfifo::del(char* str)
+{
+	unsigned int len;
+	if(str - this->bottom_addr < 0 || str - this->bottom_addr >= this->count)
+		return -1;
+	len = kstrlen(str) + 1;
+	kmemmove(str, str + len, len);
+	this->wptr -= len;
+	return 0;
 }

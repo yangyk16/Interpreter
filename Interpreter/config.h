@@ -22,6 +22,8 @@
 #define MAX_L_VARITY_NODE		64
 #define MAX_A_VARITY_NODE		4
 #define DEFAULT_STRING_NODE		32
+#define DEFAULT_NAME_NODE		32
+#define DEFAULT_NAME_LENGTH		256
 #define MAX_SENTENCE_LENGTH		512
 #define MAX_PRETREAT_BUFLEN		512
 #define MAX_TOKEN_BUFLEN		2048
@@ -58,8 +60,10 @@
 
 #if INTERPRETER_DEBUG
 #define debug(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
+#define dmalloc(size, info) vmalloc(size, info)
 #else
 #define debug(fmt, ...) //kprintf(fmt, ##ARGS)
+#define dmalloc(size, info) vmalloc(size)
 #endif
 #define error(fmt, ...)	kprintf(fmt, ##__VA_ARGS__)
 #define warning(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
