@@ -82,14 +82,7 @@ void varity_info::init_varity(char *name, uint size, int arg_count, PLATFORM_WOR
 	string_info *string_ptr;
 	if(name) {
 		string_ptr = (string_info*)name_stack.find(name);
-		if(!string_ptr) {
-			string_info tmp;
-			varity_ptr->name = name_fifo.write(name);
-			tmp.set_name(varity_ptr->name);
-			name_stack.push(&tmp);
-		} else {
-			varity_ptr->name = string_ptr->get_name();
-		}
+		varity_ptr->name = string_ptr->get_name();
 		//int name_len = kstrlen(name);
 		//varity_ptr->name = (char*)dmalloc(name_len + 1, "");
 		//kstrcpy(varity_ptr->name, name);

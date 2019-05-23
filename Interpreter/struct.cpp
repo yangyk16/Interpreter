@@ -11,14 +11,7 @@ int struct_info::init(char* name, stack* varity_list)
 	int name_len = kstrlen(name);
 	string_info *string_ptr;
 	string_ptr = (string_info*)name_stack.find(name);
-	if(!string_ptr) {
-		string_info tmp;
-		this->name = name_fifo.write(name);
-		tmp.set_name(this->name);
-		name_stack.push(&tmp);
-	} else {
-		this->name = string_ptr->get_name();
-	}
+	this->name = string_ptr->get_name();
 	//this->name = (char*)dmalloc(name_len + 1, "");
 	//kstrcpy(this->name, name);
 	this->varity_stack_ptr = varity_list;

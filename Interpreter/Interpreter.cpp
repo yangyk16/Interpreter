@@ -3263,7 +3263,17 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 			info->value_type = 2;
 			return i;
 		}
-		info->value.ptr_value = symbol_ptr;
+		string_info *string_ptr;
+		string_ptr = (string_info*)name_stack.find(symbol_ptr);
+		if(!string_ptr) {
+			string_info tmp;
+			info->value.ptr_value = name_fifo.write(symbol_ptr);
+			tmp.set_name(info->value.ptr_value);
+			name_stack.push(&tmp);
+		} else {
+			info->value.ptr_value = string_ptr->get_name();
+		}
+		//info->value.ptr_value = symbol_ptr;
 		info->node_type = TOKEN_NAME;
 		return i;
 	} else if(kisdigit(str[i]) || (str[i] == '.' && kisdigit(str[i + 1]))) {
