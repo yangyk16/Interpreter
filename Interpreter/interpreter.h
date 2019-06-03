@@ -21,6 +21,7 @@
 
 #define LINK_ADDR				0//for execute
 #define LINK_NUMBER				1//for output exe file
+#define LINK_STRNO				2//for output o file
 
 #define TOKEN_KEYWORD_TYPE		1
 #define TOKEN_KEYWORD_CTL		2
@@ -190,6 +191,7 @@ public:
 
 typedef struct compile_info_s {
 	unsigned int total_size;
+	unsigned int string_size;
 	unsigned short import_flag;
 	unsigned short compile_flag;
 	unsigned int struct_flag;
