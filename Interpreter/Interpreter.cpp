@@ -360,11 +360,9 @@ int c_interpreter::load_ofile(char *file, int flag)
 	kfread(&this->compile_function_info, sizeof(compile_function_info_t), 1, file_ptr);
 	mid_code *mid_code_ptr = (mid_code*)base;
 	stack *arg_varity_ptr = (stack*)((char*)mid_code_ptr + this->compile_function_info.mid_code_size);
-	char *name_ptr = (char*)arg_varity_ptr + this->compile_function_info.arg_size;
-	char *source_code_ptr = name_ptr + this->compile_function_info.name_size;
+	char *source_code_ptr = (char*)arg_varity_ptr + this->compile_function_info.arg_size;
 	kfread(mid_code_ptr, 1, this->compile_function_info.mid_code_size, file_ptr);
 	kfread(arg_varity_ptr, 1, this->compile_function_info.arg_size, file_ptr);
-	kfread(name_ptr, 1, this->compile_function_info.name_size, file_ptr);
 	unsigned int function_begin_count = this->function_declare->function_stack_ptr->get_count();
 	unsigned int varity_begin_count = this->varity_declare->global_varity_stack->get_count();
 	for(i=0; i<compile_function_info.function_count; i++) {
@@ -372,15 +370,12 @@ int c_interpreter::load_ofile(char *file, int flag)
 		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
 		function_info_ptr->arg_list = (stack*)arg_varity_ptr++;
 		function_info_ptr->arg_list->set_base(arg_varity_ptr);
+		function_info_ptr->set_name(((string_info*)string_stack.visit_element_by_index(str_map_table[(int)function_info_ptr ->get_name()]))->get_name());
 		arg_varity_ptr = (stack*)((varity_info*)arg_varity_ptr + function_info_ptr->arg_list->get_count());
 		mid_code_ptr += function_info_ptr->mid_code_stack.get_count();
-		if(this->compile_info.import_flag >= IMPORT_FLAG_LINK) {
-			function_info_ptr->set_name(name_ptr);
-			name_ptr += kstrlen(name_ptr) + 1;
-		}
 		this->function_declare->function_stack_ptr->push(function_info_ptr);
 	}
-	function_total_size = this->compile_function_info.mid_code_size + this->compile_function_info.name_size + this->compile_function_info.source_code_size + this->compile_function_info.arg_size;
+	function_total_size = this->compile_function_info.mid_code_size + this->compile_function_info.source_code_size + this->compile_function_info.arg_size;
 	base = (char*)base + make_align(function_total_size, 4);
 
 	compile_varity_info_t compile_varity_info;
@@ -396,13 +391,11 @@ int c_interpreter::load_ofile(char *file, int flag)
 	for(i=1; i<varity_type_stack_ptr->count; i++)
 		varity_type_stack_ptr->type_info_addr[i] = (char*)varity_type_stack_ptr->type_info_addr[i - 1] + (varity_type_stack_ptr->arg_count[i - 1] + 1) * PLATFORM_WORD_LEN;
 	kmemcpy(varity_type_info_ptr, varity_type_stack_ptr, sizeof(varity_type_stack_t));
-	kfread(base, 1, compile_varity_info.name_size, file_ptr);
 	if(this->compile_info.import_flag >= IMPORT_FLAG_DEBUG) {
 		varity_info *varity_info_ptr = (varity_info*)((char*)varity_type_ptr + compile_varity_info.type_size);
 		for(i=0; i<compile_varity_info.varity_count; i++) {
 			kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
-			varity_info_ptr->set_name((char*)base);
-			base = (char*)base + kstrlen((char*)base) + 1;
+			varity_info_ptr->set_name(((string_info*)string_stack.visit_element_by_index(str_map_table[(int)varity_info_ptr->get_name()]))->get_name());
 			int type_no = this->varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), (void*)((char*)varity_type_ptr + (int)varity_type_info_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()]));
 			if(type_no >= 0) {
 				varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), (PLATFORM_WORD*)this->varity_type_stack.type_info_addr[type_no]);
@@ -501,7 +494,6 @@ int c_interpreter::write_ofile(char *file, int flag)
 	for(this->compile_function_info.function_count=0,i=0; i<count; i++) {
 		if(function_ptr[i].compile_func_flag == 0) {
 			if(this->compile_info.import_flag >= IMPORT_FLAG_LINK) {
-				this->compile_function_info.name_size += kstrlen(function_ptr[i].get_name()) + 1;
 				if(this->compile_info.import_flag >= IMPORT_FLAG_DEBUG) {
 					this->compile_function_info.source_code_size += function_ptr[i].wptr;
 				}
@@ -527,17 +519,13 @@ int c_interpreter::write_ofile(char *file, int flag)
 			varity_align_size = get_element_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
 			this->compile_varity_info.data_size = make_align(compile_varity_info.data_size, varity_align_size) + varity_size;
 		}
-		if(this->compile_info.import_flag >= IMPORT_FLAG_LINK) {
-			this->compile_varity_info.name_size += kstrlen(varity_info_ptr[i].get_name()) + 1;
-		}
 	}
 	compile_varity_info.type_size = sizeof(varity_type_stack_t) + make_align(this->varity_type_stack.count, PLATFORM_WORD_LEN);
 	for(i=0; i<this->varity_type_stack.count; i++)
 		compile_varity_info.type_size += (this->varity_type_stack.arg_count[i] + 1)* PLATFORM_WORD_LEN;
 	this->compile_info.import_flag = flag;
-	this->compile_info.total_size = compile_function_info.name_size + compile_function_info.source_code_size 
-								+ compile_function_info.mid_code_size + compile_function_info.arg_size
-								+ compile_varity_info.data_size + compile_varity_info.name_size;
+	this->compile_info.total_size = compile_function_info.source_code_size + compile_varity_info.data_size
+								+ compile_function_info.mid_code_size + compile_function_info.arg_size;
 	kfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr);
 	kfwrite(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
 	kfwrite(string_info_ptr, sizeof(string_info), this->compile_string_info.string_count, file_ptr);
@@ -561,10 +549,6 @@ int c_interpreter::write_ofile(char *file, int flag)
 				arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
 			}
 		}
-	if(this->compile_info.import_flag >= IMPORT_FLAG_LINK)//this->compile_function_info.name_size)
-		for(i=0; i<count; i++)
-			if(!function_ptr[i].compile_func_flag)
-				kfwrite(function_ptr[i].get_name(), 1, kstrlen(function_ptr[i].get_name()) + 1, file_ptr);
 	if(this->compile_info.import_flag >= IMPORT_FLAG_DEBUG)
 		for(i=0; i<count; i++)
 			if(!function_ptr[i].compile_func_flag) {
@@ -572,17 +556,22 @@ int c_interpreter::write_ofile(char *file, int flag)
 					kfwrite(function_ptr[i].buffer, 1, kstrlen(function_ptr[i].buffer) + 1, file_ptr);
 			}
 	for(i=0; i<count; i++)
-		if(!function_ptr[i].compile_func_flag)
+		if(!function_ptr[i].compile_func_flag) {
+			if(this->compile_info.import_flag == IMPORT_FLAG_LINK)
+				function_ptr[i].set_name((char*)((string_info*)string_stack.find(function_ptr[i].get_name()) - (string_info*)string_stack.get_base_addr()));
 			kfwrite(&function_ptr[i], sizeof(function_info), 1, file_ptr);
+			if(this->compile_info.import_flag == IMPORT_FLAG_LINK)
+				function_ptr[i].set_name(((string_info*)string_stack.visit_element_by_index((int)function_ptr[i].get_name()))->get_name());
+		}
 	kfwrite(&this->compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
 	kfwrite(&this->varity_type_stack, sizeof(varity_type_stack), 1, file_ptr);
 	kfwrite(this->varity_type_stack.arg_count, 1, make_align(this->varity_type_stack.count, PLATFORM_WORD_LEN), file_ptr);
 	for(i=0; i<this->varity_type_stack.count; i++)
 		kfwrite(this->varity_type_stack.type_info_addr[i], PLATFORM_WORD_LEN, this->varity_type_stack.arg_count[i] + 1, file_ptr);
-	for(i=0; i<this->compile_varity_info.varity_count; i++)
-		kfwrite(varity_info_ptr[i].get_name(), 1, kstrlen(varity_info_ptr[i].get_name()) + 1, file_ptr);
-	if(compile_varity_info.name_size % 4)
-		kfwrite(&count, 1, 4 - compile_varity_info.name_size % 4, file_ptr);//use any count >= 4byte to complete unalign space
+	for(i=0; i<this->compile_varity_info.varity_count; i++) {
+		int name_no = (string_info*)string_stack.find(varity_info_ptr[i].get_name()) - (string_info*)string_stack.get_base_addr();
+		kfwrite(&name_no, sizeof(short), 1, file_ptr);
+	}
 	for(i=0; i<this->compile_varity_info.varity_count; i++) {
 		varity_size = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
 		if(kmemchk(varity_info_ptr[i].get_content_ptr(), 0, varity_size))
