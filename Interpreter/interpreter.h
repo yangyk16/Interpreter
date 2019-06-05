@@ -19,7 +19,7 @@
 #define EXPORT_FLAG_EXEC		1
 #define EXPORT_FLAG_UNLINK		2
 
-#define LINK_ADDR				0//for execute
+#define LINK_ADDR				0//for execute immediately
 #define LINK_NUMBER				1//for output exe file
 #define LINK_STRNO				2//for output o file
 
@@ -216,6 +216,8 @@ typedef struct compile_varity_info_s {
 typedef struct compile_string_info_s {
 	unsigned int string_count;
 	unsigned int string_size;
+	unsigned int name_count;
+	unsigned int name_size;
 } compile_string_info_t;
 
 int user_eval(char *str);

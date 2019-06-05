@@ -208,15 +208,17 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 				else if(mode == LINK_NUMBER)
 					ret_addr = (void*)((varity_info*)obj_ptr - (varity_info*)this->varity_declare->global_varity_stack->get_base_addr());
 				else
-					ret_addr = (void*)((string_info*)string_stack.find((char*)ret_addr) - (string_info*)string_stack.get_base_addr());
+					ret_addr = (void*)((string_info*)name_stack.find((char*)mid_code_ptr[i].ret_addr) - (string_info*)name_stack.get_base_addr());
 			else {
 				symbol_name = (char*)mid_code_ptr[i].ret_addr;
 				link_ret = ERROR_VARITY_NONEXIST;
 				break;
 			}
 		} else if (mid_code_ptr[i].ret_operand_type == OPERAND_STRING) {
-			mid_code_ptr[i].ret_operand_type = OPERAND_G_VARITY;
-			mid_code_ptr[i].ret_addr = (PLATFORM_WORD)((string_info*)string_stack.visit_element_by_index(mid_code_ptr[i].ret_addr))->get_name();
+			if(mode == LINK_ADDR) {
+				mid_code_ptr[i].ret_operand_type = OPERAND_G_VARITY;
+				mid_code_ptr[i].ret_addr = (PLATFORM_WORD)((string_info*)string_stack.visit_element_by_index(mid_code_ptr[i].ret_addr))->get_name();
+			}
 		}
 		if(mid_code_ptr[i].opda_operand_type == OPERAND_G_VARITY) {
 			opda_flag = 1;
@@ -226,15 +228,17 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 				else if(mode == LINK_NUMBER)
 					opda_addr = (void*)((varity_info*)obj_ptr - (varity_info*)this->varity_declare->global_varity_stack->get_base_addr());
 				else
-					opda_addr = (void*)((string_info*)string_stack.find((char*)opda_addr) - (string_info*)string_stack.get_base_addr());
+					opda_addr = (void*)((string_info*)name_stack.find((char*)mid_code_ptr[i].opda_addr) - (string_info*)name_stack.get_base_addr());
 			else {
 				symbol_name = (char*)mid_code_ptr[i].opda_addr;
 				link_ret = ERROR_VARITY_NONEXIST;
 				break;
 			}
 		} else if (mid_code_ptr[i].opda_operand_type == OPERAND_STRING) {
-			mid_code_ptr[i].opda_operand_type = OPERAND_G_VARITY;
-			mid_code_ptr[i].opda_addr = (PLATFORM_WORD)((string_info*)string_stack.visit_element_by_index(mid_code_ptr[i].opda_addr))->get_name();
+			if(mode == LINK_ADDR) {
+				mid_code_ptr[i].opda_operand_type = OPERAND_G_VARITY;
+				mid_code_ptr[i].opda_addr = (PLATFORM_WORD)((string_info*)string_stack.visit_element_by_index(mid_code_ptr[i].opda_addr))->get_name();
+			}
 		}
 		if(mid_code_ptr[i].opdb_operand_type == OPERAND_G_VARITY) {
 			opdb_flag = 1;
@@ -244,15 +248,17 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 				else if(mode == LINK_NUMBER)
 					opdb_addr = (void*)((varity_info*)obj_ptr - (varity_info*)this->varity_declare->global_varity_stack->get_base_addr());
 				else
-					opdb_addr = (void*)((string_info*)string_stack.find((char*)opdb_addr) - (string_info*)string_stack.get_base_addr());
+					opdb_addr = (void*)((string_info*)name_stack.find((char*)mid_code_ptr[i].opdb_addr) - (string_info*)name_stack.get_base_addr());
 			else {
 				symbol_name = (char*)mid_code_ptr[i].opdb_addr;
 				link_ret = ERROR_VARITY_NONEXIST;
 				break;
 			}
 		} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_STRING) {
-			mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;
-			mid_code_ptr[i].opdb_addr = (PLATFORM_WORD)((string_info*)string_stack.visit_element_by_index(mid_code_ptr[i].opdb_addr))->get_name();
+			if(mode == LINK_ADDR) {
+				mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;
+				mid_code_ptr[i].opdb_addr = (PLATFORM_WORD)((string_info*)string_stack.visit_element_by_index(mid_code_ptr[i].opdb_addr))->get_name();
+			}
 		} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_FUNCTION) {
 			opdb_flag = 1;
 			if((obj_ptr = (void*)this->function_declare->find((char*)mid_code_ptr[i].opdb_addr)) != NULL)
@@ -261,7 +267,7 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 				else if(mode == LINK_NUMBER)
 					opdb_addr = (void*)((function_info*)obj_ptr - (function_info*)this->function_declare->function_stack_ptr->get_base_addr());
 				else
-					opdb_addr = (void*)((string_info*)string_stack.find((char*)opdb_addr) - (string_info*)string_stack.get_base_addr());
+					opdb_addr = (void*)((string_info*)name_stack.find((char*)mid_code_ptr[i].opdb_addr) - (string_info*)name_stack.get_base_addr());
 			else {
 				symbol_name = (char*)mid_code_ptr[i].opdb_addr;
 				link_ret = ERROR_VARITY_NONEXIST;
@@ -276,7 +282,7 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 				else if(mode == LINK_NUMBER)
 					opda_addr = (void*)((function_info*)obj_ptr - (function_info*)this->function_declare->function_stack_ptr->get_base_addr());
 				else
-					opda_addr = (void*)((string_info*)string_stack.find((char*)opda_addr) - (string_info*)string_stack.get_base_addr());
+					opda_addr = (void*)((string_info*)name_stack.find((char*)mid_code_ptr[i].opda_addr) - (string_info*)name_stack.get_base_addr());
 			else {
 				symbol_name = (char*)mid_code_ptr[i].opda_addr;
 				link_ret = ERROR_NO_FUNCTION;
@@ -312,15 +318,15 @@ int c_interpreter::tlink(int mode)
 	int count = this->function_declare->function_stack_ptr->get_count();
 	function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 	for(int i=0; i<count; i++) {
-		if(!entry_flag && !kstrcmp(function_base[i].get_name(), "main")) {
-			function_info tmp;
-			kmemcpy(&tmp, &function_base[i], sizeof(function_info));
-			kmemcpy(&function_base[i], &function_base[this->cstdlib_func_count], sizeof(function_info));
-			kmemcpy(&function_base[this->cstdlib_func_count], &tmp, sizeof(function_info));
-			entry_flag = 1;
-		}
 		if(!function_base[i].compile_func_flag)
 			this->ulink(&function_base[i].mid_code_stack, mode);
+		if(!entry_flag && !kstrcmp(function_base[i].get_name(), "main")) {
+			//function_info tmp;
+			//kmemcpy(&tmp, &function_base[i], sizeof(function_info));
+			//kmemcpy(&function_base[i], &function_base[this->cstdlib_func_count], sizeof(function_info));
+			//kmemcpy(&function_base[this->cstdlib_func_count], &tmp, sizeof(function_info));
+			entry_flag = 1;
+		}
 	}
 	if(!entry_flag) {
 		error("no main function.\n");
@@ -335,18 +341,19 @@ int c_interpreter::load_ofile(char *file, int flag)
 	unsigned int function_count, function_total_size;
 	int i;
 	kfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr);
-	void *str_base = dmalloc(this->compile_info.string_size, "");
 	function_info *function_info_ptr = (function_info*)dmalloc(sizeof(function_info), "");
 	kfread(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
-	string_info *string_info_ptr = (string_info*)str_base;
-	kfread((char*)str_base, 1, compile_info.string_size, file_ptr);
-	char *str_data_base = (char*)str_base + compile_string_info.string_count * sizeof(compile_string_info);
+	void *str_base = dmalloc(compile_string_info.string_size + compile_string_info.name_size, "");
+	//string_info *string_info_ptr = (string_info*)str_base;
+	kfread((char*)str_base, 1, compile_string_info.string_size + compile_string_info.name_size, file_ptr);
+	char *str_data_base = (char*)str_base;
 	unsigned short *str_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_string_info.string_count, "");
+	unsigned short *name_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_string_info.name_count, "");
 	for(i=0; i<compile_string_info.string_count; i++) {
 		void *strptr = string_stack.find(str_data_base);
 		if(strptr)
 			str_map_table[i] = (string_info*)strptr - (string_info*)string_stack.get_base_addr();
-		else {
+		else {//TODO:string not in name fifo.
 			string_info tmp;
 			tmp.set_name(name_fifo.write(str_data_base));
 			str_map_table[i] = string_stack.get_count();
@@ -354,6 +361,19 @@ int c_interpreter::load_ofile(char *file, int flag)
 		}
 		str_data_base = (char*)str_data_base + kstrlen((char*)str_data_base) + 1;
 	}
+	for(i=0; i<compile_string_info.name_count; i++) {
+		void *strptr = name_stack.find(str_data_base);
+		if(strptr)
+			name_map_table[i] = (string_info*)strptr - (string_info*)name_stack.get_base_addr();
+		else {
+			string_info tmp;
+			tmp.set_name(name_fifo.write(str_data_base));
+			name_map_table[i] = name_stack.get_count();
+			name_stack.push(&tmp);
+		}
+		str_data_base = (char*)str_data_base + kstrlen((char*)str_data_base) + 1;
+	}
+
 	vfree(str_base);
 	void *base = dmalloc(this->compile_info.total_size, "");
 	//base = (void*)make_align((long)base, 4);
@@ -370,7 +390,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
 		function_info_ptr->arg_list = (stack*)arg_varity_ptr++;
 		function_info_ptr->arg_list->set_base(arg_varity_ptr);
-		function_info_ptr->set_name(((string_info*)string_stack.visit_element_by_index(str_map_table[(int)function_info_ptr ->get_name()]))->get_name());
+		function_info_ptr->set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)function_info_ptr ->get_name()]))->get_name());
 		arg_varity_ptr = (stack*)((varity_info*)arg_varity_ptr + function_info_ptr->arg_list->get_count());
 		mid_code_ptr += function_info_ptr->mid_code_stack.get_count();
 		this->function_declare->function_stack_ptr->push(function_info_ptr);
@@ -476,6 +496,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 		}
 	}
 	vfree(str_map_table);
+	vfree(name_map_table);
 	return ERROR_NO;
 }
 
@@ -506,9 +527,12 @@ int c_interpreter::write_ofile(char *file, int flag)
 	count = string_stack.get_count();
 	this->compile_string_info.string_count = count;
 	string_info *string_info_ptr = (string_info*)string_stack.get_base_addr();
-	for(i=0; i<count; i++) {
-		this->compile_string_info.string_size += kstrlen(string_info_ptr->get_name()) + 1;
-	}
+	for(i=0; i<count; i++)
+		this->compile_string_info.string_size += kstrlen(string_info_ptr[i].get_name()) + 1;
+	this->compile_string_info.name_count = name_stack.get_count();
+	string_info_ptr = (string_info*)name_stack.get_base_addr();
+	for(i=0; i<this->compile_string_info.name_count; i++)
+		this->compile_string_info.name_size += kstrlen(string_info_ptr[i].get_name()) + 1;
 	count = this->varity_declare->global_varity_stack->get_count();
 	this->compile_varity_info.varity_count = count;
 	varity_info *varity_info_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr();
@@ -528,8 +552,12 @@ int c_interpreter::write_ofile(char *file, int flag)
 								+ compile_function_info.mid_code_size + compile_function_info.arg_size;
 	kfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr);
 	kfwrite(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
-	kfwrite(string_info_ptr, sizeof(string_info), this->compile_string_info.string_count, file_ptr);
+	//kfwrite(string_info_ptr, sizeof(string_info), this->compile_string_info.string_count, file_ptr);
+	string_info_ptr = (string_info*)string_stack.get_base_addr();
 	for(i=0; i<this->compile_string_info.string_count; i++)
+		kfwrite(string_info_ptr[i].get_name(), 1, kstrlen(string_info_ptr[i].get_name()) + 1, file_ptr);
+	string_info_ptr = (string_info*)name_stack.get_base_addr();
+	for(i=0; i<this->compile_string_info.name_count; i++)
 		kfwrite(string_info_ptr[i].get_name(), 1, kstrlen(string_info_ptr[i].get_name()) + 1, file_ptr);
 	kfwrite(&this->compile_function_info, sizeof(compile_function_info), 1, file_ptr);
 	count = this->function_declare->function_stack_ptr->get_count();
@@ -558,10 +586,10 @@ int c_interpreter::write_ofile(char *file, int flag)
 	for(i=0; i<count; i++)
 		if(!function_ptr[i].compile_func_flag) {
 			if(this->compile_info.import_flag == IMPORT_FLAG_LINK)
-				function_ptr[i].set_name((char*)((string_info*)string_stack.find(function_ptr[i].get_name()) - (string_info*)string_stack.get_base_addr()));
+				function_ptr[i].set_name((char*)((string_info*)name_stack.find(function_ptr[i].get_name()) - (string_info*)name_stack.get_base_addr()));
 			kfwrite(&function_ptr[i], sizeof(function_info), 1, file_ptr);
 			if(this->compile_info.import_flag == IMPORT_FLAG_LINK)
-				function_ptr[i].set_name(((string_info*)string_stack.visit_element_by_index((int)function_ptr[i].get_name()))->get_name());
+				function_ptr[i].set_name(((string_info*)name_stack.visit_element_by_index((int)function_ptr[i].get_name()))->get_name());
 		}
 	kfwrite(&this->compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
 	kfwrite(&this->varity_type_stack, sizeof(varity_type_stack), 1, file_ptr);
@@ -1784,7 +1812,7 @@ int c_interpreter::run_interpreter(void)
 {
 	int ret;
 	this->generate_compile_func();
-	//this->load_ofile("testcc.elf", 1);
+	this->load_ofile("test.o", 2);
 	while(1) {
 		int len;
 		len = this->row_pretreat_fifo.readline(sentence_buf);
@@ -3786,7 +3814,7 @@ int user_eval(char *str)
 int compile(char *file, int flag)
 {
 	int ret;
-	ret = myinterpreter.tlink(LINK_NUMBER);
+	ret = myinterpreter.tlink(LINK_STRNO);
 	if(ret) {
 		error("link error\n");
 		return ret;
