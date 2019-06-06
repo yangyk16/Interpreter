@@ -477,20 +477,20 @@ int c_interpreter::load_ofile(char *file, int flag)
 				if(mid_code_ptr[i].ret_operand_type == OPERAND_G_VARITY) {
 					mid_code_ptr[i].ret_addr = (long)((string_info*)string_stack.visit_element_by_index(str_map_table[mid_code_ptr[i].ret_addr]))->get_name();
 				} else if (mid_code_ptr[i].ret_operand_type == OPERAND_STRING) {
-					mid_code_ptr[i].ret_operand_type = OPERAND_G_VARITY;
+					//mid_code_ptr[i].ret_operand_type = OPERAND_G_VARITY;
 				}
 				if(mid_code_ptr[i].opda_operand_type == OPERAND_G_VARITY) {
 					mid_code_ptr[i].opda_addr = (long)((string_info*)string_stack.visit_element_by_index(str_map_table[mid_code_ptr[i].opda_addr]))->get_name();
 				} else if (mid_code_ptr[i].opda_operand_type == OPERAND_STRING) {
-					mid_code_ptr[i].opda_operand_type = OPERAND_G_VARITY;
+					//mid_code_ptr[i].opda_operand_type = OPERAND_G_VARITY;
 				}
 				if(mid_code_ptr[i].opdb_operand_type == OPERAND_G_VARITY) {
 					mid_code_ptr[i].opdb_addr = (long)((string_info*)string_stack.visit_element_by_index(str_map_table[mid_code_ptr[i].opdb_addr]))->get_name();
 				} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_STRING) {
-					mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;
+					//mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;
 				}
 				if(mid_code_ptr[i].ret_operator == OPT_CALL_FUNC) {
-					mid_code_ptr[i].opda_addr = (long)((string_info*)string_stack.visit_element_by_index(str_map_table[mid_code_ptr[i].opda_addr]))->get_name();
+					mid_code_ptr[i].opda_addr = (long)((string_info*)name_stack.visit_element_by_index(name_map_table[mid_code_ptr[i].opda_addr]))->get_name();
 				}
 			}
 		}
@@ -1812,7 +1812,8 @@ int c_interpreter::run_interpreter(void)
 {
 	int ret;
 	this->generate_compile_func();
-	this->load_ofile("test.o", 2);
+	//this->load_ofile("test.o", 2);
+	//this->tlink(LINK_ADDR);
 	while(1) {
 		int len;
 		len = this->row_pretreat_fifo.readline(sentence_buf);
