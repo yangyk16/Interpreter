@@ -7,7 +7,7 @@
 #include "cstdlib.h"
 #include "global.h"
 
-int function_info::init(char* name, stack* arg_list)
+int function_info::init(char* name, stack* arg_list, int flag)
 {//TODO: add malloc fail action.
 	int name_len = kstrlen(name);
 	string_info *string_ptr;
@@ -22,14 +22,16 @@ int function_info::init(char* name, stack* arg_list)
 	}
 	//this->name = (char*)dmalloc(name_len + 1, "");
 	//kstrcpy(this->name, name);
-	this->buffer = (char*)dmalloc(MAX_FUNCTION_LEN, "");
-	this->row_begin_pos = (char**)dmalloc(MAX_FUNCTION_LINE * sizeof(char*), "");
-	this->row_len = (int*)dmalloc(MAX_FUNCTION_LINE * sizeof(int), "");
+	if(!(flag & FUNC_FLAG_PROTOTYPE)) {
+		this->buffer = (char*)dmalloc(MAX_FUNCTION_LEN, "");
+		this->row_begin_pos = (char**)dmalloc(MAX_FUNCTION_LINE * sizeof(char*), "");
+		this->row_len = (int*)dmalloc(MAX_FUNCTION_LINE * sizeof(int), "");
 #if DEBUG_EN
-	this->row_code_ptr = (mid_code**)dmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*), "");
+		this->row_code_ptr = (mid_code**)dmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*), "");
 #endif
+	}
 	this->arg_list = arg_list;
-	this->compile_func_flag = 0;
+	this->compile_func_flag = flag;
 	this->variable_para_flag = 0;
 	return 0;
 }
@@ -158,7 +160,7 @@ int function::declare(char* name, stack* arg_list, int flag)
 		return ERROR_FUNC_COUNT_MAX;
 	}
 	function_node_ptr = (function_info*)function_stack_ptr->get_current_ptr();
-	function_node_ptr->init(name, arg_list);
+	function_node_ptr->init(name, arg_list, flag);
 	if(!(flag & FUNC_FLAG_PROTOTYPE))
 		function_node_ptr->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
 	this->current_node = function_node_ptr;

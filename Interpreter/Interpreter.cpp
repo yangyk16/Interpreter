@@ -328,7 +328,7 @@ int c_interpreter::tlink(int mode)
 			entry_flag = 1;
 		}
 	}
-	if(!entry_flag) {
+	if(!entry_flag && mode == LINK_NUMBER) {
 		error("no main function.\n");
 		return ERROR_NOMAIN;
 	}
@@ -2259,7 +2259,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 	if(ret_function_define >= 0) {
 		char function_name[32];
 		int v_count = count - basic_count;
-		int func_flag;
+		int func_flag = 0;
 		PLATFORM_WORD *complex_info;
 		int complex_count = get_varity_type(node_ptr + basic_count, v_count, function_name, ret_function_define, struct_info_ptr, complex_info);
 		if(complex_count > 0 && GET_COMPLEX_TYPE(complex_info[complex_count]) == COMPLEX_ARG) {

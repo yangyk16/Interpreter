@@ -24,7 +24,7 @@ public:
 	mid_code **row_code_ptr;
 	indexed_stack local_varity_stack;
 #endif
-	int init(char*, stack*);
+	int init(char*, stack*, int);
 	int init(char *name, void* addr, stack *arg_list, char variable_arg_flag);
 	int reset(void);
 	int save_sentence(char* ,uint);
