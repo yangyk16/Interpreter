@@ -546,7 +546,7 @@ int c_interpreter::write_ofile(char *file, int flag)
 	}
 	compile_varity_info.type_size = sizeof(varity_type_stack_t) + make_align(this->varity_type_stack.count, PLATFORM_WORD_LEN);
 	for(i=0; i<this->varity_type_stack.count; i++)
-		compile_varity_info.type_size += (this->varity_type_stack.arg_count[i] + 1)* PLATFORM_WORD_LEN;
+		compile_varity_info.type_size += (this->varity_type_stack.arg_count[i] + 1) * PLATFORM_WORD_LEN;
 	this->compile_info.import_flag = flag;
 	this->compile_info.total_size = compile_function_info.source_code_size + compile_varity_info.data_size
 								+ compile_function_info.mid_code_size + compile_function_info.arg_size;
@@ -2259,23 +2259,32 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 	if(ret_function_define >= 0) {
 		char function_name[32];
 		int v_count = count - basic_count;
+		int func_flag;
 		PLATFORM_WORD *complex_info;
 		int complex_count = get_varity_type(node_ptr + basic_count, v_count, function_name, ret_function_define, struct_info_ptr, complex_info);
 		if(complex_count > 0 && GET_COMPLEX_TYPE(complex_info[complex_count]) == COMPLEX_ARG) {
 			stack *arg_stack_ptr = (stack*)complex_info[complex_count - 1];
+			if(complex_count != basic_count + v_count) {
+				if(complex_count + 1 == basic_count + v_count && node_ptr[v_count].node_type == TOKEN_OPERATOR && node_ptr[v_count].data == OPT_EDGE)
+					func_flag = FUNC_FLAG_PROTOTYPE;
+				else {
+					clear_arglist(arg_stack_ptr);
+					vfree(complex_info);
+					error("Extra symbol after function define.\n");
+					return ERROR_FUNC_ERROR;
+				}
+			}
 			if(!this->exec_flag) {
 				clear_arglist(arg_stack_ptr);
 				vfree(complex_info);
 				error("Cannot define function here.\n");
 				return ERROR_FUNC_DEF_POS;
 			}
-			this->function_flag_set.function_flag = 1;
-			this->function_flag_set.function_begin_flag = 1;
 			uint arg_count = arg_stack_ptr->get_count();
 			varity_info *arg_ptr = (varity_info*)arg_stack_ptr->get_base_addr();
 			varity_info *all_arg_ptr = (varity_info*)dmalloc(sizeof(varity_info) * (arg_count + 1), "");
 			kmemcpy(all_arg_ptr + 1, arg_ptr, sizeof(varity_info) * (arg_count));
-			this->varity_global_flag = VARITY_SCOPE_LOCAL;
+
 			for(int n=0; n<arg_count; n++) {
 				int size = get_varity_size(0, arg_ptr[n].get_complex_ptr(), arg_ptr[n].get_complex_arg_count());
 				size = make_align(size, 4);
@@ -2286,7 +2295,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 			arg_stack_ptr->set_count(arg_count + 1);
 			all_arg_ptr->config_complex_info(complex_count - 2, complex_info);
 			inc_varity_ref(all_arg_ptr);
-			ret_function_define = this->function_declare->declare(function_name, arg_stack_ptr);
+			ret_function_define = this->function_declare->declare(function_name, arg_stack_ptr, func_flag);
 			if(ret_function_define) {
 				clear_arglist(arg_stack_ptr);
 				vfree(complex_info);
@@ -2294,9 +2303,14 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 				//TODO:函数重复声明后变量inc/dec不平衡
 				return ret_function_define;
 			}
-			this->cur_mid_code_stack_ptr = &this->function_declare->get_current_node()->mid_code_stack;
-			this->exec_flag = false;
-			this->function_declare->save_sentence(this->sentence_buf, kstrlen(this->sentence_buf));
+			if(!(func_flag & FUNC_FLAG_PROTOTYPE)) {
+				this->function_flag_set.function_flag = 1;
+				this->function_flag_set.function_begin_flag = 1;
+				this->varity_global_flag = VARITY_SCOPE_LOCAL;
+				this->cur_mid_code_stack_ptr = &this->function_declare->get_current_node()->mid_code_stack;
+				this->exec_flag = false;
+				this->function_declare->save_sentence(this->sentence_buf, kstrlen(this->sentence_buf));
+			}
 			return OK_FUNC_DEFINE;
 		} else if(complex_count < 0)
 			return complex_count;

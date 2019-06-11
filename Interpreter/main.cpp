@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 		tch2ch((char*)argv[i]);
 	global_init();
 	if(argc == 1)
-		myinterpreter.init(&stdio, 0);
+		myinterpreter.init(&stdio, 1);
 	else {
 		myinterpreter.init(&fileio, 1);
 		fileio.init((char*)argv[1]);

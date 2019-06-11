@@ -146,7 +146,7 @@ void function::init(stack* function_stack_ptr)
 	this->function_stack_ptr = function_stack_ptr;
 }
 
-int function::declare(char* name, stack* arg_list)
+int function::declare(char* name, stack* arg_list, int flag)
 {
 	function_info* function_node_ptr;
 	if(this->function_stack_ptr->find(name)) {
@@ -159,7 +159,8 @@ int function::declare(char* name, stack* arg_list)
 	}
 	function_node_ptr = (function_info*)function_stack_ptr->get_current_ptr();
 	function_node_ptr->init(name, arg_list);
-	function_node_ptr->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
+	if(!(flag & FUNC_FLAG_PROTOTYPE))
+		function_node_ptr->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
 	this->current_node = function_node_ptr;
 	function_stack_ptr->push();
 	return 0;

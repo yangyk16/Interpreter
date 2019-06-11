@@ -3,6 +3,9 @@
 #define FUNCTION_H
 #include "data_struct.h"
 
+#define FUNC_FLAG_COMPILE	1
+#define FUNC_FLAG_PROTOTYPE	2
+
 class mid_code;
 class function_info: public element {
 public:
@@ -43,7 +46,7 @@ public:
 	void current_node_abort(void);
 	int save_sentence(char* ,uint);
 	int destroy_sentence(void);
-	int declare(char*, stack*);
+	int declare(char*, stack*, int);
 	int add_compile_func(char *name, void *addr, stack *arg_list, char variable_arg_flag);
 };
 #endif
