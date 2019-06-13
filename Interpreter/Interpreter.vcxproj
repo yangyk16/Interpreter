@@ -82,6 +82,7 @@
     <ClInclude Include="error.h" />
     <ClInclude Include="function.h" />
     <ClInclude Include="gdb.h" />
+    <ClInclude Include="getopt.h" />
     <ClInclude Include="global.h" />
     <ClInclude Include="interpreter.h" />
     <ClInclude Include="config.h" />
@@ -99,6 +100,7 @@
   <ItemGroup>
     <ClCompile Include="function.cpp" />
     <ClCompile Include="gdb.cpp" />
+    <ClCompile Include="getopt.cpp" />
     <ClCompile Include="global.cpp" />
     <ClCompile Include="interpreter.cpp" />
     <ClCompile Include="data_struct.cpp" />

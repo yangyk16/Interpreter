@@ -10,6 +10,8 @@
 #include "kmalloc.h"
 #include <iostream>
 #include <signal.h>
+#include "getopt.h"
+
 using namespace std;
 
 extern c_interpreter myinterpreter;
@@ -44,6 +46,12 @@ int main(int argc, char *argv[])
 	signal(SIGINT, ouch);
 	for(int i=1; i<argc; i++)
 		tch2ch((char*)argv[i]);
+	char ch;
+	while((ch = kgetopt(argc, (char**)argv, "a::bc:")) != -1) {
+		printf("opt=%c,arg=%s\n", ch, optarg);
+	}
+	//for(int i=1; i<argc; i++)
+	//	printf("%s\n",argv[i]);
 	global_init();
 	if(argc == 1)
 		myinterpreter.init(&stdio, 1);
