@@ -23,6 +23,9 @@
 #define LINK_NUMBER				1//for output exe file
 #define LINK_STRNO				2//for output o file
 
+#define RTL_FLAG_DELAY			0
+#define RTL_FLAG_IMMEDIATELY	1
+
 #define TOKEN_KEYWORD_TYPE		1
 #define TOKEN_KEYWORD_CTL		2
 #define TOKEN_ARG_LIST			3
@@ -362,7 +365,8 @@ public:
 	int print_call_stack(void);
 	int init(terminal*, int);
 	int run_interpreter(void);
+	int run_main(void);
 };
-
 #define UCC_DEBUG 1
+int compile(char *file, int flag);
 #endif

@@ -53,6 +53,7 @@
 #define ERROR_ILLEGAL_CODE		-48
 #define ERROR_LINK				-49
 #define ERROR_NOMAIN			-50
+#define ERROR_FILE				-51
 
 #define ERROR_STACK_OVERFLOW	-70
 #define ERROR_ARRAY_BOUND		-71

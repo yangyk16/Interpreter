@@ -318,13 +318,11 @@ int c_interpreter::tlink(int mode)
 	int count = this->function_declare->function_stack_ptr->get_count();
 	function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 	for(int i=0; i<count; i++) {
-		if(!function_base[i].compile_func_flag)
-			this->ulink(&function_base[i].mid_code_stack, mode);
 		if(!entry_flag && !kstrcmp(function_base[i].get_name(), "main")) {
-			//function_info tmp;
-			//kmemcpy(&tmp, &function_base[i], sizeof(function_info));
-			//kmemcpy(&function_base[i], &function_base[this->cstdlib_func_count], sizeof(function_info));
-			//kmemcpy(&function_base[this->cstdlib_func_count], &tmp, sizeof(function_info));
+			function_info tmp;
+			kmemcpy(&tmp, &function_base[i], sizeof(function_info));
+			kmemcpy(&function_base[i], &function_base[this->cstdlib_func_count], sizeof(function_info));
+			kmemcpy(&function_base[this->cstdlib_func_count], &tmp, sizeof(function_info));
 			entry_flag = 1;
 		}
 	}
@@ -332,7 +330,23 @@ int c_interpreter::tlink(int mode)
 		error("no main function.\n");
 		return ERROR_NOMAIN;
 	}
+	for(int i=0; i<count; i++) {
+		if(!function_base[i].compile_func_flag)
+			this->ulink(&function_base[i].mid_code_stack, mode);
+	}
+
 	return ERROR_NO;
+}
+
+int c_interpreter::run_main(void)
+{
+	int ret;
+	function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
+	char en = 1;
+	char *a[2] = {0, &en};
+	gdb::trace_ctl(2, a, this);
+	ret = this->exec_mid_code((mid_code*)function_base[this->cstdlib_func_count].mid_code_stack.get_base_addr(), function_base[this->cstdlib_func_count].mid_code_stack.get_count());
+	return ret;
 }
 
 int c_interpreter::load_ofile(char *file, int flag)
@@ -437,7 +451,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	vfree(varity_type_info_ptr);
 	base = (void*)make_align((long)base, 4);
 	kfread((char*)base, 1, compile_varity_info.data_size, file_ptr);
-	if(compile_info.compile_flag == LINK_NUMBER) {
+	if(compile_info.import_flag == LINK_NUMBER) {
 		varity_info *varity_base = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr() + varity_begin_count;
 		function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr() + function_begin_count;
 		for(int j=0; j<compile_function_info.function_count; j++) {
@@ -466,7 +480,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 				}
 			}
 		}
-	} else if(compile_info.compile_flag == LINK_STRNO) {
+	} else if(compile_info.import_flag == LINK_STRNO) {
 		function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr() + function_begin_count;
 		for(int j=0; j<compile_function_info.function_count; j++) {
 			unsigned int code_count = function_base[j].mid_code_stack.get_count();
@@ -535,6 +549,7 @@ int c_interpreter::write_ofile(char *file, int flag)
 		this->compile_string_info.name_size += kstrlen(string_info_ptr[i].get_name()) + 1;
 	count = this->varity_declare->global_varity_stack->get_count();
 	this->compile_varity_info.varity_count = count;
+	this->compile_varity_info.type_size = 0;
 	varity_info *varity_info_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr();
 	unsigned int varity_size, varity_align_size;
 	for(i=0; i<count; i++) {
@@ -585,10 +600,10 @@ int c_interpreter::write_ofile(char *file, int flag)
 			}
 	for(i=0; i<count; i++)
 		if(!function_ptr[i].compile_func_flag) {
-			if(this->compile_info.import_flag == IMPORT_FLAG_LINK)
+			//if(this->compile_info.import_flag == IMPORT_FLAG_LINK)
 				function_ptr[i].set_name((char*)((string_info*)name_stack.find(function_ptr[i].get_name()) - (string_info*)name_stack.get_base_addr()));
 			kfwrite(&function_ptr[i], sizeof(function_info), 1, file_ptr);
-			if(this->compile_info.import_flag == IMPORT_FLAG_LINK)
+			//if(this->compile_info.import_flag == IMPORT_FLAG_LINK)
 				function_ptr[i].set_name(((string_info*)name_stack.visit_element_by_index((int)function_ptr[i].get_name()))->get_name());
 		}
 	kfwrite(&this->compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
@@ -1811,7 +1826,6 @@ bool c_interpreter::gdb_check(void)
 int c_interpreter::run_interpreter(void)
 {
 	int ret;
-	this->generate_compile_func();
 	//this->load_ofile("test.o", 2);
 	//this->tlink(LINK_ADDR);
 	while(1) {
@@ -1884,6 +1898,7 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 		name_stack.init(sizeof(string_info), dmalloc(DEFAULT_NAME_NODE * sizeof(string_info), ""), DEFAULT_NAME_NODE);
 		name_fifo.init(DEFAULT_NAME_LENGTH);
 		handle_init();
+		this->generate_compile_func();
 		c_interpreter::language_elment_space.init_done = 1;
 	}
 	this->real_time_link = rtl_flag;
@@ -2137,7 +2152,6 @@ int c_interpreter::generate_compile_func(void)
 	this->generate_arg_list("int,char*,char*;", 3, strcmp_stack);
 	this->function_declare->add_compile_func("strcmp", (void*)kstrcmp, &strcmp_stack, 0);
 	static stack compile_stack;
-	int compile(char *file, int flag);
 	this->generate_arg_list("int,char*,int;", 3, compile_stack);
 	this->function_declare->add_compile_func("ucompile", (void*)compile, &compile_stack, 0);
 	static stack irqreg_stack;

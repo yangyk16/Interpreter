@@ -16,7 +16,10 @@ void stack::init(int esize, int capacity)
 	this->count = 0;
 	this->top = 0;	
 	this->element_size = esize;
-	this->bottom_addr = dmalloc(esize * capacity, "");
+	if(!this->bottom_addr)
+		this->bottom_addr = dmalloc(esize * capacity, "");
+	else
+		this->bottom_addr = vrealloc(this->bottom_addr, esize * capacity);
 	this->length = capacity;
 }
 
@@ -39,7 +42,7 @@ void stack::push(void* eptr)
 {
 	if(this->is_full()) {
 		this->length *= 2;
-		this->bottom_addr = krealloc(this->bottom_addr, this->element_size * this->length);
+		this->bottom_addr = vrealloc(this->bottom_addr, this->element_size * this->length);
 	}
 	kmemcpy((char*)this->bottom_addr + this->top, eptr, this->element_size);
 	this->top += this->element_size;
@@ -113,7 +116,8 @@ void round_queue::init(uint count, uint element_size)
 {
 	this->length = count;
 	this->element_size = element_size;
-	this->bottom_addr = dmalloc(length * element_size, "");
+	if(!this->bottom_addr)
+		this->bottom_addr = dmalloc(length * element_size, "");
 }
 
 round_queue::round_queue(uint length, void* base_addr)

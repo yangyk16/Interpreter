@@ -11,6 +11,7 @@
 #include <iostream>
 #include <signal.h>
 #include "getopt.h"
+#include "error.h"
 
 using namespace std;
 
@@ -35,8 +36,109 @@ void tch2ch(char *src)
 	*dest = 0;
 }
 
+typedef int (*cctool)(int argc, char **argv);
+typedef struct tool_cmd_s {
+	char *cmdname;	
+	char *issue;
+	cctool cmdptr;
+} tool_cmd;
+
 extern tty stdio;
 extern file fileio;
+int ycc(int argc, char **argv)
+{
+	int ret;
+	char ch;
+	int run_flag = 0;
+	int link_flag = LINK_ADDR;
+	char *output_file_name = NULL;
+	char *fun_file_name = NULL;
+	while((ch = kgetopt(argc, (char**)argv, "iceo:r")) != -1) {
+		switch(ch) {
+		case 'i':
+			link_flag = LINK_ADDR;
+			break;
+		case 'c':
+			link_flag = LINK_STRNO;
+			break;
+		case 'e':
+			link_flag = LINK_NUMBER;
+			break;
+		case 'o':
+			output_file_name = optarg;
+			break;
+		case 'r':
+			run_flag = 1;
+			break;
+		}
+		debug("opt=%c,arg=%s\n", ch, optarg);
+	}
+	if(run_flag) {
+		myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
+		myinterpreter.load_ofile(argv[optind], 0);
+		myinterpreter.run_main();
+		myinterpreter.run_interpreter();
+	}
+	switch(link_flag) {
+		case LINK_ADDR:
+			if(optind == argc) {
+				myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
+			} else {
+				myinterpreter.init(&fileio, RTL_FLAG_IMMEDIATELY);
+				fileio.init(argv[optind]);
+			}
+			irq_interpreter.init(0, 1);
+			myinterpreter.run_interpreter();
+			break;
+		case LINK_STRNO:
+		{
+			int file_count = argc - optind;
+			for(int i=0; i<file_count; i++) {
+				ret = fileio.init(argv[optind]);
+				if(ret)
+					return ERROR_FILE;
+				myinterpreter.init(&fileio, RTL_FLAG_DELAY);
+				myinterpreter.run_interpreter();
+				int len = kstrlen(argv[optind + i]);
+				argv[optind + i][len - 1] = 'o';
+				compile(argv[optind + i], IMPORT_FLAG_LINK);
+			}
+			break;
+		}
+		case LINK_NUMBER:
+		{
+			int file_count = argc - optind;
+			myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
+			for(int i=0; i<file_count; i++) {
+				myinterpreter.load_ofile(argv[optind + i], 0);
+			}
+			myinterpreter.tlink(LINK_NUMBER);
+			//myinterpreter.run_interpreter();
+			if(!output_file_name)
+				output_file_name = "a.elf";
+			myinterpreter.write_ofile(output_file_name, LINK_NUMBER);
+			break;
+		}
+	}
+	return 0;
+}
+
+int gdb(int argc, char **argv)
+{
+	return 0;
+}
+
+int objdump(int argc, char **argv)
+{
+	return 0;
+}
+
+tool_cmd cmdset[] = {
+	{"ycc", "", ycc},
+	{"gdb", "", gdb},
+	{"objdump", "", objdump},
+};
+
 #ifdef WIN32
 int _tmain(int argc, _TCHAR* argv[])
 #else
@@ -46,21 +148,15 @@ int main(int argc, char *argv[])
 	signal(SIGINT, ouch);
 	for(int i=1; i<argc; i++)
 		tch2ch((char*)argv[i]);
-	char ch;
-	while((ch = kgetopt(argc, (char**)argv, "a::bc:")) != -1) {
-		printf("opt=%c,arg=%s\n", ch, optarg);
-	}
-	//for(int i=1; i<argc; i++)
-	//	printf("%s\n",argv[i]);
 	global_init();
-	if(argc == 1)
-		myinterpreter.init(&stdio, 1);
-	else {
-		myinterpreter.init(&fileio, 1);
-		fileio.init((char*)argv[1]);
+	for(int i=0; i<sizeof(cmdset)/sizeof(tool_cmd); i++) {
+		if(!kstrcmp((char*)argv[1], cmdset[i].cmdname)) {
+			cmdset[i].cmdptr(argc - 1, (char**)&argv[1]);
+			break;
+		}
 	}
-	irq_interpreter.init(0, 1);
-	myinterpreter.run_interpreter();
+	error("no cmd.\n");
+	while(1);
 	getchar();
 	return 0;
 }

@@ -48,7 +48,10 @@ int uart::puts(char* str)
 int file::init(char *filename)
 {
 	file_ptr = fopen(filename, "r");
-	return 0;
+	if(file_ptr)
+		return 0;
+	else
+		return -1;
 }
 
 int file::readline(char *str)
