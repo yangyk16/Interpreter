@@ -17,7 +17,7 @@ void stack::init(int esize, int capacity)
 	this->top = 0;	
 	this->element_size = esize;
 	if(!this->bottom_addr)
-		this->bottom_addr = dmalloc(esize * capacity, "");
+		this->bottom_addr = dmalloc(esize * capacity, "stack base");
 	else
 		this->bottom_addr = vrealloc(this->bottom_addr, esize * capacity);
 	this->length = capacity;
@@ -117,7 +117,7 @@ void round_queue::init(uint count, uint element_size)
 	this->length = count;
 	this->element_size = element_size;
 	if(!this->bottom_addr)
-		this->bottom_addr = dmalloc(length * element_size, "");
+		this->bottom_addr = dmalloc(length * element_size, "round queue base");
 }
 
 round_queue::round_queue(uint length, void* base_addr)
@@ -234,9 +234,9 @@ int varity_type_stack_t::find(char arg_count, void *type_info_addr)
 int varity_type_stack_t::init(void)
 {
 	if(!this->arg_count)
-		this->arg_count = (char*)dmalloc(MAX_VARITY_TYPE_COUNT, "");
+		this->arg_count = (char*)dmalloc(MAX_VARITY_TYPE_COUNT, "varity type arg count base");
 	if(!this->type_info_addr)
-		this->type_info_addr = (void**)dmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN, "");
+		this->type_info_addr = (void**)dmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN, "type info addr");
 	return 0;
 }
 
@@ -279,7 +279,7 @@ char* strfifo::write(const char *str)
 void strfifo::init(uint count)
 {
 	if(!this->bottom_addr)
-		this->bottom_addr = dmalloc(count, "");
+		this->bottom_addr = dmalloc(count, "string fifo base");
 	this->element_size = 1;
 	this->wptr = 0;
 	this->count = count;

@@ -355,14 +355,14 @@ int c_interpreter::load_ofile(char *file, int flag)
 	unsigned int function_count, function_total_size;
 	int i;
 	kfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr);
-	function_info *function_info_ptr = (function_info*)dmalloc(sizeof(function_info), "");
+	function_info *function_info_ptr = (function_info*)dmalloc(sizeof(function_info), "all infos base");
 	kfread(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
-	void *str_base = dmalloc(compile_string_info.string_size + compile_string_info.name_size, "");
+	void *str_base = dmalloc(compile_string_info.string_size + compile_string_info.name_size, "string base");
 	//string_info *string_info_ptr = (string_info*)str_base;
 	kfread((char*)str_base, 1, compile_string_info.string_size + compile_string_info.name_size, file_ptr);
 	char *str_data_base = (char*)str_base;
-	unsigned short *str_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_string_info.string_count, "");
-	unsigned short *name_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_string_info.name_count, "");
+	unsigned short *str_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_string_info.string_count, "string stack map");
+	unsigned short *name_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_string_info.name_count, "name stack map");
 	for(i=0; i<compile_string_info.string_count; i++) {
 		void *strptr = string_stack.find(str_data_base);
 		if(strptr)
@@ -389,7 +389,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	}
 
 	vfree(str_base);
-	void *base = dmalloc(this->compile_info.total_size, "");
+	void *base = dmalloc(this->compile_info.total_size, "load file space");
 	//base = (void*)make_align((long)base, 4);
 	kfread(&this->compile_function_info, sizeof(compile_function_info_t), 1, file_ptr);
 	mid_code *mid_code_ptr = (mid_code*)base;
@@ -416,7 +416,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	kfread(&compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
 	varity_type_stack_t *varity_type_stack_ptr = (varity_type_stack_t*)function_info_ptr;
 	kfread(varity_type_stack_ptr, sizeof(varity_type_stack), 1, file_ptr);
-	varity_type_stack_t *varity_type_info_ptr = (varity_type_stack_t*)dmalloc(sizeof(varity_type_stack_t) + varity_type_stack_ptr->count * sizeof(void*) + compile_varity_info.type_size + sizeof(varity_info), "");
+	varity_type_stack_t *varity_type_info_ptr = (varity_type_stack_t*)dmalloc(sizeof(varity_type_stack_t) + varity_type_stack_ptr->count * sizeof(void*) + compile_varity_info.type_size + sizeof(varity_info), "varity type info");
 	void *varity_type_ptr = (char*)varity_type_info_ptr + sizeof(varity_type_stack_t) + varity_type_stack_ptr->count * sizeof(void*);
 	varity_type_stack_ptr->arg_count = (char*)varity_type_ptr;
 	varity_type_stack_ptr->type_info_addr = (void**)(varity_type_info_ptr + 1);
@@ -1049,7 +1049,7 @@ assign_general:
 		if(GET_COMPLEX_TYPE(((uint*)bvarity_ptr->get_complex_ptr())[complex_arg_count + 1]) == COMPLEX_PTR) {
 			rvarity_ptr->config_complex_info(complex_arg_count + 1, old_complex_info);
 		} else {
-			PLATFORM_WORD* new_complex_info = (PLATFORM_WORD*)dmalloc((complex_arg_count + 2) * sizeof(PLATFORM_WORD_LEN), "");
+			PLATFORM_WORD* new_complex_info = (PLATFORM_WORD*)dmalloc((complex_arg_count + 2) * sizeof(PLATFORM_WORD_LEN), "new varity type args");
 			kmemcpy(new_complex_info + 1, old_complex_info + 1, complex_arg_count * sizeof(PLATFORM_WORD_LEN));
 			new_complex_info[complex_arg_count + 1] = COMPLEX_PTR << COMPLEX_TYPE_BIT;
 			rvarity_ptr->config_complex_info(complex_arg_count + 1, new_complex_info);
@@ -2176,7 +2176,7 @@ int c_interpreter::generate_compile_func(void)
 int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)//没有容错，不开放给终端输入，仅用于链接标准库函数，仅能使用1级指针
 {
 	int len = kstrlen(str);
-	void *arg_stack = dmalloc(sizeof(varity_info) * count, "");
+	void *arg_stack = dmalloc(sizeof(varity_info) * count, "arg stack");
 	arg_list_ptr.init(sizeof(varity_info), arg_stack, count);
 	varity_info *varity_ptr = (varity_info*)arg_list_ptr.get_base_addr();
 	node_attribute_t node;
@@ -2308,7 +2308,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 			}
 			uint arg_count = arg_stack_ptr->get_count();
 			varity_info *arg_ptr = (varity_info*)arg_stack_ptr->get_base_addr();
-			varity_info *all_arg_ptr = (varity_info*)dmalloc(sizeof(varity_info) * (arg_count + 1), "");
+			varity_info *all_arg_ptr = (varity_info*)dmalloc(sizeof(varity_info) * (arg_count + 1), "function's all args");
 			kmemcpy(all_arg_ptr + 1, arg_ptr, sizeof(varity_info) * (arg_count));
 
 			for(int n=0; n<arg_count; n++) {
@@ -3082,8 +3082,8 @@ int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 		this->struct_info_set.current_offset = 0;
 		int i = keylen + 1;
 		symbol_begin_pos = i;
-		varity_info* arg_node_ptr = (varity_info*)dmalloc(sizeof(varity_info) * MAX_VARITY_COUNT_IN_STRUCT, "");
-		arg_stack = (stack*)dmalloc(sizeof(stack), "");
+		varity_info* arg_node_ptr = (varity_info*)dmalloc(sizeof(varity_info) * MAX_VARITY_COUNT_IN_STRUCT, "struct arg info");
+		arg_stack = (stack*)dmalloc(sizeof(stack), "struct arg stack");
 		stack tmp_stack(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
 		kmemcpy(arg_stack, &tmp_stack, sizeof(stack));
 		this->struct_declare->declare(node_ptr[1].value.ptr_value, arg_stack);
@@ -3188,7 +3188,7 @@ varity_end:
 				if(is_varity_declare == STRUCT)
 					basic_info_node_count++;
 				if(node_count) {
-					complex_info = (PLATFORM_WORD*)dmalloc((node_count + arg_count + 1 + basic_info_node_count) * sizeof(PLATFORM_WORD), ""); //+基本类型
+					complex_info = (PLATFORM_WORD*)dmalloc((node_count + arg_count + 1 + basic_info_node_count) * sizeof(PLATFORM_WORD), "varity type info"); //+基本类型
 					cur_complex_info_ptr = complex_info + node_count + arg_count + basic_info_node_count;
 					node *head = expression_final_stack.get_head();
 					arg_count = 0;
@@ -3491,7 +3491,7 @@ int_value_handle:
 					info->value.int_value = str_node_ptr->index;
 				} else {
 					string_info str_info;
-					p = (char*)dmalloc(count + 1, "");
+					p = (char*)dmalloc(count + 1, "string space");
 					str_info.set_name(p);
 					str_info.index = string_stack.get_count();
 					info->value.int_value = str_info.index;
@@ -3592,8 +3592,8 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 					} else {
 						if(!type_flag) {
 							type_flag = 1;
-							arg_stack = (stack*)dmalloc(sizeof(stack), "");
-							arg_node_ptr = (varity_info*)dmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC, "");
+							arg_stack = (stack*)dmalloc(sizeof(stack), "TOKEN_ARG stack");
+							arg_node_ptr = (varity_info*)dmalloc(sizeof(varity_info) * MAX_FUNCTION_ARGC, "TOKEN_ARG node");
 							arg_stack->init(sizeof(varity_info), arg_node_ptr, MAX_FUNCTION_ARGC);
 						}
 					}

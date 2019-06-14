@@ -172,12 +172,13 @@ int gdb::breakpoint(int argc, char **argv, c_interpreter *cptr)
 		}
 		gdbout("Breakpoint set @ 0x%X\n", fptr->row_code_ptr[line]);
 		fptr->row_code_ptr[line]->break_flag |= BREAKPOINT_REAL;
-		bp_info_t *bp_info_ptr = (bp_info_t*)dmalloc(sizeof(bp_info_t), "");
-		node *bpnode_ptr = (node*)dmalloc(sizeof(node), "");
+		bp_info_t *bp_info_ptr = (bp_info_t*)dmalloc(sizeof(bp_info_t), "breakpoint info");
+		node *bpnode_ptr = (node*)dmalloc(sizeof(node), "breakpoint node");
 		bpnode_ptr->value = bp_info_ptr;
 		bp_info_ptr->no = ++bp_info_ptr->total_no;
 		bp_info_ptr->bp_addr = fptr->row_code_ptr[line];
 		bp_stack.push(bpnode_ptr);
+		vfree(bpnode_ptr);
 	}
 	return ERROR_NO;
 }

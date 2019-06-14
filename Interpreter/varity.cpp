@@ -133,7 +133,7 @@ int varity_info::apply_space(void)
 		this->content_ptr = 0;
 	}
 	if(this->size) {
-		this->content_ptr = dmalloc(this->size, "");
+		this->content_ptr = dmalloc(this->size, "varity store space");
 		if(this->content_ptr)
 			return 0;
 		else
@@ -367,7 +367,7 @@ int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count)
 {
 	if(GET_COMPLEX_TYPE(complex_info[complex_arg_count]) != COMPLEX_ARRAY)
 		return -1;//TODO:找一个返回值
-	PLATFORM_WORD *new_complex_info = (PLATFORM_WORD*)dmalloc((complex_arg_count + 1) * sizeof(PLATFORM_WORD), "");
+	PLATFORM_WORD *new_complex_info = (PLATFORM_WORD*)dmalloc((complex_arg_count + 1) * sizeof(PLATFORM_WORD), "Array to PTR varity arg");
 	kmemcpy(new_complex_info + 1, complex_info + 1, (complex_arg_count - 1) * sizeof(PLATFORM_WORD));
 	new_complex_info[complex_arg_count] = COMPLEX_PTR << COMPLEX_TYPE_BIT;
 	complex_info = new_complex_info;
