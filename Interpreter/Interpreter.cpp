@@ -342,9 +342,9 @@ int c_interpreter::run_main(void)
 {
 	int ret;
 	function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
-	char en = 1;
-	char *a[2] = {0, &en};
-	gdb::trace_ctl(2, a, this);
+	//char en = 1;
+	//char *a[2] = {0, &en};
+	//gdb::trace_ctl(2, a, this);
 	ret = this->exec_mid_code((mid_code*)function_base[this->cstdlib_func_count].mid_code_stack.get_base_addr(), function_base[this->cstdlib_func_count].mid_code_stack.get_count());
 	return ret;
 }
@@ -463,17 +463,19 @@ int c_interpreter::load_ofile(char *file, int flag)
 				if(mid_code_ptr[i].ret_operand_type == OPERAND_G_VARITY) {
 					mid_code_ptr[i].ret_addr = (PLATFORM_WORD)&varity_base[mid_code_ptr[i].ret_addr];
 				} else if (mid_code_ptr[i].ret_operand_type == OPERAND_STRING) {
-					mid_code_ptr[i].ret_operand_type = OPERAND_G_VARITY;
+					//mid_code_ptr[i].ret_operand_type = OPERAND_G_VARITY;
 				}
 				if(mid_code_ptr[i].opda_operand_type == OPERAND_G_VARITY) {
 					mid_code_ptr[i].opda_addr = (PLATFORM_WORD)&varity_base[mid_code_ptr[i].opda_addr];
 				} else if (mid_code_ptr[i].opda_operand_type == OPERAND_STRING) {
 					mid_code_ptr[i].opda_operand_type = OPERAND_G_VARITY;
+					mid_code_ptr[i].opda_addr = (long)((string_info*)string_stack.visit_element_by_index(str_map_table[mid_code_ptr[i].opda_addr]))->get_name();
 				}
 				if(mid_code_ptr[i].opdb_operand_type == OPERAND_G_VARITY) {
 					mid_code_ptr[i].opdb_addr = (PLATFORM_WORD)&varity_base[mid_code_ptr[i].opdb_addr];
 				} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_STRING) {
 					mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;
+					mid_code_ptr[i].opdb_addr = (long)((string_info*)string_stack.visit_element_by_index(str_map_table[mid_code_ptr[i].opdb_addr]))->get_name();
 				}
 				if(mid_code_ptr[i].ret_operator == OPT_CALL_FUNC) {
 					mid_code_ptr[i].opda_addr = (PLATFORM_WORD)&function_base[mid_code_ptr[i].opda_addr - this->cstdlib_func_count];
@@ -2733,26 +2735,48 @@ extern int opt_time;
 ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 {
 	int ret;
-	mid_code *end_ptr = pc + count;
+	mid_code *end_ptr;
 	this->pc = pc;
 	//int tick1, tick2 = HWREG(0x2040018), total1 = 0, total2 = 0;
 	opt_time = 0;
-	while(this->pc != end_ptr) {
-		//tick1 = HWREG(0x2040018);
-		//total1 += tick2 - tick1;
+	if(pc == this->mid_code_stack.get_base_addr()) {
+		end_ptr = pc + count;
+		while(this->pc != end_ptr) {
+			//tick1 = HWREG(0x2040018);
+			//total1 += tick2 - tick1;
 
-		ret = call_opt_handle(this);
-		//tick2 = HWREG(0x2040018);
-		//total2 += tick1 - tick2;
-		if(ret) {
-			this->print_call_stack();
-			this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
-			this->tmp_varity_stack_pointer = this->tmp_varity_stack;
-			this->call_func_info.function_depth = 0;
-			this->call_func_info.para_offset = PLATFORM_WORD_LEN;
-			return ret;
+			ret = call_opt_handle(this);
+			//tick2 = HWREG(0x2040018);
+			//total2 += tick1 - tick2;
+			if(ret) {
+				this->print_call_stack();
+				this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
+				this->tmp_varity_stack_pointer = this->tmp_varity_stack;
+				this->call_func_info.function_depth = 0;
+				this->call_func_info.para_offset = PLATFORM_WORD_LEN;
+				return ret;
+			}
+			this->pc++;
 		}
-		this->pc++;
+	} else {
+		end_ptr = pc + count - 1;
+		while(this->pc != end_ptr || this->pc->ret_operator != CTL_BXLR) {
+			//tick1 = HWREG(0x2040018);
+			//total1 += tick2 - tick1;
+
+			ret = call_opt_handle(this);
+			//tick2 = HWREG(0x2040018);
+			//total2 += tick1 - tick2;
+			if(ret) {
+				this->print_call_stack();
+				this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
+				this->tmp_varity_stack_pointer = this->tmp_varity_stack;
+				this->call_func_info.function_depth = 0;
+				this->call_func_info.para_offset = PLATFORM_WORD_LEN;
+				return ret;
+			}
+			this->pc++;
+		}
 	}
 	//kprintf("t1=%d,t2=%d,ot=%d\n", total1, total2, opt_time);
 	return ERROR_NO;

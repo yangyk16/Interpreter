@@ -94,7 +94,7 @@ int ycc(int argc, char **argv)
 		{
 			int file_count = argc - optind;
 			for(int i=0; i<file_count; i++) {
-				ret = fileio.init(argv[optind]);
+				ret = fileio.init(argv[optind + i]);
 				if(ret)
 					return ERROR_FILE;
 				myinterpreter.init(&fileio, RTL_FLAG_DELAY);
