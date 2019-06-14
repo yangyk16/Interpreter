@@ -65,6 +65,7 @@
 #define debug(fmt, ...) //kprintf(fmt, ##ARGS)
 #define dmalloc(size, info) vmalloc(size)
 #endif
+#define tip(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #define error(fmt, ...)	kprintf(fmt, ##__VA_ARGS__)
 #define warning(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #define gdbout(fmt, ...) kprintf(fmt, ##__VA_ARGS__)

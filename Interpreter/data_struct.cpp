@@ -233,8 +233,10 @@ int varity_type_stack_t::find(char arg_count, void *type_info_addr)
 
 int varity_type_stack_t::init(void)
 {
-	this->arg_count = (char*)dmalloc(MAX_VARITY_TYPE_COUNT, "");
-	this->type_info_addr = (void**)dmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN, "");
+	if(!this->arg_count)
+		this->arg_count = (char*)dmalloc(MAX_VARITY_TYPE_COUNT, "");
+	if(!this->type_info_addr)
+		this->type_info_addr = (void**)dmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN, "");
 	return 0;
 }
 
@@ -276,7 +278,8 @@ char* strfifo::write(const char *str)
 
 void strfifo::init(uint count)
 {
-	this->bottom_addr = dmalloc(count, "");
+	if(!this->bottom_addr)
+		this->bottom_addr = dmalloc(count, "");
 	this->element_size = 1;
 	this->wptr = 0;
 	this->count = count;

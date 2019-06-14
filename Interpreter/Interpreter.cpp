@@ -1841,6 +1841,8 @@ int c_interpreter::run_interpreter(void)
 			len = tty_used->readline(sentence_buf);
 			if(len == -1) {
 				//TODO: terminal close. file.close();
+				if(this->tty_used == &fileio) {
+				}
 				return ERROR_NO;
 			}
 		}
@@ -1855,8 +1857,16 @@ int c_interpreter::run_interpreter(void)
 #endif
 		ret = this->generate_token_list(sentence_buf, len);
 		if(ret < 0)
-			continue;
+			if(this->tty_used == &stdio)
+				continue;
+			else
+				return ret;
 		ret = this->eval(this->token_node_ptr, ret);
+		if(ret < 0)
+			if(this->tty_used == &stdio)
+				continue;
+			else
+				return ret;
 		this->post_treat();
 		if(ret == OK_FUNC_RETURN)
 			return ret;
@@ -1866,43 +1876,31 @@ int c_interpreter::run_interpreter(void)
 
 int c_interpreter::init(terminal* tty_used, int rtl_flag)
 {
-	if(!c_interpreter::language_elment_space.init_done) {
-		c_interpreter::varity_type_stack.init();
-		for(int i=0; i<sizeof(basic_type_info)/sizeof(basic_type_info[0]); i++) {
-			c_interpreter::varity_type_stack.arg_count[i] = 2;
-			c_interpreter::varity_type_stack.type_info_addr[i] = basic_type_info[i];
-		}
-		c_interpreter::varity_type_stack.arg_count[STRUCT] = 3;
-		c_interpreter::varity_type_stack.count = sizeof(basic_type_info) / sizeof(basic_type_info[0]);
-		c_interpreter::language_elment_space.l_varity_list.init(sizeof(varity_info), c_interpreter::language_elment_space.l_varity_node, MAX_L_VARITY_NODE);
-		c_interpreter::language_elment_space.g_varity_list.init(sizeof(varity_info), c_interpreter::language_elment_space.g_varity_node, MAX_G_VARITY_NODE);
-		c_interpreter::language_elment_space.c_varity.init(&c_interpreter::language_elment_space.g_varity_list, &c_interpreter::language_elment_space.l_varity_list);
-		c_interpreter::language_elment_space.function_list.init(sizeof(function_info), c_interpreter::language_elment_space.function_node, MAX_FUNCTION_NODE);
-		c_interpreter::language_elment_space.c_function.init(&c_interpreter::language_elment_space.function_list);
-		c_interpreter::language_elment_space.struct_list.init(sizeof(struct_info), c_interpreter::language_elment_space.struct_node, MAX_STRUCT_NODE);
-		c_interpreter::language_elment_space.c_struct.init(&c_interpreter::language_elment_space.struct_list);
-		c_interpreter::cstdlib_func_count = 0;
-		this->varity_declare = &c_interpreter::language_elment_space.c_varity;
-		this->nonseq_info = &c_interpreter::language_elment_space.nonseq_info_s;
-		this->function_declare = &c_interpreter::language_elment_space.c_function;
-		this->struct_declare = &c_interpreter::language_elment_space.c_struct;
-		this->nonseq_info->nonseq_begin_stack_ptr = 0;
-		this->sentence_analysis_data_struct.short_depth = 0;
-		this->sentence_analysis_data_struct.sizeof_depth = 0;
-		this->sentence_analysis_data_struct.label_count = 0;
-		for(int i=0; i<MAX_A_VARITY_NODE; i++) {
-			link_varity_name[i][0] = LINK_VARITY_PREFIX;
-			tmp_varity_name[i][0] = TMP_VAIRTY_PREFIX;
-			tmp_varity_name[i][1] = link_varity_name[i][1] = i;
-			tmp_varity_name[i][2] = link_varity_name[i][2] = 0;
-		}
-		string_stack.init(sizeof(string_info), dmalloc(DEFAULT_STRING_NODE * sizeof(string_info), ""), DEFAULT_STRING_NODE);
-		name_stack.init(sizeof(string_info), dmalloc(DEFAULT_NAME_NODE * sizeof(string_info), ""), DEFAULT_NAME_NODE);
-		name_fifo.init(DEFAULT_NAME_LENGTH);
-		handle_init();
-		this->generate_compile_func();
-		c_interpreter::language_elment_space.init_done = 1;
+	c_interpreter::language_elment_space.l_varity_list.init(sizeof(varity_info), c_interpreter::language_elment_space.l_varity_node, MAX_L_VARITY_NODE);
+	c_interpreter::language_elment_space.g_varity_list.init(sizeof(varity_info), c_interpreter::language_elment_space.g_varity_node, MAX_G_VARITY_NODE);
+	c_interpreter::language_elment_space.c_varity.init(&c_interpreter::language_elment_space.g_varity_list, &c_interpreter::language_elment_space.l_varity_list);
+	c_interpreter::language_elment_space.function_list.init(sizeof(function_info), c_interpreter::language_elment_space.function_node, MAX_FUNCTION_NODE);
+	c_interpreter::language_elment_space.c_function.init(&c_interpreter::language_elment_space.function_list);
+	c_interpreter::language_elment_space.struct_list.init(sizeof(struct_info), c_interpreter::language_elment_space.struct_node, MAX_STRUCT_NODE);
+	c_interpreter::language_elment_space.c_struct.init(&c_interpreter::language_elment_space.struct_list);
+	c_interpreter::cstdlib_func_count = 0;
+	this->varity_declare = &c_interpreter::language_elment_space.c_varity;
+	this->nonseq_info = &c_interpreter::language_elment_space.nonseq_info_s;
+	this->function_declare = &c_interpreter::language_elment_space.c_function;
+	this->struct_declare = &c_interpreter::language_elment_space.c_struct;
+	this->nonseq_info->nonseq_begin_stack_ptr = 0;
+	this->sentence_analysis_data_struct.short_depth = 0;
+	this->sentence_analysis_data_struct.sizeof_depth = 0;
+	this->sentence_analysis_data_struct.label_count = 0;
+	for(int i=0; i<MAX_A_VARITY_NODE; i++) {
+		link_varity_name[i][0] = LINK_VARITY_PREFIX;
+		tmp_varity_name[i][0] = TMP_VAIRTY_PREFIX;
+		tmp_varity_name[i][1] = link_varity_name[i][1] = i;
+		tmp_varity_name[i][2] = link_varity_name[i][2] = 0;
 	}
+	string_stack.init(sizeof(string_info), DEFAULT_STRING_NODE);
+	name_stack.init(sizeof(string_info), DEFAULT_NAME_NODE);
+	name_fifo.init(DEFAULT_NAME_LENGTH);
 	this->real_time_link = rtl_flag;
 	this->tty_used = tty_used;
 	this->row_pretreat_fifo.set_base(this->pretreat_buf);
@@ -1923,6 +1921,18 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 	this->mid_varity_stack.init(sizeof(varity_info), this->tmp_varity_stack, MAX_A_VARITY_NODE);//TODO: ÉèÖÃnode×î´ócount
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 	this->exec_flag = EXEC_FLAG_TRUE;
+	//if(!c_interpreter::language_elment_space.init_done) {
+		c_interpreter::varity_type_stack.init();
+		for(int i=0; i<sizeof(basic_type_info)/sizeof(basic_type_info[0]); i++) {
+			c_interpreter::varity_type_stack.arg_count[i] = 2;
+			c_interpreter::varity_type_stack.type_info_addr[i] = basic_type_info[i];
+		}
+		c_interpreter::varity_type_stack.arg_count[STRUCT] = 3;
+		c_interpreter::varity_type_stack.count = sizeof(basic_type_info) / sizeof(basic_type_info[0]);
+		handle_init();
+		this->generate_compile_func();
+	//	c_interpreter::language_elment_space.init_done = 1;
+	//}
 	return 0;
 	///////////
 }

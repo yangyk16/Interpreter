@@ -104,8 +104,11 @@ unsigned int kfread(void *buffer, unsigned int size, unsigned int nmemb, void *f
 
 unsigned int kfwrite(void *buffer, unsigned int size, unsigned int count, void *fileptr)
 {
+	int ret;
 #if TTY_TYPE == 0
-	return fwrite(buffer, size, count, (FILE*)fileptr);
+	ret = fwrite(buffer, size, count, (FILE*)fileptr);
+	fflush((FILE*)fileptr);
+	return ret;
 #endif
 }
 

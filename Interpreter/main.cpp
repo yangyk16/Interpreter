@@ -98,10 +98,12 @@ int ycc(int argc, char **argv)
 				if(ret)
 					return ERROR_FILE;
 				myinterpreter.init(&fileio, RTL_FLAG_DELAY);
+				tip("compiling %s...", argv[optind + i]);
 				myinterpreter.run_interpreter();
 				int len = kstrlen(argv[optind + i]);
 				argv[optind + i][len - 1] = 'o';
 				compile(argv[optind + i], IMPORT_FLAG_LINK);
+				tip("%s made success!\n", argv[optind + i]);
 			}
 			break;
 		}
@@ -112,8 +114,10 @@ int ycc(int argc, char **argv)
 			for(int i=0; i<file_count; i++) {
 				myinterpreter.load_ofile(argv[optind + i], 0);
 			}
-			myinterpreter.tlink(LINK_NUMBER);
+			ret = myinterpreter.tlink(LINK_NUMBER);
 			//myinterpreter.run_interpreter();
+			if(ret)
+				return ret;
 			if(!output_file_name)
 				output_file_name = "a.elf";
 			myinterpreter.write_ofile(output_file_name, LINK_NUMBER);
@@ -156,7 +160,6 @@ int main(int argc, char *argv[])
 		}
 	}
 	error("no cmd.\n");
-	while(1);
 	getchar();
 	return 0;
 }
