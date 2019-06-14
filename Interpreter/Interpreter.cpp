@@ -351,7 +351,7 @@ int c_interpreter::run_main(void)
 
 int c_interpreter::load_ofile(char *file, int flag)
 {
-	void *file_ptr = kfopen(file, "r");
+	void *file_ptr = kfopen(file, "rb");
 	unsigned int function_count, function_total_size;
 	int i;
 	kfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr);
@@ -519,7 +519,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 int c_interpreter::write_ofile(char *file, int flag)
 {
 	int count, i;
-	void *file_ptr = kfopen(file, "w");
+	void *file_ptr = kfopen(file, "wb");
 	kmemset(&this->compile_info, 0, sizeof(compile_info_t));
 	kmemset(&this->compile_function_info, 0, sizeof(compile_function_info_t));
 	kmemset(&this->compile_string_info, 0, sizeof(compile_string_info_t));
