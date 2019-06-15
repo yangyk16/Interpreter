@@ -13,6 +13,7 @@
 #define PRODUCED_DECLARE	1
 #define PRODUCED_ALL		3
 
+#define VARITY_SCOPE_EXTERNAL	4
 #define VARITY_SCOPE_TMP		2
 #define VARITY_SCOPE_GLOBAL  	1
 #define VARITY_SCOPE_LOCAL   	0
@@ -62,7 +63,7 @@ typedef unsigned long PLATFORM_WORD;
 
 class varity_info:public element {
 protected:
-	uint size;
+	uint size;//TODO: remove size
 	PLATFORM_WORD* comlex_info_ptr;
 	void*	content_ptr;
 	int complex_arg_count;
@@ -100,7 +101,7 @@ public:
 	indexed_stack* local_varity_stack;
 	varity_info* find(char*);
 	varity_info* vfind(char *name, int &scope);
-	int declare(int scope_flag, char* name, char type, uint size, int, PLATFORM_WORD*);
+	int declare(int scope_flag, char* name, uint size, int, PLATFORM_WORD*);
 	int destroy_local_varity_cur_depth(void);
 	int destroy_local_varity(void);
 	int undeclare();

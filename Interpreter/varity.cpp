@@ -150,17 +150,17 @@ void varity_info::reset(void)
 	}
 	this->content_ptr = 0;
 	if(this->name) {
-		vfree(this->name);
+		//vfree(this->name);
 		this->name = 0;
 	}
 }
 
-int varity::declare(int scope_flag, char *name, char type, uint size, int complex_arg_count, PLATFORM_WORD *complex_info_ptr)
+int varity::declare(int scope_flag, char *name, uint size, int complex_arg_count, PLATFORM_WORD *complex_info_ptr)
 {//scope_flag = 0:global; 1: local; 2:analysis_tmp
 	int ret;
 	varity_info* varity_ptr;
 	stack* varity_stack;
-	if(scope_flag == VARITY_SCOPE_GLOBAL) {
+	if(scope_flag == VARITY_SCOPE_GLOBAL || scope_flag == VARITY_SCOPE_EXTERNAL) {
 		if(this->global_varity_stack->find(name)) {
 			error("declare varity \"%s\" error: varity name duplicated\n", name);
 			return ERROR_VARITY_DUPLICATE;
@@ -171,7 +171,7 @@ int varity::declare(int scope_flag, char *name, char type, uint size, int comple
 			return ERROR_VARITY_DUPLICATE;
 		}
 	}
-	if(scope_flag == VARITY_SCOPE_GLOBAL)
+	if(scope_flag == VARITY_SCOPE_GLOBAL || scope_flag == VARITY_SCOPE_EXTERNAL)
 		varity_stack = global_varity_stack;
 	else if(scope_flag == VARITY_SCOPE_LOCAL)
 		varity_stack = local_varity_stack;
@@ -192,6 +192,8 @@ int varity::declare(int scope_flag, char *name, char type, uint size, int comple
 	} else if(scope_flag == VARITY_SCOPE_LOCAL) {
 		varity_ptr->set_content_ptr((void*)make_align(this->local_varity_stack->offset, varity_ptr->get_element_size()));
 		this->local_varity_stack->offset += varity_ptr->get_size();
+	} else if(scope_flag == VARITY_SCOPE_EXTERNAL) {
+		varity_ptr->set_content_ptr(NULL);
 	}
 	varity_stack->push();
 	return 0;

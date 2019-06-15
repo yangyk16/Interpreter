@@ -289,7 +289,15 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 				break;
 			}
 		}
-		if(!(opda_flag != 0 ^ opda_addr != NULL) && !(opdb_flag != 0 ^ opdb_addr != NULL) && !(ret_flag != 0 ^ ret_addr != NULL) && mid_code_ptr[i].ret_operator < CTL_CMD_NO) {
+		/*if(!(opda_flag != 0 ^ opda_addr != NULL) && !(opdb_flag != 0 ^ opdb_addr != NULL) && !(ret_flag != 0 ^ ret_addr != NULL) && mid_code_ptr[i].ret_operator < CTL_CMD_NO) {
+			if(ret_flag)
+				mid_code_ptr[i].ret_addr = (long)ret_addr;
+			if(opda_flag)
+				mid_code_ptr[i].opda_addr = (long)opda_addr;
+			if(opdb_flag)
+				mid_code_ptr[i].opdb_addr = (long)opdb_addr;
+		}*/
+		if((opda_flag || opdb_flag || ret_flag) && mid_code_ptr[i].ret_operator < CTL_CMD_NO) {
 			if(ret_flag)
 				mid_code_ptr[i].ret_addr = (long)ret_addr;
 			if(opda_flag)
@@ -2314,7 +2322,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 			for(int n=0; n<arg_count; n++) {
 				int size = get_varity_size(0, arg_ptr[n].get_complex_ptr(), arg_ptr[n].get_complex_arg_count());
 				size = make_align(size, 4);
-				this->varity_declare->declare(VARITY_SCOPE_LOCAL, arg_ptr[n].get_name(), 0, size, arg_ptr[n].get_complex_arg_count(), arg_ptr[n].get_complex_ptr());
+				this->varity_declare->declare(VARITY_SCOPE_LOCAL, arg_ptr[n].get_name(), size, arg_ptr[n].get_complex_arg_count(), arg_ptr[n].get_complex_ptr());
 			}
 			vfree(arg_ptr);
 			arg_stack_ptr->set_base(all_arg_ptr);
@@ -3284,12 +3292,16 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 				error("Wrong varity name.\n");
 				return ERROR_VARITY_NAME;
 			}
-			if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
-				ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, is_varity_declare, varity_size, complex_node_count, varity_complex_ptr);
-				new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
+			if(external_flag) {
+				ret = this->varity_declare->declare(VARITY_SCOPE_EXTERNAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
 			} else {
-				ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, is_varity_declare, varity_size, complex_node_count, varity_complex_ptr);
-				new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
+				if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
+					ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
+					new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
+				} else {
+					ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
+					new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
+				}
 			}
 			if(!varity_complex_ptr[0]) {
 				varity_complex_ptr[0] = 1;//起始引用次数1
@@ -3297,6 +3309,10 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 			node_ptr += complex_part_count;
 			count -= complex_part_count;
 			if(this->sentence_analysis_data_struct.last_token.data == OPT_ASSIGN) {//TODO: generate mid code from varity_name to ;
+				if(external_flag) {
+					error("external variable cannot be assigned.\n");
+					return ERROR_ASSIGN;
+				}
 				node_attribute_t node = {0, TOKEN_OPERATOR, opt_prio[OPT_COMMA], OPT_COMMA, 0, 0};
 				int exp_len = find_token_with_bracket_level(node_ptr, count, &node, 0);
 				if(exp_len == -1) {
