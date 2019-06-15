@@ -3258,6 +3258,12 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 	int is_varity_declare, basic_type_count = count, token_len, ret;
 	node_attribute_t node;
 	char varity_name[32];
+	int external_flag = 0;
+	if(node_ptr->node_type == TOKEN_SPECIFIER) {
+		node_ptr++;
+		count--;
+		external_flag = 1;
+	}
 	struct_info* struct_node_ptr = 0;
 	is_varity_declare = basic_type_check(node_ptr, basic_type_count, struct_node_ptr);
 	count -= basic_type_count;
@@ -3390,6 +3396,10 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 			info->node_type = TOKEN_OPERATOR;
 			info->data = OPT_SIZEOF;
 			info->value_type = 2;
+			return i;
+		}
+		if(!kstrcmp(symbol_ptr, "extern")) {
+			info->node_type = TOKEN_SPECIFIER;
 			return i;
 		}
 		string_info *string_ptr;

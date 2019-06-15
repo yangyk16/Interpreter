@@ -34,9 +34,10 @@
 #define TOKEN_NAME				6
 #define TOKEN_CONST_VALUE		7
 #define TOKEN_STRING			8
-#define TOKEN_OTHER				9
-#define TOKEN_ERROR				10
-#define TOKEN_NONEXIST			11
+#define TOKEN_SPECIFIER			9
+#define TOKEN_OTHER				10
+#define TOKEN_ERROR				11
+#define TOKEN_NONEXIST			12
 
 #define NONSEQ_KEY_IF		1
 #define NONSEQ_KEY_SWITCH	2

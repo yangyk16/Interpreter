@@ -12,7 +12,10 @@ int kgetopt(int argc, char *argv[], const char *optstring)
 	int size;
 	do {
 		if(optind == argc) {
-			optind = string_pos;
+			if(string_pos)
+				optind = string_pos;
+			else
+				optind = argc;
 			return -1;
 		}
 		optarg = NULL;
