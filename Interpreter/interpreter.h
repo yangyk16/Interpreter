@@ -211,6 +211,7 @@ typedef struct compile_function_info_s {
 
 typedef struct compile_varity_info_s {
 	unsigned int varity_count;
+	unsigned int init_varity_count;
 	unsigned int bss_size;
 	unsigned int data_size;
 	unsigned int varity_size;
