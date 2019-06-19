@@ -120,10 +120,12 @@ public:
 };
 
 typedef struct varity_type_stack_s {
-	int count;
+	uint count;
+	uint length;
 	char *arg_count;
 	void **type_info_addr;
 	int find(char arg_count, void *type_info_addr);
 	int init(void);
+	int push(void);
 } varity_type_stack_t;
 #endif

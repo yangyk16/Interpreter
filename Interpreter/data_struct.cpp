@@ -231,6 +231,17 @@ int varity_type_stack_t::find(char arg_count, void *type_info_addr)
 	return -1;
 }
 
+int varity_type_stack_t::push(void)
+{
+	this->count++;
+	if(this->count == this->length) {
+		this->length *= 2;
+		vrealloc(this->arg_count, this->length * sizeof(char));
+		vrealloc(this->type_info_addr, this->length * sizeof(void*));
+	}
+	return 0;
+}
+
 int varity_type_stack_t::init(void)
 {
 	if(!this->arg_count)

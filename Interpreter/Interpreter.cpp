@@ -445,8 +445,13 @@ int c_interpreter::load_ofile(char *file, int flag)
 			if(type_no >= 0) {
 				varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), (PLATFORM_WORD*)this->varity_type_stack.type_info_addr[type_no]);
 			} else {
+				int complex_size = (varity_info_ptr->get_complex_arg_count() + 1) * sizeof(void*);
+				PLATFORM_WORD *complex_ptr = (PLATFORM_WORD*)dmalloc(complex_size, "complex info ptr");
+				kmemcpy(complex_ptr, varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()], complex_size);
+				varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), complex_ptr);
 				this->varity_type_stack.arg_count[this->varity_type_stack.count] = varity_info_ptr->get_complex_arg_count();
-				this->varity_type_stack.type_info_addr[this->varity_type_stack.count] = varity_info_ptr->get_complex_ptr();
+				this->varity_type_stack.type_info_addr[this->varity_type_stack.count] = complex_ptr;
+				this->varity_type_stack.push();
 			}
 			this->varity_declare->global_varity_stack->push(varity_info_ptr);
 		}
@@ -456,7 +461,17 @@ int c_interpreter::load_ofile(char *file, int flag)
 		varity_info_ptr = (varity_info*)function_info_ptr[i + function_begin_count].arg_list->get_base_addr();
 		for(int j=0; j<function_info_ptr[i + function_begin_count].arg_list->get_count(); j++) {
 			int type_no = this->varity_type_stack.find(varity_info_ptr[j].get_complex_arg_count(), varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr[j].get_complex_ptr()]);
-			varity_info_ptr[j].config_complex_info(varity_info_ptr[j].get_complex_arg_count(), (PLATFORM_WORD*)this->varity_type_stack.type_info_addr[type_no]);
+			if(type_no >= 0) {
+				varity_info_ptr[j].config_complex_info(varity_info_ptr[j].get_complex_arg_count(), (PLATFORM_WORD*)this->varity_type_stack.type_info_addr[type_no]);
+			} else {
+				int complex_size = (varity_info_ptr[j].get_complex_arg_count() + 1) * sizeof(void*);
+				PLATFORM_WORD *complex_ptr = (PLATFORM_WORD*)dmalloc(complex_size, "complex info ptr");
+				kmemcpy(complex_ptr, varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr[j].get_complex_ptr()], complex_size);
+				varity_info_ptr[j].config_complex_info(varity_info_ptr[j].get_complex_arg_count(), complex_ptr);
+				this->varity_type_stack.arg_count[this->varity_type_stack.count] = varity_info_ptr[j].get_complex_arg_count();
+				this->varity_type_stack.type_info_addr[this->varity_type_stack.count] = complex_ptr;
+				this->varity_type_stack.push();
+			}
 		}
 	}
 	vfree(varity_type_info_ptr);
@@ -1984,6 +1999,7 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 		}
 		c_interpreter::varity_type_stack.arg_count[STRUCT] = 3;
 		c_interpreter::varity_type_stack.count = sizeof(basic_type_info) / sizeof(basic_type_info[0]);
+		c_interpreter::varity_type_stack.length = MAX_VARITY_TYPE_COUNT;
 		handle_init();
 		this->generate_compile_func();
 	//	c_interpreter::language_elment_space.init_done = 1;
