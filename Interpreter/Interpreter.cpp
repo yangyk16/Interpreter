@@ -652,7 +652,7 @@ int c_interpreter::write_ofile(char *file, int flag)
 		for(i=0; i<count; i++)
 			if(!function_ptr[i].compile_func_flag) {
 				if(function_ptr[i].buffer)
-					kfwrite(function_ptr[i].buffer, 1, kstrlen(function_ptr[i].buffer) + 1, file_ptr);
+					kfwrite(function_ptr[i].buffer, 1, function_ptr[i].wptr, file_ptr);
 			}
 	for(i=0; i<count; i++)
 		if(!function_ptr[i].compile_func_flag) {

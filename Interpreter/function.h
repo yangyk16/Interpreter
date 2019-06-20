@@ -16,7 +16,7 @@ public:
 	void *func_addr;
 	stack mid_code_stack;
 	int row_line;
-	char **row_begin_pos;
+	unsigned int *row_begin_pos;
 	int *row_len;
 	int stack_frame_size;
 	stack* arg_list;

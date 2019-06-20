@@ -24,7 +24,7 @@ int function_info::init(char* name, stack* arg_list, int flag)
 	//kstrcpy(this->name, name);
 	if(!(flag & FUNC_FLAG_PROTOTYPE)) {
 		this->buffer = (char*)dmalloc(MAX_FUNCTION_LEN, "function code buffer");
-		this->row_begin_pos = (char**)dmalloc(MAX_FUNCTION_LINE * sizeof(char*), "function row ptr");
+		this->row_begin_pos = (unsigned int*)dmalloc(MAX_FUNCTION_LINE * sizeof(char*), "function row ptr");
 		this->row_len = (int*)dmalloc(MAX_FUNCTION_LINE * sizeof(int), "function row length");
 #if DEBUG_EN
 		this->row_code_ptr = (mid_code**)dmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*), "function row map mid code");
@@ -110,14 +110,14 @@ int function_info::size_adapt(void)
 #endif
 	vrealloc(this->buffer, this->wptr);
 	vfree(this->row_len);
-	vrealloc(this->row_begin_pos, this->row_line * sizeof(char*));
+	vrealloc(this->row_begin_pos, this->row_line * sizeof(unsigned int));
 	return ERROR_NO;
 }
 
 int function_info::save_sentence(char* str, uint len)
 {
 	this->row_len[row_line] = len;
-	this->row_begin_pos[row_line] = this->buffer + wptr;
+	this->row_begin_pos[row_line] = wptr;
 	this->row_line++;
 	kmemcpy(this->buffer + wptr, str, len);
 	this->buffer[wptr + len] = '\0';//\n
@@ -129,7 +129,7 @@ int function_info::destroy_sentence(void)
 {
 	if(!row_line)
 		return ERROR_EMPTY_FIFO;
-	this->wptr = this->row_begin_pos[--row_line] - this->buffer;
+	this->wptr = this->row_begin_pos[--row_line];
 	return ERROR_NO;
 }
 
@@ -138,7 +138,7 @@ int function_info::print_line(int line)
 {
 	if(line < 0 || line > this->row_line)
 		return -1;
-	gdbout("%03d %s\n", line, row_begin_pos[line]);
+	gdbout("%03d %s\n", line, this->buffer + row_begin_pos[line]);
 	return 0;
 }
 #endif
