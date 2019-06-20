@@ -405,6 +405,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	char *source_code_ptr = (char*)arg_varity_ptr + this->compile_function_info.arg_size;
 	kfread(mid_code_ptr, 1, this->compile_function_info.mid_code_size, file_ptr);
 	kfread(arg_varity_ptr, 1, this->compile_function_info.arg_size, file_ptr);
+	kfread(source_code_ptr, 1, this->compile_function_info.source_code_size, file_ptr);
 	unsigned int function_begin_count = this->function_declare->function_stack_ptr->get_count();
 	unsigned int varity_begin_count = this->varity_declare->global_varity_stack->get_count();
 	for(i=0; i<compile_function_info.function_count; i++) {
@@ -435,7 +436,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 		varity_type_stack_ptr->type_info_addr[i] = (char*)varity_type_stack_ptr->type_info_addr[i - 1] + (varity_type_stack_ptr->arg_count[i - 1] + 1) * PLATFORM_WORD_LEN;
 	kmemcpy(varity_type_info_ptr, varity_type_stack_ptr, sizeof(varity_type_stack_t));
 	varity_info *varity_info_ptr;
-	if(this->compile_info.import_flag >= IMPORT_FLAG_LINK) {
+	if(this->compile_info.export_flag >= EXPORT_FLAG_LINK) {
 		varity_info_ptr = (varity_info*)((char*)varity_type_ptr + compile_varity_info.type_size);
 		for(i=0; i<compile_varity_info.varity_count; i++) {
 			kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
@@ -481,7 +482,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	for(i=0; i<compile_varity_info.init_varity_count; i++) {
 		varity_info_ptr[i].set_content_ptr((char*)base + (int)varity_info_ptr[i].get_content_ptr());
 	}
-	if(compile_info.import_flag == LINK_NUMBER) {
+	if(compile_info.export_flag == LINK_NUMBER) {
 		varity_info *varity_base = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr() + varity_begin_count;
 		function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr() + function_begin_count;
 		for(int j=0; j<compile_function_info.function_count; j++) {
@@ -512,7 +513,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 				}
 			}
 		}
-	} else if(compile_info.import_flag == LINK_STRNO) {
+	} else if(compile_info.export_flag == LINK_STRNO) {
 		function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr() + function_begin_count;
 		for(int j=0; j<compile_function_info.function_count; j++) {
 			unsigned int code_count = function_base[j].mid_code_stack.get_count();
@@ -546,7 +547,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	return ERROR_NO;
 }
 
-int c_interpreter::write_ofile(char *file, int flag)
+int c_interpreter::write_ofile(char *file, int export_flag, int extra_flag)
 {
 	int count, i, j;
 	void *file_ptr = kfopen(file, "wb");
@@ -554,16 +555,14 @@ int c_interpreter::write_ofile(char *file, int flag)
 	kmemset(&this->compile_function_info, 0, sizeof(compile_function_info_t));
 	kmemset(&this->compile_string_info, 0, sizeof(compile_string_info_t));
 	kmemset(&this->compile_varity_info, 0, sizeof(compile_varity_info));
-	this->compile_info.import_flag = flag & 0xFFFF;//TODO:use macro
-	this->compile_info.compile_flag = flag >> 16;
+	this->compile_info.export_flag = export_flag;//TODO:use macro
+	this->compile_info.extra_flag = extra_flag;
 	count = this->function_declare->function_stack_ptr->get_count();
 	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 	for(this->compile_function_info.function_count=0,i=0; i<count; i++) {
 		if(function_ptr[i].compile_func_flag == 0) {
-			if(this->compile_info.import_flag >= IMPORT_FLAG_LINK) {
-				if(this->compile_info.import_flag >= IMPORT_FLAG_DEBUG) {
-					this->compile_function_info.source_code_size += function_ptr[i].wptr;
-				}
+			if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
+				this->compile_function_info.source_code_size += function_ptr[i].wptr;
 			}
 			this->compile_function_info.mid_code_size += function_ptr[i].mid_code_stack.get_count() * sizeof(mid_code);
 			this->compile_function_info.arg_size += function_ptr[i].arg_list->get_count() * sizeof(varity_info) + sizeof(stack);
@@ -618,7 +617,6 @@ int c_interpreter::write_ofile(char *file, int flag)
 	compile_varity_info.type_size = make_align(this->varity_type_stack.count, PLATFORM_WORD_LEN);
 	for(i=0; i<this->varity_type_stack.count; i++)
 		compile_varity_info.type_size += (this->varity_type_stack.arg_count[i] + 1) * PLATFORM_WORD_LEN;
-	this->compile_info.import_flag = flag;
 	this->compile_info.total_size = compile_function_info.source_code_size + compile_varity_info.data_size
 								+ compile_function_info.mid_code_size + compile_function_info.arg_size;
 	kfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr);
@@ -648,7 +646,7 @@ int c_interpreter::write_ofile(char *file, int flag)
 				arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
 			}
 		}
-	if(this->compile_info.import_flag >= IMPORT_FLAG_DEBUG)
+	if(this->compile_info.extra_flag & EXTRA_FLAG_DEBUG)
 		for(i=0; i<count; i++)
 			if(!function_ptr[i].compile_func_flag) {
 				if(function_ptr[i].buffer)
@@ -656,10 +654,10 @@ int c_interpreter::write_ofile(char *file, int flag)
 			}
 	for(i=0; i<count; i++)
 		if(!function_ptr[i].compile_func_flag) {
-			//if(this->compile_info.import_flag == IMPORT_FLAG_LINK)
+			//if(this->compile_info.export_flag == EXPORT_FLAG_LINK)
 				function_ptr[i].set_name((char*)((string_info*)name_stack.find(function_ptr[i].get_name()) - (string_info*)name_stack.get_base_addr()));
 			kfwrite(&function_ptr[i], sizeof(function_info), 1, file_ptr);
-			//if(this->compile_info.import_flag == IMPORT_FLAG_LINK)
+			//if(this->compile_info.export_flag == EXPORT_FLAG_LINK)
 				function_ptr[i].set_name(((string_info*)name_stack.visit_element_by_index((int)function_ptr[i].get_name()))->get_name());
 		}
 	kfwrite(&this->compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
@@ -3971,7 +3969,7 @@ int compile(char *file, int flag)
 		error("link error\n");
 		return ret;
 	}
-	return myinterpreter.write_ofile(file, flag);
+	return myinterpreter.write_ofile(file, flag, 0);
 }
 #endif
 

@@ -11,13 +11,11 @@
 #include "operator.h"
 #include "data_struct.h"
 
-#define IMPORT_FLAG_EXEC		1//code+data+string
-#define IMPORT_FLAG_LINK		2//name+code+data+string
-#define IMPORT_FLAG_DEBUG		4//name+varity_type+source+code+data+string
-#define IMPORT_FLAG_REF			8//name+varity_type+source+code+data+string+struct
+#define EXPORT_FLAG_EXEC		1//code+data+string
+#define EXPORT_FLAG_LINK		2//name+code+data+string
 
-#define EXPORT_FLAG_EXEC		1
-#define EXPORT_FLAG_UNLINK		2
+#define EXTRA_FLAG_DEBUG		4//name+varity_type+source+code+data+string
+#define EXTRA_FLAG_REF			8//name+varity_type+source+code+data+string+struct
 
 #define LINK_ADDR				0//for execute immediately
 #define LINK_NUMBER				1//for output exe file
@@ -196,8 +194,8 @@ public:
 typedef struct compile_info_s {
 	unsigned int total_size;
 	unsigned int string_size;
-	unsigned short import_flag;
-	unsigned short compile_flag;
+	unsigned short export_flag;
+	unsigned short extra_flag;
 	unsigned int struct_flag;
 } compile_info_t;
 
@@ -361,7 +359,7 @@ class c_interpreter {
 public:
 	int tlink(int mode);//link all function
 	int load_ofile(char *file, int flag);
-	int write_ofile(char *file, int flag);
+	int write_ofile(char *file, int export_flag, int extra_flag);
 	int exec_mid_code(mid_code *pc, uint count);
 	void set_break_flag(int flag) {break_flag = flag;}
 	int print_call_stack(void);

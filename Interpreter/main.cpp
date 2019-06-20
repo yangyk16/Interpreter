@@ -51,9 +51,10 @@ int ycc(int argc, char **argv)
 	char ch;
 	int run_flag = 0;
 	int link_flag = LINK_ADDR;
+	int extra_flag = 0;
 	char *output_file_name = NULL;
 	char *fun_file_name = NULL;
-	while((ch = kgetopt(argc, (char**)argv, "iceo:r")) != -1) {
+	while((ch = kgetopt(argc, (char**)argv, "iceo:rg")) != -1) {
 		switch(ch) {
 		case 'i':
 			link_flag = LINK_ADDR;
@@ -69,6 +70,9 @@ int ycc(int argc, char **argv)
 			break;
 		case 'r':
 			run_flag = 1;
+			break;
+		case 'g':
+			extra_flag |= EXTRA_FLAG_DEBUG;
 			break;
 		}
 		debug("opt=%c,arg=%s\n", ch, optarg);
@@ -102,7 +106,9 @@ int ycc(int argc, char **argv)
 				myinterpreter.run_interpreter();
 				int len = kstrlen(argv[optind + i]);
 				argv[optind + i][len - 1] = 'o';
-				compile(argv[optind + i], IMPORT_FLAG_LINK);
+				ret = myinterpreter.tlink(LINK_STRNO);
+				//compile(argv[optind + i], EXPORT_FLAG_LINK);
+				myinterpreter.write_ofile(argv[optind + i], EXPORT_FLAG_LINK, extra_flag);//TODO: -o参数后的文件名和.c改.o规则冲突情况处理
 				tip("%s made success!\n", argv[optind + i]);
 			}
 			break;
@@ -120,7 +126,7 @@ int ycc(int argc, char **argv)
 				return ret;
 			if(!output_file_name)
 				output_file_name = "a.elf";
-			myinterpreter.write_ofile(output_file_name, LINK_NUMBER);
+			myinterpreter.write_ofile(output_file_name, LINK_NUMBER, extra_flag);
 			break;
 		}
 	}
