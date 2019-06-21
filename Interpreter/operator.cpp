@@ -1949,12 +1949,14 @@ int c_interpreter::ctl_return_handle(c_interpreter *interpreter_ptr)
 int c_interpreter::ctl_bxlr_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
+	mid_code *this_instruction_ptr = instruction_ptr;
 	instruction_ptr = (mid_code*)PTR_N_VALUE(interpreter_ptr->stack_pointer - PLATFORM_WORD_LEN);
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
 	t_varity_sp += (int)instruction_ptr->opdb_addr;//24;
 	GET_RET_ADDR();
-	function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;
-	varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp + instruction_ptr->opdb_addr - 8, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
+	//function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;//TODO:delete rem
+	//varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp + instruction_ptr->opdb_addr - 8, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
+	varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp + instruction_ptr->opdb_addr - 8, this_instruction_ptr->opdb_addr);
 	return ERROR_NO;
 }
 

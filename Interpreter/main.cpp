@@ -126,7 +126,7 @@ int ycc(int argc, char **argv)
 				return ret;
 			if(!output_file_name)
 				output_file_name = "a.elf";
-			myinterpreter.write_ofile(output_file_name, LINK_NUMBER, extra_flag);
+			myinterpreter.write_ofile(output_file_name, EXPORT_FLAG_EXEC, extra_flag);
 			break;
 		}
 	}
