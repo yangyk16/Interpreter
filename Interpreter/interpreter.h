@@ -24,6 +24,9 @@
 #define RTL_FLAG_DELAY			0
 #define RTL_FLAG_IMMEDIATELY	1
 
+#define STOP_FLAG_STOP			1
+#define STOP_FLAG_RUN			0
+
 #define TOKEN_KEYWORD_TYPE		1
 #define TOKEN_KEYWORD_CTL		2
 #define TOKEN_ARG_LIST			3
@@ -365,7 +368,7 @@ public:
 	int print_call_stack(void);
 	int init(terminal*, int);
 	int run_interpreter(void);
-	int run_main(void);
+	int run_main(int);
 };
 #define UCC_DEBUG 1
 int compile(char *file, int flag);

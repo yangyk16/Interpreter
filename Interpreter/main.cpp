@@ -80,8 +80,8 @@ int ycc(int argc, char **argv)
 	if(run_flag) {
 		myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
 		myinterpreter.load_ofile(argv[optind], 0);
-		myinterpreter.run_main();
-		myinterpreter.run_interpreter();
+		ret = myinterpreter.run_main(STOP_FLAG_RUN);
+		return ret;
 	}
 	switch(link_flag) {
 		case LINK_ADDR:
@@ -135,7 +135,15 @@ int ycc(int argc, char **argv)
 
 int gdb(int argc, char **argv)
 {
-	return 0;
+	int ret;
+	if(argc < 2)
+		return -1;
+	else
+		optind = 1;
+	myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
+	myinterpreter.load_ofile(argv[optind], 0);
+	ret = myinterpreter.run_main(STOP_FLAG_STOP);
+	return ret;
 }
 
 int objdump(int argc, char **argv)
