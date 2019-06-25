@@ -417,6 +417,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	unsigned int varity_begin_count = this->varity_declare->global_varity_stack->get_count();
 	for(i=0; i<compile_function_info.function_count; i++) {
 		kfread(function_info_ptr, sizeof(function_info), 1, file_ptr);
+		kmemcpy(&function_info_ptr->local_varity_stack, &c_interpreter::language_elment_space.l_varity_list, sizeof(void*));//copy virtual table
 		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
 		if(compile_info.extra_flag) {
 			function_info_ptr->arg_list = (stack*)arg_varity_ptr++;
@@ -507,10 +508,13 @@ int c_interpreter::load_ofile(char *file, int flag)
 	vfree(varity_type_info_ptr);
 	base = (void*)make_align((long)base, 4);
 	kfread((char*)base, 1, compile_varity_info.data_size, file_ptr);
+	void *bss_base = vmalloc(compile_varity_info.bss_size, "bss space");
 	varity_info_ptr = (varity_info*)this->varity_declare->global_varity_stack->visit_element_by_index(varity_begin_count);
-	for(i=0; i<compile_varity_info.init_varity_count; i++) {
+	for(i=0; i<compile_varity_info.init_varity_count; i++)
 		varity_info_ptr[i].set_content_ptr((char*)base + (int)varity_info_ptr[i].get_content_ptr());
-	}
+	varity_info_ptr = &varity_info_ptr[i];
+	for(i=0; i<compile_varity_info.varity_count - compile_varity_info.init_varity_count; i++)
+		varity_info_ptr[i].set_content_ptr((char*)bss_base + (int)varity_info_ptr[i].get_content_ptr());
 	if(compile_info.export_flag == EXPORT_FLAG_EXEC) {
 		varity_info *varity_base = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr() + varity_begin_count;
 		function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr() + function_begin_count;
@@ -623,6 +627,8 @@ int c_interpreter::write_ofile(char *file, int export_flag, int extra_flag)
 				varity_align_size = get_element_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
 				this->compile_varity_info.data_size = make_align(compile_varity_info.data_size, varity_align_size) + varity_size;
 			} else {
+				varity_align_size = get_element_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
+				this->compile_varity_info.bss_size = make_align(compile_varity_info.bss_size, varity_align_size) + varity_size;
 				break;
 			}
 			if(i >= j)
