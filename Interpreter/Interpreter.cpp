@@ -365,7 +365,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 {
 	void *file_ptr = kfopen(file, "rb");
 	unsigned int function_count, function_total_size;
-	int i;
+	int i, j;
 	kfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr);
 	function_info *function_info_ptr = (function_info*)dmalloc(sizeof(function_info), "all infos base");
 	kfread(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
@@ -408,9 +408,11 @@ int c_interpreter::load_ofile(char *file, int flag)
 	mid_code *mid_code_ptr = (mid_code*)base;
 	stack *arg_varity_ptr = (stack*)((char*)mid_code_ptr + this->compile_function_info.mid_code_size);
 	char *source_code_ptr = (char*)arg_varity_ptr + this->compile_function_info.arg_size;
+	mid_code **row_code_ptr = (mid_code**)((char*)source_code_ptr + this->compile_function_info.source_code_size);
 	kfread(mid_code_ptr, 1, this->compile_function_info.mid_code_size, file_ptr);
 	kfread(arg_varity_ptr, 1, this->compile_function_info.arg_size, file_ptr);
 	kfread(source_code_ptr, 1, this->compile_function_info.source_code_size, file_ptr);
+	kfread(row_code_ptr, 1, this->compile_function_info.code_map_size, file_ptr);
 	unsigned int function_begin_count = this->function_declare->function_stack_ptr->get_count();
 	unsigned int varity_begin_count = this->varity_declare->global_varity_stack->get_count();
 	for(i=0; i<compile_function_info.function_count; i++) {
@@ -420,7 +422,11 @@ int c_interpreter::load_ofile(char *file, int flag)
 			function_info_ptr->arg_list = (stack*)arg_varity_ptr++;
 			function_info_ptr->arg_list->set_base(arg_varity_ptr);
 			function_info_ptr->buffer = source_code_ptr;
+			function_info_ptr->row_code_ptr = row_code_ptr;
+			for(j=0; j<function_info_ptr->row_line; j++)
+				function_info_ptr->row_code_ptr[j] = mid_code_ptr + (int)function_info_ptr->row_code_ptr[j];
 			source_code_ptr += function_info_ptr->wptr;
+			row_code_ptr += function_info_ptr->row_line;
 			arg_varity_ptr = (stack*)((varity_info*)arg_varity_ptr + function_info_ptr->arg_list->get_count());
 		}
 		if(compile_info.export_flag == EXPORT_FLAG_LINK || compile_info.extra_flag)
@@ -428,7 +434,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 		mid_code_ptr += function_info_ptr->mid_code_stack.get_count();
 		this->function_declare->function_stack_ptr->push(function_info_ptr);
 	}
-	function_total_size = this->compile_function_info.mid_code_size + this->compile_function_info.source_code_size + this->compile_function_info.arg_size;
+	function_total_size = this->compile_function_info.mid_code_size + this->compile_function_info.source_code_size + this->compile_function_info.arg_size + this->compile_function_info.code_map_size;
 	base = (char*)base + make_align(function_total_size, 4);
 
 	compile_varity_info_t compile_varity_info;
@@ -455,7 +461,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 		kmemcpy(varity_type_info_ptr, varity_type_stack_ptr, sizeof(varity_type_stack_t));
 	}
 	varity_info *varity_info_ptr;
-	if(this->compile_info.export_flag >= EXPORT_FLAG_LINK) {
+	if(this->compile_info.export_flag >= EXPORT_FLAG_LINK || this->compile_info.extra_flag) {
 		varity_info_ptr = (varity_info*)((char*)varity_type_ptr + compile_varity_info.type_size);
 		for(i=0; i<compile_varity_info.varity_count; i++) {
 			kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
@@ -587,6 +593,7 @@ int c_interpreter::write_ofile(char *file, int export_flag, int extra_flag)
 			if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
 				this->compile_function_info.source_code_size += function_ptr[i].wptr;
 				this->compile_function_info.arg_size += function_ptr[i].arg_list->get_count() * sizeof(varity_info) + sizeof(stack);
+				this->compile_function_info.code_map_size += function_ptr[i].row_line * sizeof(mid_code*);
 			}
 			this->compile_function_info.mid_code_size += function_ptr[i].mid_code_stack.get_count() * sizeof(mid_code);
 			this->compile_function_info.function_count++;
@@ -645,7 +652,8 @@ int c_interpreter::write_ofile(char *file, int export_flag, int extra_flag)
 			compile_varity_info.type_size += (this->varity_type_stack.arg_count[i] + 1) * PLATFORM_WORD_LEN;
 	}
 	this->compile_info.total_size = compile_function_info.source_code_size + compile_varity_info.data_size
-								+ compile_function_info.mid_code_size + compile_function_info.arg_size;
+								+ compile_function_info.mid_code_size + compile_function_info.arg_size
+								+ compile_function_info.code_map_size;
 	kfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr);
 	kfwrite(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
 	//kfwrite(string_info_ptr, sizeof(string_info), this->compile_string_info.string_count, file_ptr);
@@ -662,27 +670,34 @@ int c_interpreter::write_ofile(char *file, int export_flag, int extra_flag)
 	for(i=0; i<count; i++)
 		if(!function_ptr[i].compile_func_flag)
 			kfwrite(function_ptr[i].mid_code_stack.get_base_addr(), sizeof(mid_code), function_ptr[i].mid_code_stack.get_count(), file_ptr);
-	for(i=0; i<count; i++) 
-		if(!function_ptr[i].compile_func_flag) {
-			if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
-				unsigned int arg_count = function_ptr[i].arg_list->get_count();
-				kfwrite(function_ptr[i].arg_list, sizeof(stack), 1, file_ptr);
-				for(int j=0; j<arg_count; j++) {
-					varity_info* arg_varity_ptr = (varity_info*)function_ptr[i].arg_list->visit_element_by_index(j);
-					PLATFORM_WORD *complex_ptr = arg_varity_ptr->get_complex_ptr();
-					unsigned type_no = this->varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
-					arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), (PLATFORM_WORD*)type_no);
-					kfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr);
-					arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
-				}
+	if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
+		for(i=0; i<count; i++) 
+			if(!function_ptr[i].compile_func_flag) {
+					unsigned int arg_count = function_ptr[i].arg_list->get_count();
+					kfwrite(function_ptr[i].arg_list, sizeof(stack), 1, file_ptr);
+					for(int j=0; j<arg_count; j++) {
+						varity_info* arg_varity_ptr = (varity_info*)function_ptr[i].arg_list->visit_element_by_index(j);
+						PLATFORM_WORD *complex_ptr = arg_varity_ptr->get_complex_ptr();
+						unsigned type_no = this->varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
+						arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), (PLATFORM_WORD*)type_no);
+						kfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr);
+						arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
+					}
 			}
-		}
-	if(this->compile_info.extra_flag & EXTRA_FLAG_DEBUG)
 		for(i=0; i<count; i++)
 			if(!function_ptr[i].compile_func_flag) {
 				if(function_ptr[i].buffer)
 					kfwrite(function_ptr[i].buffer, 1, function_ptr[i].wptr, file_ptr);
 			}
+		for(i=0; i<count; i++)
+			if(!function_ptr[i].compile_func_flag) {
+				if(function_ptr[i].row_code_ptr)
+					for(j=0; j<function_ptr[i].row_line; j++) {
+						int offset = function_ptr[i].row_code_ptr[j] - function_ptr[i].mid_code_stack.get_base_addr();
+						kfwrite(&offset, sizeof(offset), 1, file_ptr);
+					}
+			}
+	}
 	for(i=0; i<count; i++)
 		if(!function_ptr[i].compile_func_flag) {
 			if(this->compile_info.export_flag == EXPORT_FLAG_LINK || compile_info.extra_flag)
@@ -1741,6 +1756,8 @@ int c_interpreter::find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fpt
 			func_code_count = this->language_elment_space.function_node[i].mid_code_stack.get_count();
 			if(mid_code_ptr >= func_pc && mid_code_ptr < func_pc + func_code_count) {
 				fptr = &this->language_elment_space.function_node[i];
+				if(!fptr->row_code_ptr)
+					continue;
 #if DEBUG_EN
 				if(line_ptr) {
 					for(int j=fptr->row_line-1; j>=0; j--) {

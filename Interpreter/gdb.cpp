@@ -262,7 +262,7 @@ cmd_t cmd_tab[] = {
 	{"d", del_breakpoint},
 	{"n", stepover},
 	{"s", stepinto},
-	{"ni", step_code},
+	{"ni", step_code},//TODO: ni not step into
 	{"si", step_code},
 	{"info", info_ask},
 	{"list", gdb::print_code},

@@ -208,6 +208,7 @@ typedef struct compile_function_info_s {
 	unsigned int arg_size;
 	unsigned int source_code_size;
 	unsigned int function_flag;
+	unsigned int code_map_size;
 } compile_function_info_t;
 
 typedef struct compile_varity_info_s {
