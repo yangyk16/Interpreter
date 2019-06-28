@@ -299,7 +299,7 @@ void strfifo::init(uint count)
 int strfifo::del(char* str)
 {
 	unsigned int len;
-	if(str - this->bottom_addr < 0 || str - this->bottom_addr >= this->count)
+	if(str - (char*)this->bottom_addr < 0 || str - (char*)this->bottom_addr >= this->count)
 		return -1;
 	len = kstrlen(str) + 1;
 	kmemmove(str, str + len, len);

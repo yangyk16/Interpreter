@@ -734,7 +734,7 @@ int c_interpreter::write_ofile(char *file, int export_flag, int extra_flag)
 			if(!function_ptr[i].compile_func_flag) {
 				if(function_ptr[i].row_code_ptr)
 					for(j=0; j<function_ptr[i].row_line; j++) {
-						int offset = function_ptr[i].row_code_ptr[j] - function_ptr[i].mid_code_stack.get_base_addr();
+						int offset = function_ptr[i].row_code_ptr[j] - (mid_code*)function_ptr[i].mid_code_stack.get_base_addr();
 						kfwrite(&offset, sizeof(offset), 1, file_ptr);
 					}
 			}

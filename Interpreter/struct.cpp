@@ -4,6 +4,7 @@
 #include "varity.h"
 #include <stdlib.h>
 #include "cstdlib.h"
+#include "interpreter.h"
 #include "global.h"
 
 int struct_info::init(char* name, stack* varity_list)

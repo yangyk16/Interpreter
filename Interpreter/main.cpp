@@ -164,8 +164,10 @@ int main(int argc, char *argv[])
 #endif
 {
 	signal(SIGINT, ouch);
+#ifdef WIN32
 	for(int i=1; i<argc; i++)
 		tch2ch((char*)argv[i]);
+#endif
 	global_init();
 	for(int i=0; i<sizeof(cmdset)/sizeof(tool_cmd); i++) {
 		if(!kstrcmp((char*)argv[1], cmdset[i].cmdname)) {
