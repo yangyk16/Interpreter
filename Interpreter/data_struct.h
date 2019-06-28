@@ -81,7 +81,7 @@ public:
 
 class indexed_stack: public stack {
 	int current_depth;
-	uint index_table[MAX_STACK_INDEX];
+	char index_table[MAX_STACK_INDEX];
 	uint offset_table[MAX_STACK_INDEX];
 	uint offset;
 public:

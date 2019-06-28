@@ -5,7 +5,7 @@
 #define PLATFORM_X86	1
 #define PLATFORM_ARM	0
 ////////////////config//////////////////
-#define INTERPRETER_DEBUG		1
+#define INTERPRETER_DEBUG		0
 #define SECTION_OPTIMIZE		0
 #define DEBUG_EN				1
 #define HW_PLATFORM				PLATFORM_X86//0:ARM 1:X86
@@ -16,7 +16,7 @@
 #define MAX_LABEL_COUNT			3
 #define MAX_LABEL_NAME_LEN		16
 #define MAX_VARITY_NAME_LEN		32
-#define MAX_STACK_INDEX			16
+#define MAX_STACK_INDEX			8
 #define MAX_FUNCTION_DEPTH		8//16
 #define MAX_G_VARITY_NODE		128
 #define MAX_L_VARITY_NODE		64
