@@ -38,8 +38,8 @@ void tch2ch(char *src)
 
 typedef int (*cctool)(int argc, char **argv);
 typedef struct tool_cmd_s {
-	char *cmdname;	
-	char *issue;
+	const char *cmdname;	
+	const char *issue;
 	cctool cmdptr;
 } tool_cmd;
 
@@ -52,7 +52,7 @@ int ycc(int argc, char **argv)
 	int run_flag = 0;
 	int link_flag = LINK_ADDR;
 	int extra_flag = 0;
-	char *output_file_name = NULL;
+	const char *output_file_name = NULL;
 	char *fun_file_name = NULL;
 	while((ch = kgetopt(argc, (char**)argv, "iceo:rg")) != -1) {
 		switch(ch) {

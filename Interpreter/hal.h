@@ -33,7 +33,7 @@ public:
 };
 
 int kfputs(char *str);
-void *kfopen(char *filename, char *mode);
+void *kfopen(const char *filename, const char *mode);
 int kfclose(void*);
 unsigned int kfread(void *buffer, unsigned int size, unsigned int count, void *fileptr);
 unsigned int kfwrite(void *buffer, unsigned int size, unsigned int count, void *fileptr);

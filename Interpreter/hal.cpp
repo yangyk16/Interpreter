@@ -81,7 +81,7 @@ int kfputs(char *str)
 	return 0;
 }
 
-void *kfopen(char *filename, char *mode)
+void *kfopen(const char *filename, const char *mode)
 {
 #if TTY_TYPE == 0
 	return fopen(filename, mode);

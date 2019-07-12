@@ -4,7 +4,9 @@
 
 #include <stdarg.h>
 
+#ifndef NULL
 #define NULL 0
+#endif
 int kprintf(const char *fmt, ...);
 int ksprintf(char *buf, const char *fmt, ...);
 void* kmemcpy(void *d, const void *s, unsigned int size);

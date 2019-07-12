@@ -61,9 +61,11 @@
 #if INTERPRETER_DEBUG
 #define debug(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #define dmalloc(size, info) vmalloc(size, info)
+void *vmalloc(unsigned int, const char*);
 #else
 #define debug(fmt, ...) //kprintf(fmt, ##ARGS)
 #define dmalloc(size, info) vmalloc(size)
+void *vmalloc(unsigned int);
 #endif
 #define tip(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #define error(fmt, ...)	kprintf(fmt, ##__VA_ARGS__)

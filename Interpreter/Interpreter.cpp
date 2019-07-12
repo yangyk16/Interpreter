@@ -600,7 +600,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	return ERROR_NO;
 }
 
-int c_interpreter::write_ofile(char *file, int export_flag, int extra_flag)
+int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag)
 {
 	int count, i, j;
 	void *file_ptr = kfopen(file, "wb");
@@ -2311,7 +2311,7 @@ int c_interpreter::generate_compile_func(void)
 	return ERROR_NO;
 }
 
-int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)//没有容错，不开放给终端输入，仅用于链接标准库函数，仅能使用1级指针
+int c_interpreter::generate_arg_list(const char *str, int count, stack &arg_list_ptr)//没有容错，不开放给终端输入，仅用于链接标准库函数，仅能使用1级指针
 {
 	int len = kstrlen(str);
 	void *arg_stack = dmalloc(sizeof(varity_info) * count, "arg stack");
@@ -2322,7 +2322,7 @@ int c_interpreter::generate_arg_list(char *str, int count, stack &arg_list_ptr)/
 	int type;
 	char ptr_flag = 0;
 	while(len > 0) {
-		token_len = get_token(str, &node);
+		token_len = get_token((char*)str, &node);
 		if(node.node_type == TOKEN_KEYWORD_TYPE) {
 			type = node.value.int_value;
 		} else if(node.node_type == TOKEN_OPERATOR ) {

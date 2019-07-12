@@ -36,7 +36,7 @@ int function_info::init(char* name, stack* arg_list, int flag)
 	return 0;
 }
 
-int function_info::init(char *name, void* addr, stack *arg_list, char variable_arg_flag)
+int function_info::init(const char *name, void* addr, stack *arg_list, char variable_arg_flag)
 {
 	int name_len = kstrlen(name);
 	string_info *string_ptr;
@@ -168,7 +168,7 @@ int function::declare(char* name, stack* arg_list, int flag)
 	return 0;
 }
 
-int function::add_compile_func(char *name, void *addr, stack *arg_list, char variable_arg_flag)
+int function::add_compile_func(const char *name, void *addr, stack *arg_list, char variable_arg_flag)
 {
 	function_info* function_node_ptr;
 	if(this->function_stack_ptr->find(name)) {

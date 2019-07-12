@@ -281,7 +281,7 @@ class c_interpreter {
 	int label_analysis(node_attribute_t*, int);
 	int sentence_exec(node_attribute_t*, uint, bool);
 	int get_varity_type(node_attribute_t*, int&, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info);
-	int generate_arg_list(char *str, int count, stack &arg_list_ptr);
+	int generate_arg_list(const char *str, int count, stack &arg_list_ptr);
 	int generate_compile_func(void);
 	int get_token(char *str, node_attribute_t *info);
 	bool is_operator_convert(char *str, char &type, int &opt_len, char &prio);
@@ -364,7 +364,7 @@ class c_interpreter {
 public:
 	int tlink(int mode);//link all function
 	int load_ofile(char *file, int flag);
-	int write_ofile(char *file, int export_flag, int extra_flag);
+	int write_ofile(const char *file, int export_flag, int extra_flag);
 	int exec_mid_code(mid_code *pc, uint count);
 	void set_break_flag(int flag) {break_flag = flag;}
 	int print_call_stack(void);

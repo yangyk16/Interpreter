@@ -64,7 +64,7 @@ public:
 	void push(void*);
 	void push(void) {this->top += this->element_size; this->count++;}
 	void* pop(void);
-	virtual void* find(char*);
+	virtual void* find(const char*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	inline void set_count(int count) {this->count = count; this->top = count * this->element_size;}
 	//inline void set_length(uint len) {this->length = len;}
@@ -87,8 +87,8 @@ class indexed_stack: public stack {
 public:
 	friend class c_interpreter;
 	friend class varity;
-	virtual void* find(char*);
-	void *f_find(char*);
+	virtual void* find(const char*);
+	void *f_find(const char*);
 	void init(int esize, void* base_addr, int capacity);
 	inline void reset(void) {kmemset(this->bottom_addr, 0 , this->top); this->count = 0; this->top = 0; this->offset = 0;}
 	inline void endeep(void) {index_table[++current_depth] = this->count; offset_table[current_depth] = offset;}

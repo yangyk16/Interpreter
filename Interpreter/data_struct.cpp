@@ -60,7 +60,7 @@ void* stack::pop(void)
 	return (void*)&((char*)(this->bottom_addr))[this->top];
 }
 
-void* stack::find(char* name)
+void* stack::find(const char* name)
 {
 	char* element_name;
 	for(uint i=0; i<this->count; i++) {
@@ -85,7 +85,7 @@ void indexed_stack::init(int esize, void* base_addr, int capacity)
 	kmemset(this->bottom_addr, 0, this->length * this->element_size);
 }
 
-void* indexed_stack::find(char* name)//TODO:考虑复用stack find合理性
+void* indexed_stack::find(const char* name)//TODO:考虑复用stack find合理性
 {
 	char* element_name;
 	for(int i=this->count-1; i>=0; i--) {
@@ -96,7 +96,7 @@ void* indexed_stack::find(char* name)//TODO:考虑复用stack find合理性
 	return NULL;
 }
 
-void* indexed_stack::f_find(char *name)
+void* indexed_stack::f_find(const char *name)
 {
 	char *element_name;
 	for(uint i=this->index_table[this->current_depth]; i<this->count; i++) {
