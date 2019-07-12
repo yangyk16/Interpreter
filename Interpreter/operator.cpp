@@ -1226,7 +1226,7 @@ int c_interpreter::opt_or_handle(c_interpreter *interpreter_ptr)
 	ret = varity_convert(&converted_varityb, INT, opdb_addr, instruction_ptr->opdb_varity_type);
 	if(ret)
 		return ERROR_TYPE_CONVERT;
-	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, converted_varityb);
+	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, &converted_varityb);
 	last_ret_abs_addr = ret_addr;
 	return ERROR_NO;
 }
