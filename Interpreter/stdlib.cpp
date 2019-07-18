@@ -385,7 +385,7 @@ void* kmemcpy(void *d, const void *s, unsigned int size)
 			for(j=size-remain; j<size; j++)
 				*(char*)((long)d + j) = *(char*)((long)s + j);
 		} else {
-			//比对结尾位置是否4/2Byte对齐
+			//TODO:暂时进不来，比对结尾位置是否4/2Byte对齐
 		}
 	}
 	return d;
@@ -393,14 +393,32 @@ void* kmemcpy(void *d, const void *s, unsigned int size)
 
 void* kmemmove(void *d, const void *s, unsigned int size)
 {
-	unsigned int i, j, remain;
-	if((long)d < long(s))
-		kmemcpy(d, s, size);
-	else {
-		for(int i=size-1; i>0; i--)
-			*(long*)((long)d + i) = *(long*)((long)s + i);
-	}
-	return d;
+    int i, j, remain;
+    if((unsigned long)d < (unsigned long)s || (unsigned long)d >= (unsigned long)s + size)
+        kmemcpy(d, s, size);
+    else {
+        if(size < 64 || (long)d & 1 || (long)s & 1) {
+            for(i=size-1; i>=0; i--)
+                *(char*)((long)d + i) = *(char*)((long)s + i);
+        } else {
+            if(!((long)s & 3) && !((long)d & 3)) {
+                remain = size & 3;
+                for(j=size-1; j>=size-remain; j--)
+                    *(char*)((long)d + j) = *(char*)((long)s + j);
+                for(i=size-4; i>=0; i-=4)
+                    *(int*)((unsigned long)d + i) = *(int*)((unsigned long)s + i);
+            } else if(!((long)s & 1) && !((long)d & 1)) {
+                remain = size & 1;
+                for(j=size-1; j>=size-remain; j--)
+                    *(char*)((long)d + j) = *(char*)((long)s + j);
+                for(i=size-2; i>=0; i-=2)
+                    *(short*)((unsigned long)d + i) = *(short*)((unsigned long)s + i);
+            } else {
+				//TODO:暂时进不来，比对结尾位置是否4/2Byte对齐
+            }
+        }
+    }
+    return d;
 }
 
 void* kmemset(register void *d, int ch, register unsigned int size)

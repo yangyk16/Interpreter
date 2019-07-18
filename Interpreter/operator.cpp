@@ -1929,7 +1929,7 @@ ITCM_TEXT int c_interpreter::ctl_branch_false_handle(c_interpreter *interpreter_
 	mid_code *last_instruction_ptr = instruction_ptr - 1;
 	if(last_instruction_ptr->ret_varity_type < CHAR || last_instruction_ptr->ret_varity_type > U_LONG_LONG)
 		return ERROR_CONDITION_TYPE;
-	if(!is_non_zero(last_instruction_ptr->ret_varity_type, last_ret_abs_addr))
+	if(!is_non_zero(last_instruction_ptr->ret_varity_type, last_ret_abs_addr))//TODO:确认又|| && :?等跳转指令过来的时候使用上一条的type是否合理
 		instruction_ptr += instruction_ptr->opda_addr - 1;
 	return ERROR_NO;
 }
