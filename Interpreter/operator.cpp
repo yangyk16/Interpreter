@@ -1905,6 +1905,30 @@ int c_interpreter::opt_func_comma_handle(c_interpreter *interpreter_ptr)//TODO: 
 	return opt_assign_handle(interpreter_ptr);
 }
 
+int c_interpreter::opt_exist_handle(c_interpreter *interpreter_ptr)
+{
+	mid_code *instruction_ptr = interpreter_ptr->pc;
+	int i;
+	unsigned int count;
+	count = interpreter_ptr->function_declare->function_stack_ptr->get_count();
+	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
+	GET_OPDB_ADDR();
+	GET_RET_ADDR();
+	for(i=0; i<count; i++)
+		if(!kstrcmp(((function_info*)interpreter_ptr->function_declare->function_stack_ptr->visit_element_by_index(i))->get_name(), (const char*)instruction_ptr->opdb_addr)) {
+			INT_VALUE(ret_addr) = 1;
+			return 0;
+		}
+	count = interpreter_ptr->varity_declare->global_varity_stack->get_count();
+	for(i=0; i<count; i++)
+		if(!kstrcmp(((varity_info*)interpreter_ptr->varity_declare->global_varity_stack->visit_element_by_index(i))->get_name(), (const char*)instruction_ptr->opdb_addr)) {
+			INT_VALUE(ret_addr) = 1;
+			return 0;
+		}
+	INT_VALUE(ret_addr) = 0;
+	return 0;
+}
+
 ITCM_TEXT int c_interpreter::ctl_branch_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
@@ -2014,6 +2038,7 @@ void c_interpreter::handle_init(void)
 	opt_handle[OPT_INDEX] = opt_index_handle;
 	opt_handle[OPT_CALL_FUNC] = opt_call_func_handle;
 	opt_handle[OPT_FUNC_COMMA] = opt_func_comma_handle;
+	opt_handle[OPT_EXIST] = opt_exist_handle;
 	opt_handle[CTL_BRANCH] = ctl_branch_handle;
 	opt_handle[CTL_BRANCH_TRUE] = ctl_branch_true_handle;
 	opt_handle[CTL_BRANCH_FALSE] = ctl_branch_false_handle;

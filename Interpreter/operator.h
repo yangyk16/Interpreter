@@ -79,7 +79,9 @@
 #define OPT_R_MINUS_MINUS		53//no mid code
 #define OPT_TYPE_CONVERT		54
 #define OPT_SIZEOF				55//no mid code
-#define OPT_PASS_PARA			56
+#define OPT_EXIST				56
+#define OPT_PASS_PARA			57
+
 
 #define L_BIG_BRACKET			100
 #define R_BIG_BRACKET			101

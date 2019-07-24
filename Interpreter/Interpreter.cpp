@@ -31,7 +31,7 @@ const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
 char opt_str[43][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
 char opt_str_len[] = {3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 char opt_prio[] ={14,14,1,2,2,5,5,6,6,7,7,11,12,14,14,14,14,14,14,14,14,1,1,1,17,1,4,2,3,8,2,3,3,4,6,6,9,10,13,13,14,15,16};
-char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1,1,1};
+char opt_number[] = {2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,2,2,2,1,1,1,1,1,1,1};
 char tmp_varity_name[MAX_A_VARITY_NODE][3];
 char link_varity_name[MAX_A_VARITY_NODE][3];
 
@@ -1486,6 +1486,19 @@ assign_general:
 	case OPT_EDGE:
 		error("Extra ;\n");
 		RETURN(ERROR_SEMICOLON);
+	case OPT_EXIST:
+		varity_number = this->mid_varity_stack.get_count();
+		rvarity_ptr = (varity_info*)this->mid_varity_stack.visit_element_by_index(varity_number);
+		rvarity_ptr->set_type(INT);
+		this->mid_varity_stack.push();
+		inc_varity_ref(rvarity_ptr);
+		instruction_ptr->ret_addr = varity_number * 8;
+		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
+		instruction_ptr->ret_varity_type = INT;
+		instruction_ptr->ret_operator = OPT_EXIST;
+		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
+		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];		
+		break;
 	case OPT_SIZEOF:
 		--this->sentence_analysis_data_struct.sizeof_depth;
 		while(this->cur_mid_code_stack_ptr->get_count() > this->sentence_analysis_data_struct.sizeof_code_count[this->sentence_analysis_data_struct.sizeof_depth]) {
@@ -3397,11 +3410,15 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 	int is_varity_declare, basic_type_count = count, token_len, ret;
 	node_attribute_t node;
 	char varity_name[32];
-	int external_flag = 0;
+	int varity_special_flag = 0;//1: external 2: global
 	if(node_ptr->node_type == TOKEN_SPECIFIER) {
+		if(node_ptr->data == SPECIFIER_EXTERN) {
+			varity_special_flag = 1;
+		} else if(node_ptr->data == SPECIFIER_GLOBAL) {
+			varity_special_flag = 2;
+		}
 		node_ptr++;
 		count--;
-		external_flag = 1;
 	}
 	struct_info* struct_node_ptr = 0;
 	is_varity_declare = basic_type_check(node_ptr, basic_type_count, struct_node_ptr);
@@ -3423,8 +3440,10 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 				error("Wrong varity name.\n");
 				return ERROR_VARITY_NAME;
 			}
-			if(external_flag) {
+			if(varity_special_flag == 1) {
 				ret = this->varity_declare->declare(VARITY_SCOPE_EXTERNAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
+			} else if(varity_special_flag == 2) {
+				ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
 			} else {
 				if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
 					ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
@@ -3440,7 +3459,7 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 			node_ptr += complex_part_count;
 			count -= complex_part_count;
 			if(this->sentence_analysis_data_struct.last_token.data == OPT_ASSIGN) {//TODO: generate mid code from varity_name to ;
-				if(external_flag) {
+				if(varity_special_flag == 1) {
 					error("external variable cannot be assigned.\n");
 					return ERROR_ASSIGN;
 				}
@@ -3545,8 +3564,20 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 			info->value_type = 2;
 			return i;
 		}
+		if(!kstrcmp(symbol_ptr, "exist")) {
+			info->node_type = TOKEN_OPERATOR;
+			info->data = OPT_EXIST;
+			info->value_type = 2;
+			return i;
+		}
 		if(!kstrcmp(symbol_ptr, "extern")) {
 			info->node_type = TOKEN_SPECIFIER;
+			info->data = SPECIFIER_EXTERN;
+			return i;
+		}
+		if(!kstrcmp(symbol_ptr, "global")) {
+			info->node_type = TOKEN_SPECIFIER;
+			info->data = SPECIFIER_GLOBAL;
 			return i;
 		}
 		string_info *string_ptr;

@@ -40,6 +40,9 @@
 #define TOKEN_ERROR				11
 #define TOKEN_NONEXIST			12
 
+#define SPECIFIER_EXTERN	0
+#define SPECIFIER_GLOBAL	1
+
 #define NONSEQ_KEY_IF		1
 #define NONSEQ_KEY_SWITCH	2
 #define NONSEQ_KEY_ELSE		3
@@ -346,6 +349,7 @@ class c_interpreter {
 	static int opt_index_handle(c_interpreter *interpreter_ptr);
 	static int opt_call_func_handle(c_interpreter *interpreter_ptr);
 	static int opt_func_comma_handle(c_interpreter *interpreter_ptr);
+	static int opt_exist_handle(c_interpreter *interpreter_ptr);
 	static int ctl_branch_handle(c_interpreter *interpreter_ptr);
 	static int ctl_branch_true_handle(c_interpreter *interpreter_ptr);
 	static int ctl_branch_false_handle(c_interpreter *interpreter_ptr);
