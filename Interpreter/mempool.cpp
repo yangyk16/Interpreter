@@ -27,7 +27,7 @@ static void print_mempool(void)
 	kprintf("mempool print finish.\n");
 }
 
-void* kmalloc(uint size) {
+extern "C" void* kmalloc(uint size) {
 	head_t *head_ptr, *next_head_ptr, *new_next_ptr;
 	uint tsize;
 	head_ptr = (head_t*)heapbase;
@@ -57,7 +57,7 @@ void* kmalloc(uint size) {
 	return (void*)((char*)head_ptr + sizeof(head_t));
 }
 
-int kfree(void *ptr) {
+extern "C" int kfree(void *ptr) {
 	if(!ptr)
 		return -1;
 	head_t *headptr = (head_t*)ptr - 1;
@@ -78,7 +78,7 @@ int kfree(void *ptr) {
 	return 0;
 }
 
-void* krealloc(void *ptr, uint size)
+extern "C" void* krealloc(void *ptr, uint size)
 {
 	head_t *headptr = (head_t*)ptr - 1;
 	head_t *next_headptr = headptr->next;
@@ -140,7 +140,7 @@ void* krealloc(void *ptr, uint size)
 	}
 }
 
-void heapinit(void) {
+extern "C" void heapinit(void) {
 	head_t *head;
 	head = (head_t*)heapbase;
 	head->size = HEAPSIZE - sizeof(head_t);

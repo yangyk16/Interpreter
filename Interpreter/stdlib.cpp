@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "hal.h"
 #include "cstdlib.h"
+#include "kmalloc.h"
 
 #define ZEROPAD 1               /* pad with zero */
 #define SIGN    2               /* unsigned/signed long */
@@ -163,7 +164,7 @@ static char * number(char * str, long num, int base, int size, int precision ,in
         return str;
 }
 
-unsigned int kstrnlen(const char * s, unsigned int count)
+extern "C" unsigned int kstrnlen(const char * s, unsigned int count)
 {
         const char *sc;
 
@@ -340,7 +341,7 @@ static int kvsprintf(char *buf, const char *fmt, va_list args)
         return str-buf;
 }
 
-int kprintf(const char *fmt, ...)
+extern "C" int kprintf(const char *fmt, ...)
 {
 	int len;
 	va_list ap; 
@@ -352,7 +353,7 @@ int kprintf(const char *fmt, ...)
 	return len;
 }
 
-int ksprintf(char *buf, const char *fmt, ...)
+extern "C" int ksprintf(char *buf, const char *fmt, ...)
 {
 	int len;
 	va_list ap; 
@@ -362,7 +363,7 @@ int ksprintf(char *buf, const char *fmt, ...)
 	return len;
 }
 
-void* kmemcpy(void *d, const void *s, unsigned int size)
+extern "C" void* kmemcpy(void *d, const void *s, unsigned int size)
 {//TODO：加入空指针检查？可能不需要
 	unsigned int i, j, remain;
 	if(size < 64 || (long)d & 1 || (long)s & 1) {
@@ -391,7 +392,7 @@ void* kmemcpy(void *d, const void *s, unsigned int size)
 	return d;
 }
 
-void* kmemmove(void *d, const void *s, unsigned int size)
+extern "C" void* kmemmove(void *d, const void *s, unsigned int size)
 {
     int i, j, remain;
     if((unsigned long)d < (unsigned long)s || (unsigned long)d >= (unsigned long)s + size)
@@ -421,7 +422,7 @@ void* kmemmove(void *d, const void *s, unsigned int size)
     return d;
 }
 
-void* kmemset(register void *d, int ch, register unsigned int size)
+extern "C" void* kmemset(register void *d, int ch, register unsigned int size)
 {
 	register int unsigned i, j;
 	int block, remain;
@@ -455,7 +456,7 @@ void* kmemset(register void *d, int ch, register unsigned int size)
 	return d;
 }
 
-int kmemcmp(void *mem1, void *mem2, unsigned int size)
+extern "C" int kmemcmp(void *mem1, void *mem2, unsigned int size)
 {
 	for(int i=0; i<size; i++) {
 		if(((char*)mem1)[i] != ((char*)mem2)[i])
@@ -464,7 +465,7 @@ int kmemcmp(void *mem1, void *mem2, unsigned int size)
 	return 0;
 }
 
-int kmemchk(void *s, char ch, unsigned int size)
+extern "C" int kmemchk(void *s, char ch, unsigned int size)
 {
 	for(int i=0; i<size; i++) {
 		if(((char*)s)[i] != ch)
@@ -473,7 +474,7 @@ int kmemchk(void *s, char ch, unsigned int size)
 	return 0;
 }
 
-unsigned int kstrlen(const char *str)
+extern "C" unsigned int kstrlen(const char *str)
 {
 	unsigned int i = 0;
 	while(*str++)
@@ -481,7 +482,7 @@ unsigned int kstrlen(const char *str)
 	return i;
 }
 
-int kstrcmp(const char *str1, const char *str2)
+extern "C" int kstrcmp(const char *str1, const char *str2)
 {
 	while(*str1 && *str2) {
 		if(*str1++ != *str2++)
@@ -493,7 +494,7 @@ int kstrcmp(const char *str1, const char *str2)
 		return -1;
 }
 
-int kstrncmp(const char *str1, const char *str2, unsigned int n)
+extern "C" int kstrncmp(const char *str1, const char *str2, unsigned int n)
 {
 	int i;
 	for(i=0; i<n && str1[i] && str2[i]; i++) {
@@ -506,7 +507,7 @@ int kstrncmp(const char *str1, const char *str2, unsigned int n)
 		return -1;
 }
 
-char *kstrcpy(char *d, const char *s)
+extern "C" char *kstrcpy(char *d, const char *s)
 {
 	int i;
 	for(i=0; s[i]; i++) {
@@ -516,7 +517,7 @@ char *kstrcpy(char *d, const char *s)
 	return d;
 }
 
-double katof(const char* sptr)
+extern "C" double katof(const char* sptr)
 {
 	double temp = 10;
 	bool ispnum = true;
@@ -560,7 +561,7 @@ negative_calc:
 		return -ans;
 }
 
-int katoi(const char* sptr)
+extern "C" int katoi(const char* sptr)
 {
 	bool ispnum=true;
 	int ans=0;
@@ -599,17 +600,56 @@ negative_calc:
 		return -ans;
 }
 
-bool kisdigit(unsigned char ch)//ctype.h
+extern "C" int kisspace(int ch) {return ch == ' ';}
+extern "C" int kislower(int ch) {return ch >= 'a' && ch <= 'z';}
+extern "C" int kisupper(int ch) {return ch >= 'A' && ch <= 'Z';}
+extern "C" int kisdigit(int ch) {return ch >= '0' && ch <= '9';}
+extern "C" int kisalnum(int ch) {return kislower(ch) || kisupper(ch) || kisdigit(ch);}
+extern "C" int ktoupper(int ch) {return kislower(ch) ? ch - 0x20 : ch;}
+extern "C" int ktolower(int ch) {return kisupper(ch) ? ch + 0x20 : ch;}
+extern "C" int kispunct(int ch) {return ch >= 0x21 && ch <= 0x2F;}
+
+extern "C" char *kstrchr(char *str, int c)
 {
-	return ch >= '0' && ch <= '9'? true: false;
+        while(*str) { 
+                if(*str == c)
+                        return str;
+                str++;
+        }
+        return 0;
 }
 
-bool kisupper(unsigned char ch)
+extern "C" int kstrncasecmp(const char* s1, const char* s2, unsigned int n)
 {
-	return ch >= 'A' && ch <= 'Z'? true: false;
+        int i;
+        register char c1, c2;
+        for(i=0; i<n; i++) { 
+                if(s1[i] >= 'A' && s1[i] <= 'Z')
+                        c1 = s1[i] + 0x20;
+                else
+                        c1 = s1[i];
+                if(s2[i] >= 'A' && s2[i] <= 'Z')
+                        c2 = s2[i] + 0x20;
+                else
+                        c2 = s2[i];
+                if(c1 != c2)
+                        return c1 - c2;
+        }       
+        return 0;
 }
 
-bool kislower(unsigned char ch)
+extern "C" char *kstrcat(char *dest, const char *src)
 {
-	return ch >= 'a' && ch <= 'z'? true: false;
+        int dlen = kstrlen(dest);
+        kstrcpy(dest + dlen, src);
+        return dest;
 }
+
+extern "C" char *kstrdup(char *s)
+{
+        int len = kstrlen(s);
+        char *p = (char*)kmalloc(len);
+        kstrcpy(p, s);
+        return p;
+}
+

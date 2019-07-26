@@ -47,7 +47,7 @@ int uart::puts(char* str)
 
 int file::init(char *filename)
 {
-	file_ptr = fopen(filename, "r");
+	file_ptr = kfopen(filename, "r");
 	if(file_ptr)
 		return 0;
 	else
