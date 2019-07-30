@@ -30,6 +30,7 @@ int tty::puts(char* str)
 	return 0;
 }
 #elif TTY_TYPE == 1
+#include "../testcase/ff.h"
 extern "C" int uart_getstring(char *str);
 extern "C" void uart_sendstring(char *str);
 int uart::readline(char* str)
@@ -85,6 +86,23 @@ void *kfopen(const char *filename, const char *mode)
 {
 #if TTY_TYPE == 0
 	return fopen(filename, mode);
+#else
+	int ret;
+	int tmode = 0;
+	for(int i=0; mode[i]; i++) {
+		if(mode[i] == 'r')
+			tmode |= FA_READ; 
+		if(mode[i] == 'w')
+			tmode |= FA_WRITE; 
+	}
+	FIL *file = (FIL*)dmalloc(sizeof(FIL), "");
+	ret = f_open (file, filename, tmode);	/* Open or create a file */
+	if(!ret)
+		return file;
+	else {
+		vfree(file);
+		return 0;
+	}
 #endif
 }
 
@@ -92,6 +110,8 @@ int kfclose(void *fp)
 {
 #if TTY_TYPE == 0
 	return fclose((FILE*)fp);
+#else
+	return f_close((FIL*)fp);
 #endif
 }
 
@@ -99,15 +119,23 @@ unsigned int kfread(void *buffer, unsigned int size, unsigned int nmemb, void *f
 {
 #if TTY_TYPE == 0
 	return fread(buffer, size, nmemb, (FILE*)fileptr);
+#else
+	unsigned int ret;
+	f_read((FIL*)fileptr, buffer, size * nmemb, &ret);
+	return ret;
 #endif
 }
 
 unsigned int kfwrite(void *buffer, unsigned int size, unsigned int count, void *fileptr)
 {
-	int ret;
 #if TTY_TYPE == 0
+	int ret;
 	ret = fwrite(buffer, size, count, (FILE*)fileptr);
 	fflush((FILE*)fileptr);
+	return ret;
+#else
+	unsigned int ret;
+	f_write((FIL*)fileptr, buffer, size * count, &ret);
 	return ret;
 #endif
 }

@@ -4,7 +4,14 @@
 char *optarg;
 int optind = 1, opterr, optopt;
 static int string_pos = 0;
-int kgetopt(int argc, char *argv[], const char *optstring)
+
+extern "C" void koptrst(void)
+{
+	optind = 1;
+	string_pos = 0;
+}
+
+extern "C" int kgetopt(int argc, char *argv[], const char *optstring)
 {
 	int i, j;
 	int argflag;
