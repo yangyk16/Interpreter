@@ -93,7 +93,7 @@ void *kfopen(const char *filename, const char *mode)
 		if(mode[i] == 'r')
 			tmode |= FA_READ; 
 		if(mode[i] == 'w')
-			tmode |= FA_WRITE; 
+			tmode |= FA_WRITE | FA_CREATE_ALWAYS; 
 	}
 	FIL *file = (FIL*)dmalloc(sizeof(FIL), "");
 	ret = f_open (file, filename, tmode);	/* Open or create a file */

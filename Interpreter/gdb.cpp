@@ -221,12 +221,16 @@ int gdb::print_code(int argc, char **argv, c_interpreter *cptr)
 	function_info *fptr;
 	if(argc == 1)
 		return ERROR_NO;
+	fptr = cptr->function_declare->find(argv[1]);
 	if(!kstrcmp(argv[1], "main")) {
-		for(int i=0; i<cptr->nonseq_info->row_num; i++)
-			gdbout("%03d %s\n", i, cptr->nonseq_info->row_info_node[i].row_ptr);
+		if(!fptr)
+			for(int i=0; i<cptr->nonseq_info->row_num; i++)
+				gdbout("%03d %s\n", i, cptr->nonseq_info->row_info_node[i].row_ptr);
+		else
+			for(int i=0; i<fptr->row_line; i++)
+				fptr->print_line(i);
 		return ERROR_NO;
 	}
-	fptr = cptr->function_declare->find(argv[1]);
 	if(!fptr)
 		gdbout("Function not found.\n");
 	else {
@@ -241,11 +245,14 @@ int gdb::print_mid_code(int argc, char **argv, c_interpreter *cptr)
 	function_info *fptr;
 	if(argc == 1)
 		return ERROR_NO;
+	fptr = cptr->function_declare->find(argv[1]);
 	if(!kstrcmp(argv[1], "main")) {
-		cptr->print_code((mid_code*)cptr->mid_code_stack.get_base_addr(), cptr->mid_code_stack.get_count(), 1);
+		if(fptr)
+			cptr->print_code((mid_code*)fptr->mid_code_stack.get_base_addr(), fptr->mid_code_stack.get_count(), 1);
+		else
+			cptr->print_code((mid_code*)cptr->mid_code_stack.get_base_addr(), cptr->mid_code_stack.get_count(), 1);
 		return ERROR_NO;
 	}
-	fptr = cptr->function_declare->find(argv[1]);
 	if(!fptr)
 		gdbout("Function not found.\n");
 	else {

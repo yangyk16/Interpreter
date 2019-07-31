@@ -409,7 +409,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	stack *arg_varity_ptr = (stack*)((char*)mid_code_ptr + this->compile_function_info.mid_code_size);
 	varity_info *local_varity_ptr = (varity_info*)((char*)arg_varity_ptr + this->compile_function_info.arg_size);
 	char *source_code_ptr = (char*)local_varity_ptr + this->compile_function_info.local_varity_size;
-	mid_code **row_code_ptr = (mid_code**)((char*)source_code_ptr + this->compile_function_info.source_code_size);
+	mid_code **row_code_ptr = (mid_code**)((char*)source_code_ptr + make_align(this->compile_function_info.source_code_size, PLATFORM_WORD_LEN));
 	kfread(mid_code_ptr, 1, this->compile_function_info.mid_code_size, file_ptr);
 	kfread(arg_varity_ptr, 1, this->compile_function_info.arg_size, file_ptr);
 	kfread(local_varity_ptr, 1, this->compile_function_info.local_varity_size, file_ptr);
@@ -449,7 +449,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	void *varity_type_ptr;
 	if(compile_info.extra_flag) {
 		kfread(varity_type_stack_ptr, sizeof(varity_type_stack), 1, file_ptr);
-		varity_type_info_ptr = (varity_type_stack_t*)dmalloc(sizeof(varity_type_stack_t) + varity_type_stack_ptr->count * sizeof(void*) + compile_varity_info.type_size + sizeof(varity_info), "varity type info");
+		varity_type_info_ptr = (varity_type_stack_t*)dmalloc(sizeof(varity_type_stack_t) + make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN) + varity_type_stack_ptr->count * sizeof(void*) + compile_varity_info.type_size + sizeof(varity_info), "varity type info");
 		varity_type_ptr = (char*)varity_type_info_ptr + sizeof(varity_type_stack_t) + make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN) + varity_type_stack_ptr->count * sizeof(void*);
 	} else {
 		varity_type_info_ptr = (varity_type_stack_t*)dmalloc(sizeof(varity_info), "varity type info");
@@ -610,7 +610,9 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 	kmemset(&this->compile_varity_info, 0, sizeof(compile_varity_info));
 	this->compile_info.export_flag = export_flag;//TODO:use macro
 	this->compile_info.extra_flag = extra_flag;
+	debug("export flag=%d, extra_flag=%d\n", export_flag, extra_flag);
 	count = this->function_declare->function_stack_ptr->get_count();
+	debug("function count=%d\n", count);
 	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 	for(this->compile_function_info.function_count=0,i=0; i<count; i++) {
 		if(function_ptr[i].compile_func_flag == 0) {
@@ -624,17 +626,20 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 			this->compile_function_info.function_count++;
 		}
 	}
+	debug("source=%d,arg=%d,lvariable=%d,code map=%d\n", this->compile_function_info.source_code_size, this->compile_function_info.arg_size, this->compile_function_info.local_varity_size, this->compile_function_info.code_map_size);
 	count = string_stack.get_count();
 	this->compile_string_info.string_count = count;
 	string_info *string_info_ptr = (string_info*)string_stack.get_base_addr();
 	for(i=0; i<count; i++)
 		this->compile_string_info.string_size += kstrlen(string_info_ptr[i].get_name()) + 1;
+	debug("str count=%d, str size=%d\n", count, this->compile_string_info.string_size);
 	if(compile_info.extra_flag || compile_info.export_flag == EXPORT_FLAG_LINK) {
 		this->compile_string_info.name_count = name_stack.get_count();
 		string_info_ptr = (string_info*)name_stack.get_base_addr();
 		for(i=0; i<this->compile_string_info.name_count; i++)
 			this->compile_string_info.name_size += kstrlen(string_info_ptr[i].get_name()) + 1;
 	}
+	debug("str count=%d, str size=%d\n", this->compile_string_info.name_count, this->compile_string_info.name_size);
 	count = this->varity_declare->global_varity_stack->get_count();
 	varity_info *varity_info_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr();
 	unsigned int varity_size, varity_align_size;
@@ -672,15 +677,19 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		} else
 			break;
 	}
+	debug("variable count=%d, data size=%d, bss size=%d\n", count, this->compile_varity_info.data_size, this->compile_varity_info.bss_size);
 	this->compile_varity_info.type_size = 0;
 	if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
 		compile_varity_info.type_size = make_align(this->varity_type_stack.count, PLATFORM_WORD_LEN);
 		for(i=0; i<this->varity_type_stack.count; i++)
 			compile_varity_info.type_size += (this->varity_type_stack.arg_count[i] + 1) * PLATFORM_WORD_LEN;
 	}
-	this->compile_info.total_size = compile_function_info.source_code_size + compile_varity_info.data_size
+	debug("type count=%d,size=%d\n", this->varity_type_stack.count, compile_varity_info.type_size);
+	this->compile_info.total_size = make_align(compile_function_info.source_code_size, PLATFORM_WORD_LEN)
 								+ compile_function_info.mid_code_size + compile_function_info.arg_size
 								+ compile_function_info.code_map_size + compile_function_info.local_varity_size;
+								+ compile_varity_info.data_size;
+	debug("total size=%d\n", this->compile_info.total_size);
 	kfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr);
 	kfwrite(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
 	//kfwrite(string_info_ptr, sizeof(string_info), this->compile_string_info.string_count, file_ptr);
