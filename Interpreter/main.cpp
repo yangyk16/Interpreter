@@ -54,6 +54,7 @@ int ycc(int argc, char **argv)
 	int extra_flag = 0;
 	const char *output_file_name = NULL;
 	char *fun_file_name = NULL;
+	void *load_base, *bss_base;
 	while((ch = kgetopt(argc, (char**)argv, "iceo:rg")) != -1) {
 		switch(ch) {
 		case 'i':
@@ -79,8 +80,8 @@ int ycc(int argc, char **argv)
 	}
 	if(run_flag) {
 		myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
-		myinterpreter.load_ofile(argv[optind], 0);
-		ret = myinterpreter.run_main(STOP_FLAG_RUN);
+		myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
+		ret = myinterpreter.run_main(STOP_FLAG_RUN, load_base, bss_base);
 		return ret;
 	}
 	switch(link_flag) {
@@ -118,7 +119,7 @@ int ycc(int argc, char **argv)
 			int file_count = argc - optind;
 			myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
 			for(int i=0; i<file_count; i++) {
-				myinterpreter.load_ofile(argv[optind + i], 0);
+				myinterpreter.load_ofile(argv[optind + i], 0, &load_base, &bss_base);
 			}
 			ret = myinterpreter.tlink(LINK_NUMBER);
 			//myinterpreter.run_interpreter();
@@ -136,13 +137,15 @@ int ycc(int argc, char **argv)
 int gdb(int argc, char **argv)
 {
 	int ret;
+	void *load_base, *bss_base;
 	if(argc < 2)
 		return -1;
 	else
 		optind = 1;
 	myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
-	myinterpreter.load_ofile(argv[optind], 0);
-	ret = myinterpreter.run_main(STOP_FLAG_STOP);
+	myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
+	ret = myinterpreter.run_main(STOP_FLAG_STOP, load_base, bss_base);
+	
 	return ret;
 }
 
@@ -175,6 +178,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
+	global_dispose();
 	error("no cmd.\n");
 	getchar();
 	return 0;

@@ -233,6 +233,7 @@ typedef struct compile_string_info_s {
 
 int user_eval(char *str);
 extern "C" void global_init(void);
+extern "C" void global_dispose(void);
 extern "C" void run_interpreter(void);
 void clear_arglist(stack *arg_stack_ptr);
 void irq_reg(int irq_no, void *func_ptr, void *data);
@@ -367,14 +368,15 @@ class c_interpreter {
 	friend class gdb;
 public:
 	int tlink(int mode);//link all function
-	int load_ofile(char *file, int flag);
+	int load_ofile(char *file, int flag, void **load_base, void **bss_base);
 	int write_ofile(const char *file, int export_flag, int extra_flag);
 	int exec_mid_code(mid_code *pc, uint count);
 	void set_break_flag(int flag) {break_flag = flag;}
 	int print_call_stack(void);
 	int init(terminal*, int);
+	int dispose(void);
 	int run_interpreter(void);
-	int run_main(int);
+	int run_main(int, void*, void*);
 };
 #define UCC_DEBUG 1
 int compile(char *file, int flag);

@@ -27,6 +27,15 @@ static void print_mempool(void)
 	kprintf("mempool print finish.\n");
 }
 
+extern "C" void heap_debug(void)
+{
+	head_t *begin = (head_t*)heapbase;
+	while(begin) {
+		kprintf("%08x,isused=%d,size=%d\n", begin, begin->isused, begin->size);
+		begin = begin->next;
+	}
+}
+
 extern "C" void* kmalloc(uint size) {
 	head_t *head_ptr, *next_head_ptr, *new_next_ptr;
 	uint tsize;
@@ -48,6 +57,7 @@ extern "C" void* kmalloc(uint size) {
 		new_next_ptr->last = head_ptr;
 		new_next_ptr->next = head_ptr->next;
 		new_next_ptr->isused = 0;
+		new_next_ptr->next && (new_next_ptr->next->last = new_next_ptr);
 		head_ptr->next = new_next_ptr;
 		head_ptr->size = tsize;
 	}
@@ -67,10 +77,12 @@ extern "C" int kfree(void *ptr) {
 		if(headptr->next->isused == 0) {
 			headptr->size += headptr->next->size + sizeof(head_t);
 			headptr->next = headptr->next->next;
+			headptr->next && (headptr->next->last = headptr);
 		}
 	}
-	if(headptr->last->isused == 0) {
+	if((char*)headptr != heapbase && headptr->last->isused == 0) {
 		headptr->last->next = headptr->next;
+		headptr->next && (headptr->next->last = headptr->last);
 		headptr->last->size += headptr->size + sizeof(head_t);
 	} else {
 		headptr->isused = 0;

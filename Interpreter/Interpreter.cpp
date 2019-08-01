@@ -346,7 +346,7 @@ int c_interpreter::tlink(int mode)
 	return ERROR_NO;
 }
 
-int c_interpreter::run_main(int stop)
+int c_interpreter::run_main(int stop, void *load_base, void *bss_base)
 {
 	int ret;
 	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr() + this->cstdlib_func_count;
@@ -358,10 +358,14 @@ int c_interpreter::run_main(int stop)
 	if(stop)
 		pc->break_flag |= BREAKPOINT_STEP;
 	ret = this->exec_mid_code(pc, stack_ptr->get_count());
+	this->dispose();
+	vfree(load_base);
+	vfree(bss_base);
+	//TODO:清理所有导入符号
 	return ret;
 }
 
-int c_interpreter::load_ofile(char *file, int flag)
+int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss_base_ret)
 {
 	void *file_ptr = kfopen(file, "rb");
 	unsigned int function_count, function_total_size;
@@ -403,7 +407,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	}
 	vfree(str_base);
 	void *base = dmalloc(this->compile_info.total_size, "load file space");
-	//base = (void*)make_align((long)base, 4);
+	*load_base = base;
 	kfread(&this->compile_function_info, sizeof(compile_function_info_t), 1, file_ptr);
 	mid_code *mid_code_ptr = (mid_code*)base;
 	stack *arg_varity_ptr = (stack*)((char*)mid_code_ptr + this->compile_function_info.mid_code_size);
@@ -529,6 +533,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 	base = (void*)make_align((long)base, 4);
 	kfread((char*)base, 1, compile_varity_info.data_size, file_ptr);
 	void *bss_base = dmalloc(compile_varity_info.bss_size, "bss space");
+	*bss_base_ret = bss_base;
 	varity_info_ptr = (varity_info*)this->varity_declare->global_varity_stack->visit_element_by_index(varity_begin_count);
 	for(i=0; i<compile_varity_info.init_varity_count; i++)
 		varity_info_ptr[i].set_content_ptr((char*)base + (int)varity_info_ptr[i].get_content_ptr());
@@ -595,6 +600,7 @@ int c_interpreter::load_ofile(char *file, int flag)
 			}
 		}
 	}
+	vfree(function_info_ptr);
 	vfree(str_map_table);
 	vfree(name_map_table);
 	return ERROR_NO;
@@ -1987,10 +1993,9 @@ bool c_interpreter::gdb_check(void)
 int c_interpreter::run_interpreter(void)
 {
 	int ret;
-	//this->load_ofile("test.o", 2);
-	//this->tlink(LINK_ADDR);
 	while(1) {
 		int len;
+		ret = ERROR_NO;
 		len = this->row_pretreat_fifo.readline(sentence_buf);
 		if(len > 0) {
 
@@ -2002,7 +2007,7 @@ int c_interpreter::run_interpreter(void)
 				//TODO: terminal close. file.close();
 				if(this->tty_used == &fileio) {
 				}
-				return ERROR_NO;
+				break;
 			}
 		}
 		len = pre_treat(len);
@@ -2019,18 +2024,19 @@ int c_interpreter::run_interpreter(void)
 			if(this->tty_used == &stdio)
 				continue;
 			else
-				return ret;
+				break;
 		ret = this->eval(this->token_node_ptr, ret);
 		if(ret < 0)
 			if(this->tty_used == &stdio)
 				continue;
 			else
-				return ret;
+				break;
 		this->post_treat();
 		if(ret == OK_FUNC_RETURN)
-			return ret;
+			break;
 	}
-	return ERROR_NO;
+	this->dispose();
+	return ret;
 }
 
 int c_interpreter::init(terminal* tty_used, int rtl_flag)
@@ -2076,11 +2082,11 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 	this->token_node_ptr = this->sentence_analysis_data_struct.node_attribute;
 	this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
 	this->tmp_varity_stack_pointer = this->simulation_stack + sizeof(this->simulation_stack);
-	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
+	this->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);//
 	this->mid_varity_stack.init(sizeof(varity_info), this->tmp_varity_stack, MAX_A_VARITY_NODE);//TODO: 设置node最大count
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 	this->exec_flag = EXEC_FLAG_TRUE;
-	//if(!c_interpreter::language_elment_space.init_done) {
+	if(!c_interpreter::language_elment_space.init_done) {
 		c_interpreter::varity_type_stack.init();
 		for(int i=0; i<sizeof(basic_type_info)/sizeof(basic_type_info[0]); i++) {
 			c_interpreter::varity_type_stack.arg_count[i] = 2;
@@ -2091,10 +2097,22 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 		c_interpreter::varity_type_stack.length = MAX_VARITY_TYPE_COUNT;
 		handle_init();
 		this->generate_compile_func();
-	//	c_interpreter::language_elment_space.init_done = 1;
-	//}
-	return 0;
+		c_interpreter::language_elment_space.init_done = 1;
+	}
+	return ERROR_NO;
 	///////////
+}
+
+int c_interpreter::dispose(void)
+{
+	string_stack.dispose();
+	name_stack.dispose();
+	name_fifo.dispose();
+	c_interpreter::varity_type_stack.dispose();
+	for(int i=0; i<this->cstdlib_func_count; i++)
+		((function_info*)this->function_declare->function_stack_ptr->visit_element_by_index(i))->arg_list->dispose();
+	this->mid_code_stack.dispose();
+	return ERROR_NO;
 }
 
 void nonseq_info_struct::reset(void)
@@ -4095,6 +4113,11 @@ extern "C" void global_init(void)
 	heapinit();
 	token_fifo.init(MAX_TOKEN_BUFLEN);
 	//uc_timer_init(1);
+}
+
+extern "C" void global_dispose(void)
+{
+	token_fifo.dispose();
 }
 
 void clear_arglist(stack *arg_stack_ptr)

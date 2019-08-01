@@ -10,6 +10,7 @@ void* kmalloc(unsigned int size);
 int kfree(void* ptr);
 void* krealloc(void *ptr, unsigned int size);
 void heapinit(void);
+void heap_debug(void);
 
 #ifdef __cplusplus
 }

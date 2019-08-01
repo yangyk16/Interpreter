@@ -36,6 +36,7 @@ public:
 	char* write(const char*);
 	int del(char*);
 	void init(uint count);
+	void dispose(void);
 };
 
 class round_queue: public data_struct {
@@ -46,6 +47,7 @@ public:
 	round_queue();
 	round_queue(uint, void*);
 	void init(uint count, uint element_size = 1);
+	void dispose(void);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	inline void set_length(uint len) {this->length = len;}
 	inline void set_element_size(uint len) {this->element_size = len;}
@@ -73,6 +75,7 @@ public:
 	stack(int esize, void* base_addr, int capacity);
 	void init(int esize, int capacity);
 	void init(int, void*, int);
+	void dispose(void);
 	void* get_current_ptr(void) {return (char*)this->bottom_addr + top;}
 	void* get_lastest_element(void) {return this->count? (char*)get_current_ptr() - this->element_size: 0;}
 	void* visit_element_by_index(int);
@@ -126,6 +129,7 @@ typedef struct varity_type_stack_s {
 	void **type_info_addr;
 	int find(char arg_count, void *type_info_addr);
 	int init(void);
+	void dispose(void);
 	int push(void);
 } varity_type_stack_t;
 #endif

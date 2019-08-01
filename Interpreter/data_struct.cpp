@@ -11,6 +11,11 @@ stack::stack()
 	this->top = 0;
 }
 
+void stack::dispose(void)
+{
+	vfree(this->bottom_addr);
+}
+
 void stack::init(int esize, int capacity)
 {
 	this->count = 0;
@@ -110,6 +115,11 @@ void* indexed_stack::f_find(const char *name)
 round_queue::round_queue()
 {
 	this->wptr = this->rptr = 0;
+}
+
+void round_queue::dispose(void)
+{
+	vfree(this->bottom_addr);
 }
 
 void round_queue::init(uint count, uint element_size)
@@ -242,6 +252,12 @@ int varity_type_stack_t::push(void)
 	return 0;
 }
 
+void varity_type_stack_t::dispose(void)
+{
+	vfree(this->arg_count);
+	vfree(this->type_info_addr);
+}
+
 int varity_type_stack_t::init(void)
 {
 	if(!this->arg_count)
@@ -285,6 +301,11 @@ char* strfifo::write(const char *str)
 	kmemcpy((char*)this->bottom_addr + this->wptr, str, len);
 	this->wptr += len;
 	return ret;
+}
+
+void strfifo::dispose(void)
+{
+	vfree(this->bottom_addr);
 }
 
 void strfifo::init(uint count)
