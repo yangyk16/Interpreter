@@ -19,8 +19,8 @@ public:
 };
 
 class struct_define {
-	stack* struct_stack_ptr;
 public:
+	stack* struct_stack_ptr;
 	struct_info* current_node;
 	int declare(char*, stack*);
 	struct_info* find(char* name) {return (struct_info*)struct_stack_ptr->find(name);}

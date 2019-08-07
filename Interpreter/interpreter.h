@@ -24,6 +24,9 @@
 #define RTL_FLAG_DELAY			0
 #define RTL_FLAG_IMMEDIATELY	1
 
+#define SYMBOL_SAVE			0
+#define SYMBOL_RESTORE			1
+
 #define STOP_FLAG_STOP			1
 #define STOP_FLAG_RUN			0
 
@@ -237,6 +240,7 @@ extern "C" void global_dispose(void);
 extern "C" void run_interpreter(void);
 void clear_arglist(stack *arg_stack_ptr);
 void irq_reg(int irq_no, void *func_ptr, void *data);
+int refscript(char *file);
 
 class c_interpreter {
 	static language_elment_space_t language_elment_space;
@@ -294,6 +298,7 @@ class c_interpreter {
 	int ulink(stack *stack_ptr, int mode);//link one function
 	
 	int mem_rearrange(void);
+	int symbol_sr_status(int);
 	int list_to_tree(node* tree_node, list_stack* post_order_stack);
 	int ctl_analysis(node_attribute_t*, int);
 	
@@ -312,6 +317,7 @@ class c_interpreter {
 	bool gdb_check(void);
 	int find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fptr, int *line_ptr = 0);
 	int open_eval(char*, bool);
+	int open_ref(char*);
 	////////////////////////////opt handle////////////////////////
 	static int opt_asl_handle(c_interpreter *interpreter_ptr);
 	static int opt_asr_handle(c_interpreter *interpreter_ptr);
@@ -365,6 +371,7 @@ class c_interpreter {
 	int pre_treat(uint);
 	int eval(node_attribute_t*, int);
 	friend int user_eval(char *str);
+	friend int refscript(char *file);
 	friend class gdb;
 public:
 	int tlink(int mode);//link all function
@@ -373,10 +380,13 @@ public:
 	int exec_mid_code(mid_code *pc, uint count);
 	void set_break_flag(int flag) {break_flag = flag;}
 	int print_call_stack(void);
+	int set_tty(terminal*);
+	terminal* get_tty(void) {return this->tty_used;}
 	int init(terminal*, int);
 	int dispose(void);
 	int run_interpreter(void);
 	int run_main(int, void*, void*);
+	int run_thread(function_info*);
 };
 #define UCC_DEBUG 1
 int compile(char *file, int flag);

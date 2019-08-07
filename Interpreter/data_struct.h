@@ -54,6 +54,7 @@ public:
 	int write(const void*, uint);
 	int read(void*, uint);
 	int readline(char*);
+	int get_count(void) {return this->count;}
 	void content_reset(void) {wptr = rptr = count = 0;}
 	uint get_wptr(void) {return wptr;}
 	char* readline(int&);

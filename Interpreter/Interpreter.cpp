@@ -70,7 +70,7 @@ int c_interpreter::list_to_tree(node* tree_node, list_stack* post_order_stack)
 			if(!function_ptr) {
 				varity_info *varity_info_ptr = this->varity_declare->find(((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
 				if(!varity_info_ptr) {
-					error("Function not found.\n");
+					error("Function %s not found.\n", ((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
 					return ERROR_NO_FUNCTION;
 				} else {
 					arg_count = ((stack*)varity_info_ptr->get_complex_ptr()[2])->get_count();
@@ -346,23 +346,60 @@ int c_interpreter::tlink(int mode)
 	return ERROR_NO;
 }
 
+int c_interpreter::run_thread(function_info*)
+{
+	return ERROR_NO;
+}
+
 int c_interpreter::run_main(int stop, void *load_base, void *bss_base)
 {
 	int ret;
 	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr() + this->cstdlib_func_count;
-	//char en = 1;
-	//char *a[2] = {0, &en};
-	//gdb::trace_ctl(2, a, this);
 	stack *stack_ptr = &function_ptr->mid_code_stack;
 	mid_code *pc = (mid_code*)stack_ptr->get_base_addr();
 	if(stop)
 		pc->break_flag |= BREAKPOINT_STEP;
 	ret = this->exec_mid_code(pc, stack_ptr->get_count());
-	this->dispose();
 	vfree(load_base);
 	vfree(bss_base);
 	//TODO:清理所有导入符号
 	return ret;
+}
+
+int c_interpreter::symbol_sr_status(int sr_direction)
+{
+	static int save_flag = SYMBOL_RESTORE;
+	static int function_count = 0, varity_count = 0, struct_count = 0, string_count = 0, name_count = 0, varity_type_count = 0;
+	if(sr_direction == SYMBOL_SAVE) {
+		if(save_flag == SYMBOL_SAVE)
+			return ERROR_SR_STATUS;
+		save_flag = SYMBOL_SAVE;
+		function_count = this->function_declare->function_stack_ptr->get_count();
+		varity_count = this->varity_declare->global_varity_stack->get_count();
+		struct_count = this->struct_declare->struct_stack_ptr->get_count();
+		string_count = string_stack.get_count();
+		name_count = name_stack.get_count();
+		varity_type_count = this->varity_type_stack.count;
+	} else if(sr_direction == SYMBOL_RESTORE) {
+		int delta_count;
+		int i;
+		if(save_flag == SYMBOL_RESTORE)
+			return ERROR_SR_STATUS;
+		save_flag = SYMBOL_RESTORE;
+		delta_count = this->function_declare->function_stack_ptr->get_count() - function_count;
+		for(i=0; i<delta_count; i++)
+			this->function_declare->function_stack_ptr->pop();
+		delta_count = this->varity_declare->global_varity_stack->get_count() - varity_count;
+		for(i=0; i<delta_count; i++)
+			this->varity_declare->global_varity_stack->pop();
+		delta_count = this->struct_declare->struct_stack_ptr->get_count();
+		for(i=0; i<delta_count; i++)
+			this->struct_declare->struct_stack_ptr->pop();
+		string_stack.set_count(string_count);
+		name_stack.set_count(name_count);
+		this->varity_type_stack.count = varity_type_count;
+	}
+	return ERROR_NO;
 }
 
 int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss_base_ret)
@@ -603,6 +640,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	vfree(function_info_ptr);
 	vfree(str_map_table);
 	vfree(name_map_table);
+	kfclose(file_ptr);
 	return ERROR_NO;
 }
 
@@ -2035,8 +2073,13 @@ int c_interpreter::run_interpreter(void)
 		if(ret == OK_FUNC_RETURN)
 			break;
 	}
-	this->dispose();
 	return ret;
+}
+
+int c_interpreter::set_tty(terminal* tty)
+{
+	this->tty_used = tty;
+	return ERROR_NO;
 }
 
 int c_interpreter::init(terminal* tty_used, int rtl_flag)
@@ -2048,7 +2091,6 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 	c_interpreter::language_elment_space.c_function.init(&c_interpreter::language_elment_space.function_list);
 	c_interpreter::language_elment_space.struct_list.init(sizeof(struct_info), c_interpreter::language_elment_space.struct_node, MAX_STRUCT_NODE);
 	c_interpreter::language_elment_space.c_struct.init(&c_interpreter::language_elment_space.struct_list);
-	c_interpreter::cstdlib_func_count = 0;
 	this->varity_declare = &c_interpreter::language_elment_space.c_varity;
 	this->nonseq_info = &c_interpreter::language_elment_space.nonseq_info_s;
 	this->function_declare = &c_interpreter::language_elment_space.c_function;
@@ -2086,7 +2128,7 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 	this->mid_varity_stack.init(sizeof(varity_info), this->tmp_varity_stack, MAX_A_VARITY_NODE);//TODO: 设置node最大count
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 	this->exec_flag = EXEC_FLAG_TRUE;
-	if(!c_interpreter::language_elment_space.init_done) {
+	//if(!c_interpreter::language_elment_space.init_done) {
 		c_interpreter::varity_type_stack.init();
 		for(int i=0; i<sizeof(basic_type_info)/sizeof(basic_type_info[0]); i++) {
 			c_interpreter::varity_type_stack.arg_count[i] = 2;
@@ -2096,9 +2138,10 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 		c_interpreter::varity_type_stack.count = sizeof(basic_type_info) / sizeof(basic_type_info[0]);
 		c_interpreter::varity_type_stack.length = MAX_VARITY_TYPE_COUNT;
 		handle_init();
+		c_interpreter::cstdlib_func_count = 0;
 		this->generate_compile_func();
-		c_interpreter::language_elment_space.init_done = 1;
-	}
+	//	c_interpreter::language_elment_space.init_done = 1;
+	//}
 	return ERROR_NO;
 	///////////
 }
@@ -2112,6 +2155,7 @@ int c_interpreter::dispose(void)
 	for(int i=0; i<this->cstdlib_func_count; i++)
 		((function_info*)this->function_declare->function_stack_ptr->visit_element_by_index(i))->arg_list->dispose();
 	this->mid_code_stack.dispose();
+	this->tty_used->dispose();
 	return ERROR_NO;
 }
 
@@ -2347,6 +2391,9 @@ int c_interpreter::generate_compile_func(void)
 	static stack irqreg_stack;
 	this->generate_arg_list("void,int,void*,void*;", 4, irqreg_stack);
 	this->function_declare->add_compile_func("irq_reg", (void*)irq_reg, &irqreg_stack, 0);
+	static stack refscript_stack;
+	this->generate_arg_list("int,char*;", 2, refscript_stack);
+	this->function_declare->add_compile_func("ref", (void*)refscript, &refscript_stack, 0);
 	this->cstdlib_func_count = this->function_declare->function_stack_ptr->get_count();
 	return ERROR_NO;
 }
@@ -4067,6 +4114,35 @@ void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 	}
 }
 
+int c_interpreter::open_ref(char *file)
+{
+	int ret;
+	terminal *ttybak = this->get_tty();
+	this->set_tty(&fileio);
+	ret = fileio.init(file);
+	if(ret)
+		return ret;
+	int count = this->row_pretreat_fifo.get_count();
+	char *pretreat_fifo_bak = (char*)dmalloc(count, "pretreat fifo bak");
+	this->row_pretreat_fifo.read(pretreat_fifo_bak, count);
+
+	mid_code *base_bak = (mid_code*)this->mid_code_stack.get_base_addr();
+	int count_bak = this->mid_code_stack.get_count();
+	mid_code *pc_bak = this->pc;
+	this->mid_code_stack.set_base(base_bak + count_bak);
+	this->mid_code_stack.set_count(0);
+
+	ret = this->run_interpreter();
+	this->mid_code_stack.set_base(base_bak);
+	this->mid_code_stack.set_count(count_bak);
+	this->pc = pc_bak;
+	this->row_pretreat_fifo.write(pretreat_fifo_bak, count);
+	vfree(pretreat_fifo_bak);
+	this->set_tty(ttybak);
+	return ret;
+
+}
+
 int c_interpreter::open_eval(char *str, bool need_semicolon)
 {
 	int ret, len = kstrlen(str), count;
@@ -4100,6 +4176,11 @@ int compile(char *file, int flag)
 	return myinterpreter.write_ofile(file, flag, 0);
 }
 #endif
+
+int refscript(char *file)
+{//TODO: protect pretreat buffer
+	return myinterpreter.open_ref(file);
+}
 
 extern "C" void run_interpreter(void)
 {

@@ -9,6 +9,7 @@ class terminal{
 public:
 	virtual int readline(char*) = 0;
 	virtual int puts(char*) = 0;
+	virtual void dispose(void) = 0;
 };
 
 #if TTY_TYPE == 0 
@@ -16,12 +17,14 @@ class tty: public terminal {
 public:
 	virtual int readline(char*);
 	virtual int puts(char*);
+	virtual void dispose(void){};
 };
 #elif TTY_TYPE == 1
 class uart: public terminal {
 public:
 	virtual int readline(char*);
 	virtual int puts(char*);
+	virtual void dispose(void){};
 };
 #endif
 class file: public terminal {
@@ -29,6 +32,7 @@ class file: public terminal {
 public:
 	virtual int readline(char*);
 	virtual int puts(char*){return 0;}
+	virtual void dispose(void);
 	int init(char*);
 };
 

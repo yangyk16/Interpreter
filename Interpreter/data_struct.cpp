@@ -14,6 +14,7 @@ stack::stack()
 void stack::dispose(void)
 {
 	vfree(this->bottom_addr);
+	this->bottom_addr = 0;
 }
 
 void stack::init(int esize, int capacity)
@@ -120,6 +121,7 @@ round_queue::round_queue()
 void round_queue::dispose(void)
 {
 	vfree(this->bottom_addr);
+	this->bottom_addr = 0;
 }
 
 void round_queue::init(uint count, uint element_size)
@@ -256,6 +258,8 @@ void varity_type_stack_t::dispose(void)
 {
 	vfree(this->arg_count);
 	vfree(this->type_info_addr);
+	this->arg_count = 0;
+	this->type_info_addr = 0;
 }
 
 int varity_type_stack_t::init(void)
@@ -306,6 +310,7 @@ char* strfifo::write(const char *str)
 void strfifo::dispose(void)
 {
 	vfree(this->bottom_addr);
+	this->bottom_addr = 0;
 }
 
 void strfifo::init(uint count)

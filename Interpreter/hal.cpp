@@ -55,6 +55,11 @@ int file::init(char *filename)
 		return -1;
 }
 
+void file::dispose(void)
+{
+	vfree(file_ptr);
+}
+
 int file::readline(char *str)
 {
 	int i = 0;
@@ -111,6 +116,7 @@ int kfclose(void *fp)
 #if TTY_TYPE == 0
 	return fclose((FILE*)fp);
 #else
+	vfree(fp);
 	return f_close((FIL*)fp);
 #endif
 }
