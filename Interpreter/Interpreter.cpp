@@ -468,8 +468,14 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			function_info_ptr->local_varity_stack.set_base(local_varity_ptr);
 			function_info_ptr->buffer = source_code_ptr;
 			function_info_ptr->row_code_ptr = row_code_ptr;
-			for(j=0; j<function_info_ptr->row_line; j++)
+			function_info_ptr->row_begin_pos = (unsigned int*)dmalloc(sizeof(char*) * function_info_ptr->row_line, "");
+			for(j=0; j<function_info_ptr->row_line; j++) {
 				function_info_ptr->row_code_ptr[j] = mid_code_ptr + (int)function_info_ptr->row_code_ptr[j];
+				if(j == 0)
+					function_info_ptr->row_begin_pos[j] = 0;
+				else
+					function_info_ptr->row_begin_pos[j] = function_info_ptr->row_begin_pos[j - 1] + kstrlen(source_code_ptr + function_info_ptr->row_begin_pos[j - 1]) + 1;
+			}
 			source_code_ptr += function_info_ptr->wptr;
 			row_code_ptr += function_info_ptr->row_line;
 			arg_varity_ptr = (stack*)((varity_info*)arg_varity_ptr + function_info_ptr->arg_list->get_count());
