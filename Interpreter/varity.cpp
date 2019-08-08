@@ -80,7 +80,7 @@ void varity_info::init_varity(char *name, uint size, int arg_count, PLATFORM_WOR
 {
 	varity_info *varity_ptr = this;
 	string_info *string_ptr;
-	if(name) {
+	if(name && *name) {
 		string_ptr = (string_info*)name_stack.find(name);
 		varity_ptr->name = string_ptr->get_name();
 		//int name_len = kstrlen(name);
