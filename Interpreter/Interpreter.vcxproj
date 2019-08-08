@@ -94,6 +94,7 @@
     <ClInclude Include="string_lib.h" />
     <ClInclude Include="struct.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="toolchain.h" />
     <ClInclude Include="type.h" />
     <ClInclude Include="varity.h" />
   </ItemGroup>
@@ -111,6 +112,7 @@
     <ClCompile Include="stdlib.cpp" />
     <ClCompile Include="string_lib.cpp" />
     <ClCompile Include="struct.cpp" />
+    <ClCompile Include="toolchain.cpp" />
     <ClCompile Include="varity.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
