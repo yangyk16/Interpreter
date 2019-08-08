@@ -1,7 +1,12 @@
 #include "interpreter.h"
 #include "data_struct.h"
-#include "global.h"
 
+#if TTY_TYPE == 0
+tty stdio;
+#elif TTY_TYPE == 1
+uart stdio;
+#endif
+file fileio;
 stack string_stack;
 stack name_stack;
 strfifo name_fifo;

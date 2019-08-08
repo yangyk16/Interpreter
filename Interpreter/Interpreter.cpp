@@ -9,13 +9,6 @@
 #include "gdb.h"
 #include "global.h"
 
-#if TTY_TYPE == 0
-tty stdio;
-#elif TTY_TYPE == 1
-uart stdio;
-#endif
-file fileio;
-
 varity_type_stack_t c_interpreter::varity_type_stack;
 language_elment_space_t c_interpreter::language_elment_space;
 compile_info_t c_interpreter::compile_info;
