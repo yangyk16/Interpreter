@@ -598,6 +598,8 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 				}
 				if(mid_code_ptr[i].opdb_operand_type == OPERAND_G_VARITY) {
 					mid_code_ptr[i].opdb_addr = (PLATFORM_WORD)varity_base[mid_code_ptr[i].opdb_addr].get_content_ptr();
+				} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_FUNCTION) {
+					mid_code_ptr[i].opdb_addr = (PLATFORM_WORD)&function_base[mid_code_ptr[i].opdb_addr - this->cstdlib_func_count];
 				} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_STRING) {
 					mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;
 					mid_code_ptr[i].opdb_addr = (long)((string_info*)string_stack.visit_element_by_index(str_map_table[mid_code_ptr[i].opdb_addr]))->get_name();
@@ -626,6 +628,8 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 					//mid_code_ptr[i].opda_operand_type = OPERAND_G_VARITY;
 				}
 				if(mid_code_ptr[i].opdb_operand_type == OPERAND_G_VARITY) {
+					mid_code_ptr[i].opdb_addr = (long)((string_info*)name_stack.visit_element_by_index(name_map_table[mid_code_ptr[i].opdb_addr]))->get_name();
+				} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_FUNCTION) {
 					mid_code_ptr[i].opdb_addr = (long)((string_info*)name_stack.visit_element_by_index(name_map_table[mid_code_ptr[i].opdb_addr]))->get_name();
 				} else if (mid_code_ptr[i].opdb_operand_type == OPERAND_STRING) {
 					//mid_code_ptr[i].opdb_operand_type = OPERAND_G_VARITY;

@@ -3,8 +3,6 @@
 #include "global.h"
 #include "error.h"
 
-extern tty stdio;
-extern file fileio;
 extern "C" int cc(int argc, char **argv)
 {
 	int ret;
@@ -40,6 +38,7 @@ extern "C" int cc(int argc, char **argv)
 	}
 	if(run_flag) {
 		myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
+		irq_interpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
 		myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
 		ret = myinterpreter.run_main(STOP_FLAG_RUN, load_base, bss_base);
 		myinterpreter.dispose();
@@ -53,7 +52,7 @@ extern "C" int cc(int argc, char **argv)
 				myinterpreter.init(&fileio, RTL_FLAG_IMMEDIATELY);
 				fileio.init(argv[optind]);
 			}
-			irq_interpreter.init(0, 1);
+			irq_interpreter.init(&stdio, 1);
 			myinterpreter.run_interpreter();
 			myinterpreter.dispose();
 			break;
@@ -106,6 +105,7 @@ extern "C" int db(int argc, char **argv)
 	else
 		optind = 1;
 	myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
+	irq_interpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
 	myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
 	ret = myinterpreter.run_main(STOP_FLAG_STOP, load_base, bss_base);
 	myinterpreter.dispose();
