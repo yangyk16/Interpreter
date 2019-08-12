@@ -374,6 +374,7 @@ class c_interpreter {
 	friend int refscript(char *file);
 	friend class gdb;
 public:
+	int *last_ret_abs_addr;
 	int tlink(int mode);//link all function
 	int load_ofile(char *file, int flag, void **load_base, void **bss_base);
 	int write_ofile(const char *file, int export_flag, int extra_flag);
