@@ -4,6 +4,7 @@
 #include "cstdlib.h"
 #include "error.h"
 #include "interpreter.h"
+#include "global.h"
 
 #if TTY_TYPE == 0
 #include <iostream>
@@ -148,18 +149,52 @@ unsigned int kfwrite(void *buffer, unsigned int size, unsigned int count, void *
 
 void *irq_service[32];
 void *irq_data[32];
-extern c_interpreter irq_interpreter;
-void irq_entry(int irq_no)
+#if HW_PLATFORM == PLATFORM_X86
+#define IRQ
+#else
+#define IRQ __attribute__((interrupt ("IRQ")))
+extern "C" void irq_MASK(int base,int priority);
+extern "C" void irq_UNMASK(int base,int priority);
+#endif
+void irq_mask(int irq_no)
 {
-	stack *mid_code_stack = &((function_info*)irq_service[irq_no])->mid_code_stack;
-	irq_interpreter.exec_mid_code((mid_code*)mid_code_stack->get_base_addr(), mid_code_stack->get_count());
+#if HW_PLATFORM == PLATFORM_X86
+#else
+	irq_MASK(0, irq_no);
+#endif
 }
 
+void irq_unmask(int irq_no)
+{
+#if HW_PLATFORM == PLATFORM_X86
+#else
+	irq_UNMASK(0, irq_no);
+#endif
+}
+
+void irq_entry(void) IRQ;
+void irq_entry(void)
+{
+#if HW_PLATFORM == PLATFORM_ARM
+	int irq_no = 31 - __builtin_clz(*(int*)0x2310030);
+	irq_mask(irq_no);
+	if(irq_service[irq_no]) {
+		stack *mid_code_stack = &((function_info*)irq_service[irq_no])->mid_code_stack;
+		irq_interpreter.exec_mid_code((mid_code*)mid_code_stack->get_base_addr(), mid_code_stack->get_count());
+	}
+	irq_unmask(irq_no);
+#endif
+}
+
+extern "C" void irq_init(int base,int priority, void (*isr_fun)(void));
 void irq_reg(int irq_no, void *func_ptr, void *data)
 {
 	irq_service[irq_no] = func_ptr;
 	irq_data[irq_no] = data;
 	//intreg(irq_no, irq_entry, 0);
+#if HW_PLATFORM == PLATFORM_ARM
+	irq_init(0, irq_no, irq_entry);
+#endif
 }
 
 int hard_fault_check(int addr)

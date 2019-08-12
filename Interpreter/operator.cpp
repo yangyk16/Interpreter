@@ -119,6 +119,9 @@ static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_
 	case OPERAND_LINK_VARITY: \
 		opdb_addr = (int*)PTR_VALUE(t_varity_sp - instruction_ptr->opdb_addr - 8); \
 		break; \
+	case OPERAND_FUNCTION: \
+		opdb_addr = (int*)&instruction_ptr->opdb_addr; \
+		break; \
 	default: \
 		opdb_addr = (int*)instruction_ptr->opdb_addr; \
 		break; \

@@ -940,6 +940,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 							return ERROR_VARITY_NONEXIST;
 						}
 						instruction_ptr->opdb_operand_type = OPERAND_FUNCTION;
+						instruction_ptr->opdb_varity_type = PTR;
 						instruction_ptr->opdb_addr = (int)((function_info*)bvarity_ptr)->get_name();
 						function_flag = 2;
 					} else {
@@ -3012,6 +3013,10 @@ ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 			}
 			this->pc++;
 		}
+		this->stack_pointer = this->simulation_stack + PLATFORM_WORD_LEN;
+		this->tmp_varity_stack_pointer = this->tmp_varity_stack;
+		this->call_func_info.function_depth = 0;
+		this->call_func_info.para_offset = PLATFORM_WORD_LEN;
 	}
 	//kprintf("t1=%d,t2=%d,ot=%d\n", total1, total2, opt_time);
 	return ERROR_NO;
@@ -4210,3 +4215,4 @@ void clear_arglist(stack *arg_stack_ptr)
 	vfree(arg_stack_ptr->get_base_addr());
 	vfree(arg_stack_ptr);
 }
+
