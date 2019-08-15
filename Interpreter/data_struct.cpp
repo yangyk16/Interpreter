@@ -226,7 +226,7 @@ void node::middle_visit(void)
 		this->right->middle_visit();
 }
 
-int varity_type_stack_t::find(char arg_count, void *type_info_addr)
+int varity_type_stack_t::find(char arg_count, unsigned long *type_info_addr)
 {
 	int i;
 	for(i=0; i<this->count; i++) {
@@ -243,13 +243,20 @@ int varity_type_stack_t::find(char arg_count, void *type_info_addr)
 	return -1;
 }
 
+int varity_type_stack_t::push(char arg_count, unsigned long *type_info_addr)
+{
+	this->arg_count[count] = arg_count;
+	this->type_info_addr[count] = type_info_addr;
+	return this->push();
+}
+
 int varity_type_stack_t::push(void)
 {
 	this->count++;
 	if(this->count == this->length) {
 		this->length *= 2;
-		vrealloc(this->arg_count, this->length * sizeof(char));
-		vrealloc(this->type_info_addr, this->length * sizeof(void*));
+		this->arg_count = (char*)vrealloc(this->arg_count, this->length * sizeof(char));
+		this->type_info_addr = (PLATFORM_WORD**)vrealloc(this->type_info_addr, this->length * sizeof(void*));
 	}
 	return 0;
 }
@@ -267,7 +274,7 @@ int varity_type_stack_t::init(void)
 	if(!this->arg_count)
 		this->arg_count = (char*)dmalloc(MAX_VARITY_TYPE_COUNT, "varity type arg count base");
 	if(!this->type_info_addr)
-		this->type_info_addr = (void**)dmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN, "type info addr");
+		this->type_info_addr = (PLATFORM_WORD**)dmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN, "type info addr");
 	return 0;
 }
 

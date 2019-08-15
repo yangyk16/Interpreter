@@ -227,6 +227,12 @@ typedef struct compile_varity_info_s {
 	unsigned int type_size;
 } compile_varity_info_t;
 
+typedef struct compile_struct_info_s {
+	unsigned int struct_count;
+	unsigned int struct_size;
+	unsigned int varity_size;
+} compile_struct_info_t;
+
 typedef struct compile_string_info_s {
 	unsigned int string_count;
 	unsigned int string_size;
@@ -244,7 +250,6 @@ int refscript(char *file);
 
 class c_interpreter {
 	static language_elment_space_t language_elment_space;
-	static varity_type_stack_t varity_type_stack;
 	static int cstdlib_func_count;
 	int real_time_link;
 	node *root;
@@ -279,6 +284,7 @@ class c_interpreter {
 	static compile_function_info_t compile_function_info;
 	static compile_string_info_t compile_string_info;
 	static compile_varity_info_t compile_varity_info;
+	static compile_struct_info_t compile_struct_info;
 	int str_count_bak;
 	int save_sentence(char*, uint);
 	int function_analysis(node_attribute_t*, int);

@@ -125,6 +125,9 @@ int kfclose(void *fp)
 unsigned int kfread(void *buffer, unsigned int size, unsigned int nmemb, void *fileptr)
 {
 #if TTY_TYPE == 0
+	//static int total_read = 0;
+	//total_read += size * nmemb;
+	//debug("read %d byte,total %d\n", size * nmemb, total_read);
 	return fread(buffer, size, nmemb, (FILE*)fileptr);
 #else
 	unsigned int ret;
@@ -136,7 +139,10 @@ unsigned int kfread(void *buffer, unsigned int size, unsigned int nmemb, void *f
 unsigned int kfwrite(void *buffer, unsigned int size, unsigned int count, void *fileptr)
 {
 #if TTY_TYPE == 0
+	//static int total_write = 0;
 	int ret;
+	//total_write += size * count;
+	//debug("write %d byte, total %d\n", size * count, total_write);
 	ret = fwrite(buffer, size, count, (FILE*)fileptr);
 	fflush((FILE*)fileptr);
 	return ret;

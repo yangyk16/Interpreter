@@ -13,7 +13,7 @@ class struct_info: public element {
 public:
 	uint struct_size;
 	stack *varity_stack_ptr;
-	PLATFORM_WORD type_info_ptr[4];
+	PLATFORM_WORD *type_info_ptr;
 	int init(char*, stack*);
 	int reset(void);
 };

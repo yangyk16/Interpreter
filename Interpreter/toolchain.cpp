@@ -64,11 +64,12 @@ extern "C" int cc(int argc, char **argv)
 				if(ret)
 					return ERROR_FILE;
 				myinterpreter.init(&fileio, RTL_FLAG_DELAY);
-				tip("compiling %s...", argv[optind + i]);
+				tip("compiling %s...\n", argv[optind + i]);
 				myinterpreter.run_interpreter();
 				int len = kstrlen(argv[optind + i]);
 				argv[optind + i][len - 1] = 'o';
 				ret = myinterpreter.tlink(LINK_STRNO);
+				tip("compile finish, writing to disk...\n");
 				//compile(argv[optind + i], EXPORT_FLAG_LINK);
 				myinterpreter.write_ofile(argv[optind + i], EXPORT_FLAG_LINK, extra_flag);
 				tip("%s made success!\n", argv[optind + i]);
@@ -81,14 +82,18 @@ extern "C" int cc(int argc, char **argv)
 			int file_count = argc - optind;
 			myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
 			for(int i=0; i<file_count; i++) {
+				tip("loading %s...\n", argv[optind + i]);
 				myinterpreter.load_ofile(argv[optind + i], 0, &load_base, &bss_base);
 			}
+			tip("linking...\n");
 			ret = myinterpreter.tlink(LINK_NUMBER);
 			if(ret)
 				return ret;
 			if(!output_file_name)
 				output_file_name = "a.elf";
+			tip("link finish, writing to disk...\n");
 			myinterpreter.write_ofile(output_file_name, EXPORT_FLAG_EXEC, extra_flag);
+			tip("%s made success!\n", output_file_name);
 			myinterpreter.dispose();
 			break;
 		}

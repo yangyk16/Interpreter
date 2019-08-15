@@ -127,10 +127,11 @@ typedef struct varity_type_stack_s {
 	uint count;
 	uint length;
 	char *arg_count;
-	void **type_info_addr;
-	int find(char arg_count, void *type_info_addr);
+	unsigned long **type_info_addr;
+	int find(char arg_count, unsigned long *type_info_addr);
 	int init(void);
 	void dispose(void);
 	int push(void);
+	int push(char arg_count, unsigned long *type_info_addr);
 } varity_type_stack_t;
 #endif
