@@ -402,3 +402,17 @@ int get_element_size(int complex_arg_count, PLATFORM_WORD *comlex_info_ptr)
 	}
 	return get_varity_size(0, comlex_info_ptr, i);
 }
+
+int get_align_size(int complex_arg_count, PLATFORM_WORD *comlex_info_ptr)
+{
+	int i;
+	for(i=complex_arg_count; i>0; i--) {
+		if(GET_COMPLEX_TYPE(comlex_info_ptr[i]) != COMPLEX_ARRAY) {
+			break;
+		}
+	}
+	if(GET_COMPLEX_TYPE(comlex_info_ptr[i]) == COMPLEX_BASIC && GET_COMPLEX_DATA(comlex_info_ptr[i]) == STRUCT)
+		return 4;
+	else
+		return get_varity_size(0, comlex_info_ptr, i);
+}

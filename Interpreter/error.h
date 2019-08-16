@@ -56,6 +56,7 @@
 #define ERROR_FILE				-51
 #define ERROR_ASSIGN			-52
 #define ERROR_SR_STATUS			-53
+#define ERROR_PREPROCESS		-54
 
 #define ERROR_STACK_OVERFLOW	-70
 #define ERROR_ARRAY_BOUND		-71

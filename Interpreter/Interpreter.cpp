@@ -761,10 +761,10 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 			this->compile_varity_info.varity_count++;
 			if(kmemchk(varity_info_ptr[i].get_content_ptr(), 0, varity_size)) {
 				this->compile_varity_info.init_varity_count++;
-				varity_align_size = get_element_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
+				varity_align_size = get_align_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
 				this->compile_varity_info.data_size = make_align(compile_varity_info.data_size, varity_align_size) + varity_size;
 			} else {
-				varity_align_size = get_element_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
+				varity_align_size = get_align_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
 				this->compile_varity_info.bss_size = make_align(compile_varity_info.bss_size, varity_align_size) + varity_size;
 			}
 			if(++i >= j)
@@ -2024,6 +2024,27 @@ int c_interpreter::print_call_stack(void)
 		}
 	}
 	return ERROR_NO;
+}
+
+int c_interpreter::preprocess(char *str)
+{
+	int ret;
+	if(str[0] != '#')
+		return ERROR_NO;
+	str++;
+	node_attribute_t node;
+	if(!kstrcmp(str, "define") && str[6] == ' ') {
+		ret = get_token(str + 6, &node);
+		if(node.node_type == TOKEN_NAME) {
+
+		}
+	} else if(!kstrcmp(str, "ifdef")) {
+	} else if(!kstrcmp(str, "ifndef")) {
+	} else if(!kstrcmp(str, "else")) {
+	} else if(!kstrcmp(str, "end")) {
+	} else {
+		return ERROR_PREPROCESS;
+	}
 }
 
 int c_interpreter::pre_treat(uint len)

@@ -11,11 +11,11 @@
 #include "operator.h"
 #include "data_struct.h"
 
-#define EXPORT_FLAG_EXEC		1//code+data+string
-#define EXPORT_FLAG_LINK		2//name+code+data+string
+#define EXPORT_FLAG_EXEC		1//code+varity+data+string
+#define EXPORT_FLAG_LINK		2//name+varity+varity_type+code+data+string
 
-#define EXTRA_FLAG_DEBUG		4//name+varity_type+source+code+data+string
-#define EXTRA_FLAG_REF			8//name+varity_type+source+code+data+string+struct
+#define EXTRA_FLAG_DEBUG		4//name+varity+varity_type+source+code+data+string
+#define EXTRA_FLAG_REF			8//name+varity+varity_type+source+code+data+string+struct
 
 #define LINK_ADDR				0//for execute immediately
 #define LINK_NUMBER				1//for output exe file
@@ -181,6 +181,17 @@ typedef struct call_func_info_s {
 	int function_depth;
 	int para_offset;
 } call_func_info_t;
+
+typedef struct preprocess_info_s {
+	unsigned short ifdef_level;
+	unsigned char ifdef_status[MAX_IFDEF_DEPTH];
+} preprocess_info_t;
+
+class macro_info {
+	char *macro_name;
+	char *macro_instead_str;
+	char *macro_arg_name[MAX_MACRO_ARG_COUNT];
+};
 
 class mid_code {
 public:
@@ -375,6 +386,7 @@ class c_interpreter {
 	//////////////////////////////////////////////////////////////////////
 	int post_treat(void);
 	int pre_treat(uint);
+	int preprocess(char *str);
 	int eval(node_attribute_t*, int);
 	friend int user_eval(char *str);
 	friend int refscript(char *file);

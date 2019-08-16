@@ -115,6 +115,7 @@ void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag);
 void inc_varity_ref(varity_info *varity_ptr);
 void *get_basic_info(int basic_type, void *info_ptr, struct_define *struct_define_ptr);
 int get_element_size(int complex_arg_count, PLATFORM_WORD *comlex_info_ptr);
+int get_align_size(int complex_arg_count, PLATFORM_WORD *comlex_info_ptr);
 int destroy_varity_stack(stack *stack_ptr);
 #if DEBUG_EN
 void print_varity(int format, int complex_count, PLATFORM_WORD *complex_ptr, void *content_ptr);
