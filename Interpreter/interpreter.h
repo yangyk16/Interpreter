@@ -9,6 +9,7 @@
 #include "function.h"
 #include "struct.h"
 #include "operator.h"
+#include "macro.h"
 #include "data_struct.h"
 
 #define EXPORT_FLAG_EXEC		1//code+varity+data+string
@@ -155,6 +156,8 @@ typedef struct language_element_space {
 	struct_info struct_node[MAX_STRUCT_NODE];
 	stack struct_list;
 	struct_define c_struct;
+	stack macro_list;
+	macro c_macro;
 	int init_done;
 } language_elment_space_t;
 
@@ -186,12 +189,6 @@ typedef struct preprocess_info_s {
 	unsigned short ifdef_level;
 	unsigned char ifdef_status[MAX_IFDEF_DEPTH];
 } preprocess_info_t;
-
-class macro_info {
-	char *macro_name;
-	char *macro_instead_str;
-	char *macro_arg_name[MAX_MACRO_ARG_COUNT];
-};
 
 class mid_code {
 public:
@@ -271,6 +268,7 @@ class c_interpreter {
 	nonseq_info_struct* nonseq_info;
 	struct_info_struct struct_info_set;
 	function_flag_struct function_flag_set;
+	macro* macro_declare;
 	struct_define* struct_declare;
 	varity* varity_declare;
 	function* function_declare;
@@ -291,6 +289,7 @@ class c_interpreter {
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	bool exec_flag;
 	call_func_info_t call_func_info;
+	preprocess_info_t preprocess_info;
 	static compile_info_t compile_info;
 	static compile_function_info_t compile_function_info;
 	static compile_string_info_t compile_string_info;
@@ -386,7 +385,7 @@ class c_interpreter {
 	//////////////////////////////////////////////////////////////////////
 	int post_treat(void);
 	int pre_treat(uint);
-	int preprocess(char *str);
+	int preprocess(char *str, int &len);
 	int eval(node_attribute_t*, int);
 	friend int user_eval(char *str);
 	friend int refscript(char *file);

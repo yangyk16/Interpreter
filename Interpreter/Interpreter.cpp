@@ -4,6 +4,7 @@
 #include "error.h"
 #include "varity.h"
 #include "data_struct.h"
+#include "macro.h"
 #include "cstdlib.h"
 #include "kmalloc.h"
 #include "gdb.h"
@@ -2046,24 +2047,137 @@ int c_interpreter::print_call_stack(void)
 	return ERROR_NO;
 }
 
-int c_interpreter::preprocess(char *str)
+int c_interpreter::preprocess(char *str, int &len)
 {
 	int ret;
-	if(str[0] != '#')
-		return ERROR_NO;
-	str++;
 	node_attribute_t node;
-	if(!kstrcmp(str, "define") && str[6] == ' ') {
-		ret = get_token(str + 6, &node);
-		if(node.node_type == TOKEN_NAME) {
-
+	macro_info *macro_ptr;
+	if(str[0] == '#') {
+		str++;
+		if(!kstrncmp(str, "define", 6) && str[6] == ' ') {
+			int para_count = 0;
+			int status = 0;
+			str += 7;
+			ret = get_token(str, &node);
+			if(node.node_type == TOKEN_NAME) {
+				macro_info macro_info;
+				kmemset(macro_info.macro_arg_name, 0, sizeof(macro_info.macro_arg_name));
+				macro_info.set_name(node.value.ptr_value);
+				str += ret;
+				ret = get_token(str, &node);
+				if(node.node_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET) {
+					while(1) {
+						str += ret;
+						ret = get_token(str, &node);
+						if(status == 0) {
+							if(node.node_type == TOKEN_NAME) {
+								status = 1;
+								macro_info.macro_arg_name[para_count] = node.value.ptr_value;
+							} else {
+								error("Macro define error\n");
+								return ERROR_MACRO_DEF;
+							}
+						} else {
+							if(node.node_type == TOKEN_OPERATOR) {
+								if(node.data == OPT_COMMA) {
+									status = 0;
+									if(++para_count > MAX_MACRO_ARG_COUNT) {
+										error("Macro parameters too much.\n");
+										return ERROR_MACRO_DEF;
+									}
+								} else if(node.data == OPT_R_SMALL_BRACKET) {
+									str += ret;
+									break;
+								}
+							} else {
+								error("Macro define error\n");
+								return ERROR_MACRO_DEF;
+							}
+						}
+					}
+					while(*str == ' ' || *str == '\t') str++;
+					macro_info.macro_instead_str = (char*)dmalloc(kstrlen(str) + 1, "macro string");
+					kstrcpy(macro_info.macro_instead_str, str);
+				} else {
+					while(*str == ' ' || *str == '\t') str++;
+					macro_info.macro_instead_str = (char*)dmalloc(kstrlen(str) + 1, "macro string");
+					kstrcpy(macro_info.macro_instead_str, str);
+				}
+				this->macro_declare->declare(macro_info.get_name(), macro_info.macro_arg_name, macro_info.macro_instead_str);
+			}
+		} else if(!kstrncmp(str, "ifdef", 5) && str[5] == ' ') {
+			str += 6;
+			ret = get_token(str, &node);
+			if(node.node_type == TOKEN_NAME) {
+				macro_ptr = this->macro_declare->find(node.value.ptr_value);
+				preprocess_info.ifdef_level++;
+				if(macro_ptr) {
+					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = 0;//0:ifÃüÖÐ 1:ifÊ§°Ü
+				} else {
+					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = 1;
+				}
+			} else {
+				error("no macro name\n");
+				return ERROR_PREPROCESS;
+			}
+		} else if(!kstrncmp(str, "ifndef", 6) && str[6] == ' ') {
+			str += 7;
+			ret = get_token(str, &node);
+			if(node.node_type == TOKEN_NAME) {
+				macro_ptr = this->macro_declare->find(node.value.ptr_value);
+				preprocess_info.ifdef_level++;
+				if(macro_ptr) {
+					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = 1;//0:ifÃüÖÐ 1:ifÊ§°Ü
+				} else {
+					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = 0;
+				}
+			} else {
+				error("no macro name\n");
+				return ERROR_PREPROCESS;
+			}
+		} else if(!kstrncmp(str, "else", 4)) {
+			preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = !preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1];
+		} else if(!kstrncmp(str, "end", 3)) {
+			if(preprocess_info.ifdef_level)
+				preprocess_info.ifdef_level--;
+			else {
+				error("no #ifdef/ifndef corresponding\n");
+				return ERROR_PREPROCESS;
+			}
+		} else {
+			return ERROR_PREPROCESS;
 		}
-	} else if(!kstrcmp(str, "ifdef")) {
-	} else if(!kstrcmp(str, "ifndef")) {
-	} else if(!kstrcmp(str, "else")) {
-	} else if(!kstrcmp(str, "end")) {
+		return OK_PREPROCESS;
 	} else {
-		return ERROR_PREPROCESS;
+		int index = 0;
+		if(preprocess_info.ifdef_level) {
+			if(preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1]) {
+				str[0] = 0;
+				len = 0;
+				return ERROR_NO;
+			}
+		}
+		while(1) {
+			int delta_len;
+			ret = get_token(str + index, &node);
+			if(node.node_type == TOKEN_NONEXIST || !ret)
+				break;
+			if(node.node_type == TOKEN_NAME) {
+				macro_ptr = this->macro_declare->find(node.value.ptr_value);
+				if(macro_ptr) {
+					if(!macro_ptr->macro_arg_name[0]) {//no para macro
+						delta_len = sub_replace(str, index, ret, macro_ptr->macro_instead_str);
+						index += ret + delta_len;
+						len += ret + delta_len;
+					}
+				} else {
+					index += ret;
+				}
+			} else {
+				index += ret;
+			}
+		}
+		return ERROR_NO;
 	}
 }
 
@@ -2207,6 +2321,9 @@ int c_interpreter::run_interpreter(void)
 				break;
 			}
 		}
+		ret = preprocess(sentence_buf, len);
+		if(ret == OK_PREPROCESS)
+			continue;
 		len = pre_treat(len);
 		if(len < 0)
 			continue;
@@ -2250,10 +2367,13 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 	c_interpreter::language_elment_space.c_function.init(&c_interpreter::language_elment_space.function_list);
 	c_interpreter::language_elment_space.struct_list.init(sizeof(struct_info), c_interpreter::language_elment_space.struct_node, MAX_STRUCT_NODE);
 	c_interpreter::language_elment_space.c_struct.init(&c_interpreter::language_elment_space.struct_list);
+	c_interpreter::language_elment_space.macro_list.init(sizeof(macro_info), DEFAULT_MACRO_NODE);
+	c_interpreter::language_elment_space.c_macro.init(&c_interpreter::language_elment_space.macro_list);
 	this->varity_declare = &c_interpreter::language_elment_space.c_varity;
 	this->nonseq_info = &c_interpreter::language_elment_space.nonseq_info_s;
 	this->function_declare = &c_interpreter::language_elment_space.c_function;
 	this->struct_declare = &c_interpreter::language_elment_space.c_struct;
+	this->macro_declare = &c_interpreter::language_elment_space.c_macro;
 	this->nonseq_info->nonseq_begin_stack_ptr = 0;
 	this->sentence_analysis_data_struct.short_depth = 0;
 	this->sentence_analysis_data_struct.sizeof_depth = 0;

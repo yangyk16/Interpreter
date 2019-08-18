@@ -57,6 +57,7 @@
 #define ERROR_ASSIGN			-52
 #define ERROR_SR_STATUS			-53
 #define ERROR_PREPROCESS		-54
+#define ERROR_MACRO_DEF			-55
 
 #define ERROR_STACK_OVERFLOW	-70
 #define ERROR_ARRAY_BOUND		-71
@@ -80,6 +81,7 @@
 #define OK_LABEL_DEFINE			13
 #define OK_FUNC_RETURN			14
 #define OK_CTL_NOT_FOUND		15
+#define OK_PREPROCESS			16
 
 #define OK_GDB_RUN				30
 #define OK_GDB_STEP_RTL_INTO	31

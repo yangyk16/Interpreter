@@ -136,16 +136,6 @@ double y_atof(char* str, int size)
 	return ret;
 }
 
-int strmcmp(const char* str1, const char* str2, int len)
-{
-	for(int i=0; i<len; i++) {
-		if(str1[i] != str2[i]) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
 int make_align(PLATFORM_WORD value, int align_byte)
 {
 	return value % align_byte == 0 ? value : value + align_byte - (value % align_byte);
@@ -210,4 +200,12 @@ int find_token_with_bracket_level(node_attribute_t* node_list, int n, node_attri
 		}
 	}
 	return -1;
+}
+
+int sub_replace(char* str, int index, int sublen, char* substr)
+{
+	int sub_str_len = kstrlen(substr);
+	kmemmove(str + index + sub_str_len ,str + index + sublen, kstrlen(str + index + sublen) + 1);
+	kmemcpy(str + index, substr, sub_str_len);
+	return sub_str_len - sublen;
 }

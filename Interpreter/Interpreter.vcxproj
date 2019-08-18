@@ -89,6 +89,7 @@
     <ClInclude Include="data_struct.h" />
     <ClInclude Include="hal.h" />
     <ClInclude Include="kmalloc.h" />
+    <ClInclude Include="macro.h" />
     <ClInclude Include="operator.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="string_lib.h" />
@@ -106,6 +107,7 @@
     <ClCompile Include="interpreter.cpp" />
     <ClCompile Include="data_struct.cpp" />
     <ClCompile Include="hal.cpp" />
+    <ClCompile Include="macro.cpp" />
     <ClCompile Include="mempool.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="operator.cpp" />

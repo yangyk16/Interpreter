@@ -75,6 +75,9 @@
     <ClInclude Include="toolchain.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="macro.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hal.cpp">
@@ -120,6 +123,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="toolchain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="macro.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
