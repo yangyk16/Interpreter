@@ -13,6 +13,7 @@ public:
 	int wptr;
 	char variable_para_flag;
 	char compile_func_flag;
+	char debug_flag;
 	void *func_addr;
 	stack mid_code_stack;
 	int row_line;

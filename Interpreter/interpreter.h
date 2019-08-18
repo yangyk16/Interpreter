@@ -12,7 +12,7 @@
 #include "data_struct.h"
 
 #define EXPORT_FLAG_EXEC		1//code+varity+data+string
-#define EXPORT_FLAG_LINK		2//name+varity+varity_type+code+data+string
+#define EXPORT_FLAG_LINK		2//name+varity+code+data+string
 
 #define EXTRA_FLAG_DEBUG		4//name+varity+varity_type+source+code+data+string
 #define EXTRA_FLAG_REF			8//name+varity+varity_type+source+code+data+string+struct

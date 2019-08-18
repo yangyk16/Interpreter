@@ -33,6 +33,7 @@ int function_info::init(char* name, stack* arg_list, int flag)
 	this->arg_list = arg_list;
 	this->compile_func_flag = flag;
 	this->variable_para_flag = 0;
+	this->debug_flag = 1;
 	return 0;
 }
 

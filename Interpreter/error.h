@@ -82,7 +82,8 @@
 #define OK_CTL_NOT_FOUND		15
 
 #define OK_GDB_RUN				30
-#define OK_GDB_STEPRUN_CODE		31
+#define OK_GDB_STEP_RTL_INTO	31
 #define OK_GDB_STEPINTO			32
-#define OK_GDB_STEPOVER			33
+#define OK_GDB_STEP_RTL_OVER	33
+#define OK_GDB_STEPOVER			34
 #endif

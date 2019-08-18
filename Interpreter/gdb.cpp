@@ -131,9 +131,9 @@ static int print_call_stack(int argc, char **argv, c_interpreter *cptr)
 	return cptr->print_call_stack();
 }
 
-static int step_code(int argc, char **argv, c_interpreter *cptr)
+static int step_rtl_into(int argc, char **argv, c_interpreter *cptr)
 {
-	return OK_GDB_STEPRUN_CODE;
+	return OK_GDB_STEP_RTL_INTO;
 }
 
 static int stepinto(int argc, char **argv, c_interpreter *cptr)
@@ -144,6 +144,11 @@ static int stepinto(int argc, char **argv, c_interpreter *cptr)
 static int stepover(int argc, char **argv, c_interpreter *cptr)
 {
 	return OK_GDB_STEPOVER;
+}
+
+static int step_rtl_over(int argc, char **argv, c_interpreter *cptr)
+{
+	return OK_GDB_STEP_RTL_OVER;
 }
 
 int gdb::breakpoint(int argc, char **argv, c_interpreter *cptr)
@@ -269,8 +274,8 @@ cmd_t cmd_tab[] = {
 	{"d", del_breakpoint},
 	{"n", stepover},
 	{"s", stepinto},
-	{"ni", step_code},//TODO: ni not step into
-	{"si", step_code},
+	{"ni", step_rtl_over},//TODO: ni not step into
+	{"si", step_rtl_into},
 	{"info", info_ask},
 	{"list", gdb::print_code},
 	{"pmcode", gdb::print_mid_code},
@@ -360,23 +365,34 @@ int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction
 			error("text section broken.\n");
 			return ERROR_ILLEGAL_CODE;
 		}
-		gdbout("Running to function %s line %d.\n", (fptr ? fptr->get_name() : "main"), line);
+		if(line >= 0)
+			gdbout("Running to function %s line %d.\n", (fptr ? fptr->get_name() : "main"), line);
+		else
+			gdbout("No debug information for function.\n");
 		while(1) {
 			instruction_ptr->break_flag &= ~BREAKPOINT_STEP;
 			gdbout("gdb>");
 			interpreter_ptr->tty_used->readline(gdbstr);
 			gdb::parse(gdbstr);
 			gdbret = gdb::exec(interpreter_ptr);
-			if(gdbret == OK_GDB_RUN || gdbret == OK_GDB_STEPRUN_CODE || gdbret == OK_GDB_STEPINTO || gdbret == OK_GDB_STEPOVER) {
-				if(gdbret == OK_GDB_STEPOVER) {
+			if(gdbret == OK_GDB_RUN || gdbret == OK_GDB_STEP_RTL_INTO || gdbret == OK_GDB_STEPINTO || gdbret == OK_GDB_STEPOVER || gdbret == OK_GDB_STEP_RTL_OVER) {
+				switch(gdbret) {
+				case OK_GDB_STEPOVER://n
 					if(fptr && line != fptr->row_line - 1) {
 						bp_todo = fptr->row_code_ptr[line + 1] - 1;
 					} else {
 						if(fptr)
 							bp_todo = (mid_code*)fptr->mid_code_stack.get_current_ptr() - 1;
 					}
-				} else if(gdbret == OK_GDB_STEPRUN_CODE) {
+					break;
+				case OK_GDB_STEP_RTL_OVER://ni
+
+					break;
+				case OK_GDB_STEPINTO://s
+					break;
+				case OK_GDB_STEP_RTL_INTO://si
 					bp_todo = instruction_ptr;
+					break;
 				}
 				break;
 			}
