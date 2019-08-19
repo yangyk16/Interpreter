@@ -2116,6 +2116,8 @@ int c_interpreter::preprocess(char *str, int &len)
 				} else {
 					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = 1;
 				}
+				if(preprocess_info.ifdef_level > 1)
+					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] &= ~preprocess_info.ifdef_status[preprocess_info.ifdef_level - 2];
 			} else {
 				error("no macro name\n");
 				return ERROR_PREPROCESS;
@@ -2131,12 +2133,16 @@ int c_interpreter::preprocess(char *str, int &len)
 				} else {
 					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = 0;
 				}
+				if(preprocess_info.ifdef_level > 1)
+					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] &= ~preprocess_info.ifdef_status[preprocess_info.ifdef_level - 2];
 			} else {
 				error("no macro name\n");
 				return ERROR_PREPROCESS;
 			}
 		} else if(!kstrncmp(str, "else", 4)) {
 			preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = !preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1];
+			if(preprocess_info.ifdef_level > 1)
+				preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] &= ~preprocess_info.ifdef_status[preprocess_info.ifdef_level - 2];
 		} else if(!kstrncmp(str, "end", 3)) {
 			if(preprocess_info.ifdef_level)
 				preprocess_info.ifdef_level--;
@@ -2169,6 +2175,16 @@ int c_interpreter::preprocess(char *str, int &len)
 						delta_len = sub_replace(str, index, ret, macro_ptr->macro_instead_str);
 						index += ret + delta_len;
 						len += ret + delta_len;
+					} else {
+						int extra_len = get_token(str + index + ret, &node);
+						char *macro_para = str + index + ret + extra_len;
+						if(node.value_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET) {
+							char *expand_macro = dmalloc(3 * kstrlen(macro_ptr->macro_instead_str), "macro expand");
+							//先定作参数的字符串，再扫替代字符串
+						} else {
+							error("error macro %s\n", macro_ptr->get_name());
+							return ERROR_MACRO_EXP;
+						}
 					}
 				} else {
 					index += ret;
