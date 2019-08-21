@@ -4260,7 +4260,8 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 				wptr++;
 				continue;
 normal_bracket:
-				if(i > 0 && (node_ptr[i - 1].node_type == TOKEN_NAME || node_ptr[i - 1].node_type == TOKEN_OPERATOR && (node_ptr[i - 1].data == OPT_R_SMALL_BRACKET || node_ptr[i - 1].data == OPT_R_MID_BRACKET))) {
+				//if(i > 0 && (node_ptr[i - 1].node_type == TOKEN_NAME || node_ptr[i - 1].node_type == TOKEN_OPERATOR && (node_ptr[i - 1].data == OPT_R_SMALL_BRACKET || node_ptr[i - 1].data == OPT_R_MID_BRACKET))) {
+				if(i > 0 && (node_ptr[i - 1].node_type == TOKEN_NAME || node_ptr[wptr - 1].node_type == TOKEN_OPERATOR && (node_ptr[wptr - 1].data == OPT_R_SMALL_BRACKET || node_ptr[wptr - 1].data == OPT_R_MID_BRACKET))) {
 					this->token_node_ptr[wptr] = node_ptr[i];
 					this->token_node_ptr[wptr++].data = OPT_CALL_FUNC;
 					this->token_node_ptr[wptr++] = node_ptr[i];

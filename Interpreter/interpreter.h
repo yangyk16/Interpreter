@@ -137,7 +137,7 @@ typedef union operand_value {
 typedef struct node_attribute_s {
 	operand_value_t value;
 	char node_type;
-	char value_type;
+	char value_type;//”≈œ»º∂
 	char data;
 	char count;
 	int reserve;
