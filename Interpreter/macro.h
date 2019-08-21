@@ -10,6 +10,7 @@ public:
 	char *macro_arg_name[MAX_MACRO_ARG_COUNT];
 	char *macro_instead_str;
 	void init(char*, char**, char*);
+	int find(char*);
 };
 
 class macro {

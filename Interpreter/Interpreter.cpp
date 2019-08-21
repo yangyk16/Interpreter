@@ -2177,10 +2177,56 @@ int c_interpreter::preprocess(char *str, int &len)
 						len += ret + delta_len;
 					} else {
 						int extra_len = get_token(str + index + ret, &node);
+						int para_begin_pos[3] = {0}, para_end_pos;
+						int para_count = 0;
+						int i, j, pos, cur_level;
 						char *macro_para = str + index + ret + extra_len;
-						if(node.value_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET) {
-							char *expand_macro = dmalloc(3 * kstrlen(macro_ptr->macro_instead_str), "macro expand");
+						if(node.node_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET) {
+							char *expand_macro = (char*)dmalloc(3 * kstrlen(macro_ptr->macro_instead_str), "macro expand");
 							//先定作参数的字符串，再扫替代字符串
+							//para_begin_pos[0] = 0;
+							for(i=0, cur_level=0; macro_para[i]; i++) {
+								if((macro_para[i] == ',' || macro_para[i] == ')') && 0 == cur_level) {
+									if(++para_count > MAX_MACRO_ARG_COUNT) {
+										vfree(expand_macro);
+										error("too much macro parameters.\n");
+										return ERROR_MACRO_EXP;
+									}
+									if(para_count < MAX_MACRO_ARG_COUNT)
+										para_begin_pos[para_count] = i + 1;
+									if(macro_para[i] == ')') {
+										macro_para[i] = 0;
+										para_end_pos = i;
+										break;
+									}
+									macro_para[i] = 0;
+								} else if(macro_para[i] == '(' || macro_para[i] == '[') {
+									cur_level++;
+								} else if(macro_para[i] == ')' || macro_para[i] == ']') {
+									cur_level--;
+								}
+							}
+							
+							for(i=0, pos=0;;) {
+								ret = get_token(macro_ptr->macro_instead_str + i, &node);
+								if(!ret || node.node_type == TOKEN_NONEXIST)
+									break;
+								if(node.node_type == TOKEN_NAME && (j = macro_ptr->find(node.value.ptr_value)) >= 0) {
+									int strlen = kstrlen(&macro_para[para_begin_pos[j]] + j);
+									kmemcpy(expand_macro + pos, macro_para + para_begin_pos[j], strlen); 
+									pos += strlen;
+									i += ret;
+								} else {
+									kmemcpy(expand_macro + pos,  macro_ptr->macro_instead_str + i, ret);
+									i += ret;
+									pos += ret;
+								}
+							}
+							expand_macro[pos] = 0;
+							delta_len = sub_replace(str, index, &macro_para[para_end_pos] - (str + index) + 1, expand_macro);
+							index += pos;//ret + delta_len;
+							len += ret + delta_len;
+							vfree(expand_macro);
 						} else {
 							error("error macro %s\n", macro_ptr->get_name());
 							return ERROR_MACRO_EXP;

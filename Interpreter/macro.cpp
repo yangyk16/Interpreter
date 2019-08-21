@@ -25,3 +25,12 @@ void macro_info::init(char* name, char* parameter[3], char* instead_str)
 		this->macro_arg_name[i] = parameter[i];
 	this->macro_instead_str = instead_str;
 }
+
+int macro_info::find(char *name)
+{
+	for(int i=0; this->macro_arg_name[i] && i<MAX_MACRO_ARG_COUNT; i++) {
+		if(!kstrcmp(this->macro_arg_name[i], name))
+			return i;
+	}
+	return -1;
+}
