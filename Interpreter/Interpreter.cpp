@@ -2183,8 +2183,7 @@ int c_interpreter::preprocess(char *str, int &len)
 						char *macro_para = str + index + ret + extra_len;
 						if(node.node_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET) {
 							char *expand_macro = (char*)dmalloc(3 * kstrlen(macro_ptr->macro_instead_str), "macro expand");
-							//先定作参数的字符串，再扫替代字符串
-							//para_begin_pos[0] = 0;
+							//TODO: 判断宏展开长度是否过长，超出分配空间
 							for(i=0, cur_level=0; macro_para[i]; i++) {
 								if((macro_para[i] == ',' || macro_para[i] == ')') && 0 == cur_level) {
 									if(++para_count > MAX_MACRO_ARG_COUNT) {
@@ -2212,7 +2211,7 @@ int c_interpreter::preprocess(char *str, int &len)
 								if(!ret || node.node_type == TOKEN_NONEXIST)
 									break;
 								if(node.node_type == TOKEN_NAME && (j = macro_ptr->find(node.value.ptr_value)) >= 0) {
-									int strlen = kstrlen(&macro_para[para_begin_pos[j]] + j);
+									int strlen = kstrlen(&macro_para[para_begin_pos[j]]);
 									kmemcpy(expand_macro + pos, macro_para + para_begin_pos[j], strlen); 
 									pos += strlen;
 									i += ret;
