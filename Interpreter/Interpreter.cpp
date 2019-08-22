@@ -3365,6 +3365,8 @@ ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 {
 	int ret1 = 0, ret2 = 0;
+	if(!count)
+		return ret1;
 	ret1 = this->label_analysis(node_ptr, count);
 	if(ret1 != ERROR_NO)
 		return ret1;
