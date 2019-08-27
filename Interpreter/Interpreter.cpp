@@ -2617,7 +2617,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 		} else {
 			this->varity_declare->local_varity_stack->endeep();
 		}
-	} else if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == R_BIG_BRACKET) {
+	} else if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == R_BIG_BRACKET && count) {
 		if(nonseq_info->brace_depth > 0) {
 			if(nonseq_info->non_seq_struct_depth > 0 && GET_BRACE_DATA(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1]) == nonseq_info->brace_depth) {
 				if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] != NONSEQ_KEY_DO) {
@@ -3365,8 +3365,6 @@ ITCM_TEXT int c_interpreter::exec_mid_code(mid_code *pc, uint count)
 int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 {
 	int ret1 = 0, ret2 = 0;
-	if(!count)
-		return ret1;
 	ret1 = this->label_analysis(node_ptr, count);
 	if(ret1 != ERROR_NO)
 		return ret1;
@@ -4313,13 +4311,12 @@ normal_bracket:
 			case OPT_MUL:
 			case OPT_BIT_AND:
 				if(i == 0
-					|| node_ptr[i - 1].node_type == TOKEN_OPERATOR 
-					&& node_ptr[i - 1].data != OPT_R_SMALL_BRACKET 
-					&& node_ptr[i - 1].data != OPT_L_MINUS_MINUS 
-					&& node_ptr[i - 1].data != OPT_L_PLUS_PLUS
-					&& node_ptr[i - 1].data != OPT_R_PLUS_PLUS
-					&& node_ptr[i - 1].data != OPT_R_MINUS_MINUS
-					&& node_ptr[i - 1].data != OPT_TYPE_CONVERT){
+					|| this->token_node_ptr[wptr - 1].node_type == TOKEN_OPERATOR 
+					&& this->token_node_ptr[wptr - 1].data != OPT_R_SMALL_BRACKET 
+					&& this->token_node_ptr[wptr - 1].data != OPT_L_MINUS_MINUS 
+					&& this->token_node_ptr[wptr - 1].data != OPT_L_PLUS_PLUS
+					&& this->token_node_ptr[wptr - 1].data != OPT_R_PLUS_PLUS
+					&& this->token_node_ptr[wptr - 1].data != OPT_R_MINUS_MINUS){
 					this->token_node_ptr[wptr] = node_ptr[i];
 					if(node_ptr[i].data == OPT_MUL)
 						this->token_node_ptr[wptr].data = OPT_PTR_CONTENT;
