@@ -399,7 +399,7 @@ int c_interpreter::symbol_sr_status(int sr_direction)
 int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss_base_ret)
 {
 	void *file_ptr = kfopen(file, "rb");
-	unsigned int function_count, function_total_size;
+	unsigned int function_total_size;
 	int i, j;
 	kfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr);
 	function_info *function_info_ptr = (function_info*)dmalloc(sizeof(function_info), "all infos base");
@@ -2248,92 +2248,69 @@ int c_interpreter::pre_treat(uint len)
 	int rptr = 0, wptr = 0, first_word = 1, space_flag = 0;
 	int string_flag = 0;
 	char bracket_stack[32], bracket_depth = 0;
-	char nowchar;
+	char *str = this->sentence_buf;
 	str_count_bak = string_stack.get_count();
-	while(nowchar = sentence_buf[rptr]) {
-		if(IsSpace(nowchar) && !string_flag) {
-			if(!first_word) {
-				if(!space_flag)
-					sentence_buf[wptr++] = ' ';
-				space_flag = 1;
-			}
-		} else {
-			switch(nowchar) {
-			case '(':
-			case '[':
-				if(!string_flag) {
-					bracket_stack[bracket_depth++] = nowchar;
-				}
-				break;
-			case ')':
-				if(!string_flag) {
-					if(bracket_depth-- > 0 && bracket_stack[bracket_depth] == '(') {
-					} else {
-						error("Bracket unmatch.\n");
-						return ERROR_BRACKET_UNMATCH;
-					}
-				}
-				break;
-			case ']':
-				if(!string_flag) {
-					if(bracket_depth-- > 0 && bracket_stack[bracket_depth] == '[') {
-					} else {
-						error("Bracket unmatch.\n");
-						return ERROR_BRACKET_UNMATCH;
-					}
-				}
-				break;
-			case '"':
-				if(!string_flag) {
-					string_flag = '"';
-				} else if(string_flag == '"') {
-					if(sentence_buf[rptr - 1] != '\\') {
-						string_flag = 0;
-					}
-				}
-				break;
-			case '\'':
-				if(!string_flag) {
-					string_flag = '\'';
-				} else if(string_flag == '\'') {
-					if(sentence_buf[rptr - 1] != '\\') {
-						string_flag = 0;
-					}
-				}
-				break;
-			case '{':
-			case '}':
-				if(!bracket_depth && !string_flag) {
-					if(rptr) {
-						this->row_pretreat_fifo.write(sentence_buf + rptr, len - rptr);
-						sentence_buf[wptr] = 0;
-						return wptr;
-					} else {
-						this->row_pretreat_fifo.write(sentence_buf + rptr + 1, len - rptr - 1);
-						sentence_buf[wptr + 1] = 0;
-						return wptr + 1;
-					}
-				}
-				break;
-			case ';':
-				if(!bracket_depth && !string_flag) {
-					this->row_pretreat_fifo.write(sentence_buf + rptr + 1, len - rptr - 1);
-					sentence_buf[rptr + 1] = 0;
-				}
-			}
 
-			space_flag = 0;
-			first_word = 0;
-			sentence_buf[wptr++] = sentence_buf[rptr];
-		}
-		rptr++;
+	int i = 0, token_len;
+	node_attribute_t *raw_token_ptr = (node_attribute_t*)this->mid_code_stack.get_current_ptr();
+	while(len > 0) {
+		token_len = get_token(str + rptr, &raw_token_ptr[i]);
+		if(token_len < 0)
+			return token_len;
+		if(raw_token_ptr[i].node_type != TOKEN_NONEXIST) {
+			if(raw_token_ptr[i].node_type == TOKEN_OPERATOR) {
+				switch(raw_token_ptr[i].data) {
+				case OPT_L_SMALL_BRACKET: case OPT_L_MID_BRACKET:
+					bracket_stack[bracket_depth++] = raw_token_ptr[i].data;
+					break;
+				case OPT_R_SMALL_BRACKET:
+					if(bracket_depth-- > 0 && bracket_stack[bracket_depth] == OPT_L_SMALL_BRACKET) {
+						break;
+					} else {
+						error("Bracket unmatch.\n");
+						return ERROR_BRACKET_UNMATCH;
+					}
+				case OPT_R_MID_BRACKET:
+					if(bracket_depth-- > 0 && bracket_stack[bracket_depth] == OPT_R_MID_BRACKET) {
+						break;
+					} else {
+						error("Bracket unmatch.\n");
+						return ERROR_BRACKET_UNMATCH;
+					}
+				case OPT_EDGE:
+					if(!bracket_depth) {
+						this->row_pretreat_fifo.write(sentence_buf + rptr + token_len, len - token_len);
+						sentence_buf[rptr + token_len + 1] = 0;
+					}
+				}
+			} else if(raw_token_ptr[i].node_type == TOKEN_OTHER) {
+				if(raw_token_ptr[i].data == L_BIG_BRACKET || raw_token_ptr[i].data == R_BIG_BRACKET)
+					if(!bracket_depth) {
+						if(i) {
+							this->row_pretreat_fifo.write(sentence_buf + rptr, len - rptr);
+							//sentence_buf[wptr] = 0;
+							return i;
+						} else {
+							this->row_pretreat_fifo.write(sentence_buf + rptr + token_len, len - rptr - token_len);
+							//sentence_buf[wptr + 1] = 0;
+							return 1;
+						}
+					}
+				break;
+			}
+		} else
+			break;
+		i++;
+		rptr += token_len;
+		len -= token_len;
 	}
+
 	if(bracket_depth) {
 		error("Bracket unmatch.\n");
 		return ERROR_BRACKET_UNMATCH;
 	}
-	sentence_buf[wptr] = 0;
-	return wptr;
+	//sentence_buf[wptr] = 0;
+	return i;
 }
 
 int c_interpreter::post_treat(void)
@@ -2382,19 +2359,20 @@ int c_interpreter::run_interpreter(void)
 				break;
 			}
 		}
-		ret = preprocess(sentence_buf, len);
-		if(ret == OK_PREPROCESS)
-			continue;
-		len = pre_treat(len);
-		if(len < 0)
-			continue;
 #if DEBUG_EN
 		if(this->gdb_check()) {
 			ret = gdb::exec(this);
 			continue;
 		}
 #endif
-		ret = this->generate_token_list(sentence_buf, len);
+		ret = preprocess(sentence_buf, len);
+		if(ret == OK_PREPROCESS)
+			continue;
+		len = pre_treat(len);
+		if(len < 0)
+			continue;
+		ret = this->token_convert((node_attribute_t*)this->mid_code_stack.get_current_ptr(), len);
+		//ret = this->generate_token_list(sentence_buf, len);
 		if(ret < 0)
 			if(this->tty_used == &stdio)
 				continue;
@@ -3005,7 +2983,6 @@ int c_interpreter::label_analysis(node_attribute_t *node_ptr, int count)
 int c_interpreter::post_order_expression(node_attribute_t *node_ptr, int count, list_stack &expression_final_stack)
 {
 	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
-	int token_len;
 	node_attribute_t *node_attribute, *stack_top_node_ptr;
 	list_stack expression_tmp_stack;
 	this->sentence_analysis_data_struct.last_token.node_type = TOKEN_OPERATOR;
@@ -3426,7 +3403,7 @@ int c_interpreter::nonseq_mid_gen_mid_code(node_attribute_t* node_ptr, int count
 
 int c_interpreter::nonseq_end_gen_mid_code(int row_num, node_attribute_t* node_ptr, int count)
 {
-	int i, key_len, len;
+	int i;
 	int cur_depth = nonseq_info->row_info_node[row_num].non_seq_depth;
 	if(count == 0)return ERROR_NO;
 	mid_code *mid_code_ptr;
@@ -3503,7 +3480,6 @@ int c_interpreter::nonseq_end_gen_mid_code(int row_num, node_attribute_t* node_p
 int c_interpreter::nonseq_start_gen_mid_code(node_attribute_t *node_ptr, int count, int non_seq_type)
 {
 	mid_code *mid_code_ptr;
-	node_attribute_t token_node;
 	int ret = ERROR_NO;
 	uint mid_code_count;
 	uint mid_code_count_of_for;
@@ -3665,7 +3641,7 @@ int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 
 int c_interpreter::basic_type_check(node_attribute_t *node_ptr, int &count, struct_info *&struct_info_ptr)
 {
-	int is_varity_declare, token_len, total_token_len = 0;
+	int is_varity_declare, total_token_len = 0;
 	char struct_name[MAX_VARITY_NAME_LEN];
 	if(node_ptr[0].node_type == TOKEN_KEYWORD_TYPE) {
 		is_varity_declare = node_ptr[0].value.int_value;
@@ -3701,7 +3677,7 @@ int c_interpreter::basic_type_check(node_attribute_t *node_ptr, int &count, stru
 
 int c_interpreter::get_varity_type(node_attribute_t *node_ptr, int &count, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info)
 {
-	int is_varity_declare = basic_type, token_len, total_len = 0;
+	int is_varity_declare = basic_type, total_len = 0;
 	sentence_analysis_data_struct_t *analysis_data_struct_ptr = &this->sentence_analysis_data_struct;
 	node_attribute_t *stack_top_node_ptr;
 	list_stack expression_tmp_stack;
@@ -3825,8 +3801,7 @@ varity_end:
 
 int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count)
 {
-	int is_varity_declare, basic_type_count = count, token_len, ret;
-	node_attribute_t node;
+	int is_varity_declare, basic_type_count = count, ret;
 	char varity_name[32];
 	int varity_special_flag = 0;//1: external 2: global
 	if(node_ptr->node_type == TOKEN_SPECIFIER) {
