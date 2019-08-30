@@ -2287,12 +2287,12 @@ int c_interpreter::pre_treat(uint len)
 				if(raw_token_ptr[i].data == L_BIG_BRACKET || raw_token_ptr[i].data == R_BIG_BRACKET)
 					if(!bracket_depth) {
 						if(i) {
-							this->row_pretreat_fifo.write(sentence_buf + rptr, len - rptr);
-							//sentence_buf[wptr] = 0;
+							this->row_pretreat_fifo.write(sentence_buf + rptr, len);
+							sentence_buf[rptr] = 0;
 							return i;
 						} else {
-							this->row_pretreat_fifo.write(sentence_buf + rptr + token_len, len - rptr - token_len);
-							//sentence_buf[wptr + 1] = 0;
+							this->row_pretreat_fifo.write(sentence_buf + rptr + token_len, len - token_len);
+							sentence_buf[rptr + token_len] = 0;
 							return 1;
 						}
 					}
