@@ -3,7 +3,7 @@
 #else
 #define weak __weak
 #endif
-extern "C" void _exit(void){}
+extern "C" weak void _exit(int){}
 extern "C" void _fstat(void){}
 extern "C" void _sbrk(void){}
 extern "C" void _kill(void){}
