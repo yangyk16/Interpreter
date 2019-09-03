@@ -61,8 +61,10 @@ extern "C" int cc(int argc, char **argv)
 			int file_count = argc - optind;
 			for(int i=0; i<file_count; i++) {
 				ret = fileio.init(argv[optind + i]);
-				if(ret)
+				if(ret) {
+					error("open file %s failed\n", argv[optind + i]);
 					return ERROR_FILE;
+				}
 				myinterpreter.init(&fileio, RTL_FLAG_DELAY);
 				tip("compiling %s...\n", argv[optind + i]);
 				myinterpreter.run_interpreter();
@@ -82,8 +84,11 @@ extern "C" int cc(int argc, char **argv)
 			int file_count = argc - optind;
 			myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
 			for(int i=0; i<file_count; i++) {
-				tip("loading %s...\n", argv[optind + i]);
-				myinterpreter.load_ofile(argv[optind + i], 0, &load_base, &bss_base);
+				ret = myinterpreter.load_ofile(argv[optind + i], 0, &load_base, &bss_base);
+				if(ret) {
+					error("load file %s failed\n", argv[optind + i]);
+					goto link_exit;
+				}
 			}
 			tip("linking...\n");
 			ret = myinterpreter.tlink(LINK_NUMBER);
@@ -94,6 +99,7 @@ extern "C" int cc(int argc, char **argv)
 			tip("link finish, writing to disk...\n");
 			myinterpreter.write_ofile(output_file_name, EXPORT_FLAG_EXEC, extra_flag);
 			tip("%s made success!\n", output_file_name);
+			link_exit:
 			myinterpreter.dispose();
 			break;
 		}

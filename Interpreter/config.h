@@ -5,7 +5,7 @@
 #define PLATFORM_X86	1
 #define PLATFORM_ARM	0
 ////////////////config//////////////////
-#define INTERPRETER_DEBUG		1
+#define INTERPRETER_DEBUG		0
 #define SECTION_OPTIMIZE		0
 #define DEBUG_EN				1
 #define HW_PLATFORM				PLATFORM_X86//0:ARM 1:X86
@@ -71,7 +71,7 @@ void *vmalloc(unsigned int, const char*);
 void *vmalloc(unsigned int);
 #endif
 #define tip(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
-#define error(fmt, ...)	kprintf(fmt, ##__VA_ARGS__)
-#define warning(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
+#define error(fmt, ...)	kprintf("\033[31m" fmt "\033[0m", ##__VA_ARGS__)
+#define warning(fmt, ...) kprintf("\033[33m" fmt "\033[0m", ##__VA_ARGS__)
 #define gdbout(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
 #endif

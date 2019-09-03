@@ -399,6 +399,10 @@ int c_interpreter::symbol_sr_status(int sr_direction)
 int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss_base_ret)
 {
 	void *file_ptr = kfopen(file, "rb");
+	if(!file_ptr) {
+		error("can't open file %s\n", file);
+		return ERROR_FILE;
+	}
 	unsigned int function_total_size;
 	int i, j;
 	kfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr);
