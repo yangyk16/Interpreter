@@ -2405,15 +2405,27 @@ int c_interpreter::set_tty(terminal* tty)
 
 int c_interpreter::init(terminal* tty_used, int rtl_flag)
 {
-	c_interpreter::language_elment_space.l_varity_list.init(sizeof(varity_info), MAX_L_VARITY_NODE);
-	c_interpreter::language_elment_space.g_varity_list.init(sizeof(varity_info), MAX_G_VARITY_NODE);
-	c_interpreter::language_elment_space.c_varity.init(&c_interpreter::language_elment_space.g_varity_list, &c_interpreter::language_elment_space.l_varity_list);
-	c_interpreter::language_elment_space.function_list.init(sizeof(function_info), MAX_FUNCTION_NODE);
-	c_interpreter::language_elment_space.c_function.init(&c_interpreter::language_elment_space.function_list);
-	c_interpreter::language_elment_space.struct_list.init(sizeof(struct_info), MAX_STRUCT_NODE);
-	c_interpreter::language_elment_space.c_struct.init(&c_interpreter::language_elment_space.struct_list);
-	c_interpreter::language_elment_space.macro_list.init(sizeof(macro_info), DEFAULT_MACRO_NODE);
-	c_interpreter::language_elment_space.c_macro.init(&c_interpreter::language_elment_space.macro_list);
+	if(!c_interpreter::language_elment_space.init_done) {
+		c_interpreter::language_elment_space.l_varity_list.init(sizeof(varity_info), MAX_L_VARITY_NODE);
+		c_interpreter::language_elment_space.g_varity_list.init(sizeof(varity_info), MAX_G_VARITY_NODE);
+		c_interpreter::language_elment_space.c_varity.init(&c_interpreter::language_elment_space.g_varity_list, &c_interpreter::language_elment_space.l_varity_list);
+		c_interpreter::language_elment_space.function_list.init(sizeof(function_info), MAX_FUNCTION_NODE);
+		c_interpreter::language_elment_space.c_function.init(&c_interpreter::language_elment_space.function_list);
+		c_interpreter::language_elment_space.struct_list.init(sizeof(struct_info), MAX_STRUCT_NODE);
+		c_interpreter::language_elment_space.c_struct.init(&c_interpreter::language_elment_space.struct_list);
+		c_interpreter::language_elment_space.macro_list.init(sizeof(macro_info), DEFAULT_MACRO_NODE);
+		c_interpreter::language_elment_space.c_macro.init(&c_interpreter::language_elment_space.macro_list);
+		//c_interpreter::language_elment_space.init_done = 1;
+		string_stack.init(sizeof(string_info), DEFAULT_STRING_NODE);
+		name_stack.init(sizeof(string_info), DEFAULT_NAME_NODE);
+		name_fifo.init(DEFAULT_NAME_LENGTH);
+		for(int i=0; i<MAX_A_VARITY_NODE; i++) {
+			link_varity_name[i][0] = LINK_VARITY_PREFIX;
+			tmp_varity_name[i][0] = TMP_VAIRTY_PREFIX;
+			tmp_varity_name[i][1] = link_varity_name[i][1] = i;
+			tmp_varity_name[i][2] = link_varity_name[i][2] = 0;
+		}
+	}
 	this->varity_declare = &c_interpreter::language_elment_space.c_varity;
 	this->nonseq_info = &c_interpreter::language_elment_space.nonseq_info_s;
 	this->function_declare = &c_interpreter::language_elment_space.c_function;
@@ -2423,15 +2435,6 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 	this->sentence_analysis_data_struct.short_depth = 0;
 	this->sentence_analysis_data_struct.sizeof_depth = 0;
 	this->sentence_analysis_data_struct.label_count = 0;
-	for(int i=0; i<MAX_A_VARITY_NODE; i++) {
-		link_varity_name[i][0] = LINK_VARITY_PREFIX;
-		tmp_varity_name[i][0] = TMP_VAIRTY_PREFIX;
-		tmp_varity_name[i][1] = link_varity_name[i][1] = i;
-		tmp_varity_name[i][2] = link_varity_name[i][2] = 0;
-	}
-	string_stack.init(sizeof(string_info), DEFAULT_STRING_NODE);
-	name_stack.init(sizeof(string_info), DEFAULT_NAME_NODE);
-	name_fifo.init(DEFAULT_NAME_LENGTH);
 	this->real_time_link = rtl_flag;
 	this->tty_used = tty_used;
 	this->row_pretreat_fifo.set_base(this->pretreat_buf);
@@ -2452,7 +2455,7 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 	this->mid_varity_stack.init(sizeof(varity_info), this->tmp_varity_stack, MAX_A_VARITY_NODE);//TODO: ÉèÖÃnode×î´ócount
 	this->cur_mid_code_stack_ptr = &this->mid_code_stack;
 	this->exec_flag = EXEC_FLAG_TRUE;
-	//if(!c_interpreter::language_elment_space.init_done) {
+	if(!c_interpreter::language_elment_space.init_done) {
 		varity_type_stack.init();
 		for(int i=0; i<sizeof(basic_type_info)/sizeof(basic_type_info[0]); i++) {
 			varity_type_stack.arg_count[i] = 2;
@@ -2464,8 +2467,8 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag)
 		handle_init();
 		c_interpreter::cstdlib_func_count = 0;
 		this->generate_compile_func();
-	//	c_interpreter::language_elment_space.init_done = 1;
-	//}
+		c_interpreter::language_elment_space.init_done = 1;
+	}
 	return ERROR_NO;
 	///////////
 }
@@ -2485,6 +2488,7 @@ int c_interpreter::dispose(void)
 	c_interpreter::language_elment_space.l_varity_list.dispose();
 	c_interpreter::language_elment_space.macro_list.dispose();
 	this->tty_used->dispose();
+	c_interpreter::language_elment_space.init_done = 0;
 	return ERROR_NO;
 }
 

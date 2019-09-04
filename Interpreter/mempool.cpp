@@ -23,8 +23,8 @@ static void print_mempool(void)
 {
 	head_t *head_ptr;
 	for(head_ptr = (head_t*)heapbase; head_ptr; head_ptr = head_ptr->next)
-		kprintf("0x%x, %d, u=%d\n", head_ptr + 1, head_ptr->size, head_ptr->isused);
-	kprintf("mempool print finish.\n");
+		debug("0x%x, %d, u=%d\n", head_ptr + 1, head_ptr->size, head_ptr->isused);
+	debug("mempool print finish.\n");
 }
 
 extern "C" void heap_debug(void)
@@ -172,6 +172,8 @@ void* dmalloc(unsigned int size, const char *info)
 		kmemset(ret, 0, size);
 		return ret;
 	} else {
+		error("Fatal error: no space alloc\n");
+		print_mempool();
 		return NULL;
 	}
 }
