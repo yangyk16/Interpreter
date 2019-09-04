@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 	//}
 	while(1) {
 		koptrst();
-		tip("sh >");
+		tip("sh> ");
 		cin.getline(cmdstr, 256);
 		parse(cmdstr);
 		exec();

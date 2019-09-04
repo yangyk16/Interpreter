@@ -13,6 +13,7 @@ extern "C" int cc(int argc, char **argv)
 	const char *output_file_name = NULL;
 	char *fun_file_name = NULL;
 	void *load_base, *bss_base;
+	int stack_size = STACK_SIZE;
 	while((ch = kgetopt(argc, (char**)argv, "iceo:rg")) != (char)-1) {
 		switch(ch) {
 		case 'i':
@@ -37,8 +38,8 @@ extern "C" int cc(int argc, char **argv)
 		debug("opt=%c,arg=%s\n", ch, optarg);
 	}
 	if(run_flag) {
-		myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
-		irq_interpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
+		myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 0, stack_size);
+		irq_interpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 0, stack_size);
 		myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
 		ret = myinterpreter.run_main(STOP_FLAG_RUN, load_base, bss_base);
 		myinterpreter.dispose();
@@ -47,12 +48,12 @@ extern "C" int cc(int argc, char **argv)
 	switch(link_flag) {
 		case LINK_ADDR:
 			if(optind == argc) {
-				myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
+				myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 1, stack_size);
 			} else {
-				myinterpreter.init(&fileio, RTL_FLAG_IMMEDIATELY);
+				myinterpreter.init(&fileio, RTL_FLAG_IMMEDIATELY, 1, stack_size);
 				fileio.init(argv[optind]);
 			}
-			irq_interpreter.init(&stdio, 1);
+			irq_interpreter.init(&stdio, 1, 0, stack_size);
 			myinterpreter.run_interpreter();
 			myinterpreter.dispose();
 			break;
@@ -65,7 +66,7 @@ extern "C" int cc(int argc, char **argv)
 					error("open file %s failed\n", argv[optind + i]);
 					return ERROR_FILE;
 				}
-				myinterpreter.init(&fileio, RTL_FLAG_DELAY);
+				myinterpreter.init(&fileio, RTL_FLAG_DELAY, 1, stack_size);
 				tip("compiling %s...\n", argv[optind + i]);
 				myinterpreter.run_interpreter();
 				int len = kstrlen(argv[optind + i]);
@@ -82,7 +83,7 @@ extern "C" int cc(int argc, char **argv)
 		case LINK_NUMBER:
 		{
 			int file_count = argc - optind;
-			myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
+			myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 1, stack_size);
 			for(int i=0; i<file_count; i++) {
 				ret = myinterpreter.load_ofile(argv[optind + i], 0, &load_base, &bss_base);
 				if(ret) {
@@ -110,13 +111,14 @@ extern "C" int cc(int argc, char **argv)
 extern "C" int db(int argc, char **argv)
 {
 	int ret;
+	int stack_size = STACK_SIZE;
 	void *load_base, *bss_base;
 	if(argc < 2)
 		return -1;
 	else
 		optind = 1;
-	myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
-	irq_interpreter.init(&stdio, RTL_FLAG_IMMEDIATELY);
+	myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 1, stack_size);
+	irq_interpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 0, stack_size);
 	myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
 	ret = myinterpreter.run_main(STOP_FLAG_STOP, load_base, bss_base);
 	myinterpreter.dispose();

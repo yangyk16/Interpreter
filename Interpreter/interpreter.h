@@ -244,6 +244,18 @@ typedef struct compile_string_info_s {
 	unsigned int name_size;
 } compile_string_info_t;
 
+typedef struct interprete_need_s {
+	stack mid_code_stack;
+	stack mid_varity_stack;
+	char pretreat_buf[MAX_PRETREAT_BUFLEN];
+	char sentence_buf[MAX_SENTENCE_LENGTH];
+	round_queue row_pretreat_fifo;
+	round_queue non_seq_code_fifo;
+	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
+	int str_count_bak;
+	sentence_analysis_data_struct_t sentence_analysis_data_struct;//TODO:ÒÆµ½interprete need
+} interprete_need_t;
+
 int user_eval(char *str);
 extern "C" void global_init(void);
 extern "C" void global_dispose(void);
@@ -257,10 +269,8 @@ class c_interpreter {
 	static int cstdlib_func_count;
 	int real_time_link;
 	node *root;
-	char sentence_buf[MAX_SENTENCE_LENGTH];
+	interprete_need_t *interprete_need_ptr;
 	terminal* tty_used;
-	char pretreat_buf[MAX_PRETREAT_BUFLEN];
-	round_queue row_pretreat_fifo;
 	nonseq_info_struct* nonseq_info;
 	struct_info_struct struct_info_set;
 	function_flag_struct function_flag_set;
@@ -268,30 +278,26 @@ class c_interpreter {
 	struct_define* struct_declare;
 	varity* varity_declare;
 	function* function_declare;
-	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
-	round_queue non_seq_code_fifo;
 	int varity_global_flag;
 	int break_flag;
-	unsigned int analysis_buf_inc_stack[MAX_FUNCTION_DEPTH];
-	sentence_analysis_data_struct_t sentence_analysis_data_struct;
+	
 	char *stack_pointer;
 	char *tmp_varity_stack_pointer;
 	node_attribute_t *token_node_ptr;
 	mid_code *pc;
-	stack mid_code_stack;
-	stack mid_varity_stack;
 	stack *cur_mid_code_stack_ptr;
-	char simulation_stack[STACK_SIZE];
+	unsigned int simulation_stack_size;
+	char *simulation_stack;
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	bool exec_flag;
 	call_func_info_t call_func_info;
-	preprocess_info_t preprocess_info;
+	static preprocess_info_t preprocess_info;
 	static compile_info_t compile_info;
 	static compile_function_info_t compile_function_info;
 	static compile_string_info_t compile_string_info;
 	static compile_varity_info_t compile_varity_info;
 	static compile_struct_info_t compile_struct_info;
-	int str_count_bak;
+	
 	int save_sentence(char*, uint);
 	int function_analysis(node_attribute_t*, int);
 	int struct_analysis(node_attribute_t*, uint);
@@ -304,7 +310,6 @@ class c_interpreter {
 	int generate_arg_list(const char *str, int count, stack &arg_list_ptr);
 	int generate_compile_func(void);
 	int get_token(char *str, node_attribute_t *info);
-	bool is_operator_convert(char *str, char &type, int &opt_len, char &prio);
 	int post_order_expression(node_attribute_t *node_ptr, int count, list_stack&);
 	int generate_mid_code(node_attribute_t*, int count, bool need_semicolon);
 	int ulink(stack *stack_ptr, int mode);//link one function
@@ -396,12 +401,10 @@ public:
 	int print_call_stack(void);
 	int set_tty(terminal*);
 	terminal* get_tty(void) {return this->tty_used;}
-	int init(terminal*, int);
+	int init(terminal*, int, int, int);
 	int dispose(void);
 	int run_interpreter(void);
 	int run_main(int, void*, void*);
 	int run_thread(function_info*);
 };
-#define UCC_DEBUG 1
-int compile(char *file, int flag);
 #endif

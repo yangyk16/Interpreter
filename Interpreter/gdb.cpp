@@ -68,7 +68,7 @@ int gdb::print(int argc, char **argv, c_interpreter *cptr)
 		return ERROR_GDB_ARGC;
 	ret = cptr->open_eval(argv[1], false);//TODO:后续算临时变量值时应当把栈向前推进一帧。
 	if(!ret) {
-		switch(((node_attribute_t*)cptr->sentence_analysis_data_struct.tree_root->value)->node_type) {
+		switch(((node_attribute_t*)cptr->interprete_need_ptr->sentence_analysis_data_struct.tree_root->value)->node_type) {
 		case TOKEN_NAME:
 		{
 			if(argstr[0] == 0) {
@@ -93,11 +93,11 @@ int gdb::print(int argc, char **argv, c_interpreter *cptr)
 					break;
 				}
 			}
-			char *name = ((node_attribute_t*)cptr->sentence_analysis_data_struct.tree_root->value)->value.ptr_value;
+			char *name = ((node_attribute_t*)cptr->interprete_need_ptr->sentence_analysis_data_struct.tree_root->value)->value.ptr_value;
 			int scope;
 			
 			if(name[0] == TMP_VAIRTY_PREFIX || name[0] == LINK_VARITY_PREFIX) {
-				varity_ptr = (varity_info*)cptr->mid_varity_stack.visit_element_by_index(0);
+				varity_ptr = (varity_info*)cptr->interprete_need_ptr->mid_varity_stack.visit_element_by_index(0);
 				scope = VARITY_SCOPE_TMP;
 			} else {
 				varity_ptr = cptr->varity_declare->vfind(name, scope);
@@ -255,7 +255,7 @@ int gdb::print_mid_code(int argc, char **argv, c_interpreter *cptr)
 		if(fptr)
 			cptr->print_code((mid_code*)fptr->mid_code_stack.get_base_addr(), fptr->mid_code_stack.get_count(), 1);
 		else
-			cptr->print_code((mid_code*)cptr->mid_code_stack.get_base_addr(), cptr->mid_code_stack.get_count(), 1);
+			cptr->print_code((mid_code*)cptr->interprete_need_ptr->mid_code_stack.get_base_addr(), cptr->interprete_need_ptr->mid_code_stack.get_count(), 1);
 		return ERROR_NO;
 	}
 	if(!fptr)
