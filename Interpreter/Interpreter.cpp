@@ -1970,13 +1970,14 @@ int c_interpreter::find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fpt
 		return ERROR_NO;
 	} else {
 		int i;
+		function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 		mid_code *func_pc;
 		int func_code_count;
 		for(i=0; i<this->language_elment_space.function_list.get_count(); i++) {
-			func_pc = (mid_code*)this->language_elment_space.function_node[i].mid_code_stack.get_base_addr();
-			func_code_count = this->language_elment_space.function_node[i].mid_code_stack.get_count();
+			func_pc = (mid_code*)function_base[i].mid_code_stack.get_base_addr();
+			func_code_count = function_base[i].mid_code_stack.get_count();
 			if(mid_code_ptr >= func_pc && mid_code_ptr < func_pc + func_code_count) {
-				fptr = &this->language_elment_space.function_node[i];
+				fptr = &function_base[i];
 				if(!fptr->row_code_ptr)
 					continue;
 #if DEBUG_EN
@@ -2008,16 +2009,17 @@ int c_interpreter::print_call_stack(void)
 	mid_code *pc, *func_pc;
 	int func_code_count;
 	pc = this->pc;
+	function_info *function_base = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 	gdbout("Print call stack:\n");
 	if(pc >= (mid_code*)this->mid_code_stack.get_base_addr() && pc < (mid_code*)this->mid_code_stack.get_base_addr() + MAX_MID_CODE_COUNT) {
 		gdbout("main + %d\n", pc - (mid_code*)this->mid_code_stack.get_base_addr());
 	} else {
 		int i;
 		for(i=0; i<this->language_elment_space.function_list.get_count(); i++) {
-			func_pc = (mid_code*)this->language_elment_space.function_node[i].mid_code_stack.get_base_addr();
-			func_code_count = this->language_elment_space.function_node[i].mid_code_stack.get_count();
+			func_pc = (mid_code*)function_base[i].mid_code_stack.get_base_addr();
+			func_code_count = function_base[i].mid_code_stack.get_count();
 			if(pc >= func_pc && pc < func_pc + func_code_count) {
-				gdbout("%s + %d\n", this->language_elment_space.function_node[i].get_name(), pc - func_pc);
+				gdbout("%s + %d\n", function_base[i].get_name(), pc - func_pc);
 				break;
 			}
 		}
@@ -2034,10 +2036,10 @@ int c_interpreter::print_call_stack(void)
 		} else {
 			int i;
 			for(i=0; i<this->language_elment_space.function_list.get_count(); i++) {
-				func_pc = (mid_code*)this->language_elment_space.function_node[i].mid_code_stack.get_base_addr();
-				func_code_count = this->language_elment_space.function_node[i].mid_code_stack.get_count();
+				func_pc = (mid_code*)function_base[i].mid_code_stack.get_base_addr();
+				func_code_count = function_base[i].mid_code_stack.get_count();
 				if(pc >= func_pc && pc < func_pc + func_code_count) {
-					gdbout("%s + %d\n", this->language_elment_space.function_node[i].get_name(), pc - func_pc);
+					gdbout("%s + %d\n", function_base[i].get_name(), pc - func_pc);
 					stack_ptr -= pc->data + PLATFORM_WORD_LEN;
 					break;
 				}
@@ -2403,12 +2405,12 @@ int c_interpreter::set_tty(terminal* tty)
 
 int c_interpreter::init(terminal* tty_used, int rtl_flag)
 {
-	c_interpreter::language_elment_space.l_varity_list.init(sizeof(varity_info), c_interpreter::language_elment_space.l_varity_node, MAX_L_VARITY_NODE);
-	c_interpreter::language_elment_space.g_varity_list.init(sizeof(varity_info), c_interpreter::language_elment_space.g_varity_node, MAX_G_VARITY_NODE);
+	c_interpreter::language_elment_space.l_varity_list.init(sizeof(varity_info), MAX_L_VARITY_NODE);
+	c_interpreter::language_elment_space.g_varity_list.init(sizeof(varity_info), MAX_G_VARITY_NODE);
 	c_interpreter::language_elment_space.c_varity.init(&c_interpreter::language_elment_space.g_varity_list, &c_interpreter::language_elment_space.l_varity_list);
-	c_interpreter::language_elment_space.function_list.init(sizeof(function_info), c_interpreter::language_elment_space.function_node, MAX_FUNCTION_NODE);
+	c_interpreter::language_elment_space.function_list.init(sizeof(function_info), MAX_FUNCTION_NODE);
 	c_interpreter::language_elment_space.c_function.init(&c_interpreter::language_elment_space.function_list);
-	c_interpreter::language_elment_space.struct_list.init(sizeof(struct_info), c_interpreter::language_elment_space.struct_node, MAX_STRUCT_NODE);
+	c_interpreter::language_elment_space.struct_list.init(sizeof(struct_info), MAX_STRUCT_NODE);
 	c_interpreter::language_elment_space.c_struct.init(&c_interpreter::language_elment_space.struct_list);
 	c_interpreter::language_elment_space.macro_list.init(sizeof(macro_info), DEFAULT_MACRO_NODE);
 	c_interpreter::language_elment_space.c_macro.init(&c_interpreter::language_elment_space.macro_list);
@@ -2477,6 +2479,11 @@ int c_interpreter::dispose(void)
 	for(int i=0; i<this->cstdlib_func_count; i++)
 		((function_info*)this->function_declare->function_stack_ptr->visit_element_by_index(i))->arg_list->dispose();
 	this->mid_code_stack.dispose();
+	c_interpreter::language_elment_space.struct_list.dispose();
+	c_interpreter::language_elment_space.function_list.dispose();
+	c_interpreter::language_elment_space.g_varity_list.dispose();
+	c_interpreter::language_elment_space.l_varity_list.dispose();
+	c_interpreter::language_elment_space.macro_list.dispose();
 	this->tty_used->dispose();
 	return ERROR_NO;
 }
@@ -4327,6 +4334,7 @@ normal_bracket:
 void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 {
 	if(!echo) return;
+	varity_info *varity_base = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr();
 	for(int i=0; i<n; i++, ptr++) {
 		gdbout("%03d ", i);
 		if(ptr->ret_operand_type == OPERAND_T_VARITY) {
@@ -4335,8 +4343,8 @@ void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 			gdbout("#%d=", ptr->ret_addr / 8);
 		} else if(ptr->ret_operand_type == OPERAND_G_VARITY) {
 			for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
-				if(this->language_elment_space.g_varity_node[i].get_content_ptr() == (void*)ptr->ret_addr) {
-					gdbout("%s=",this->language_elment_space.g_varity_node[i].get_name());
+				if(varity_base[i].get_content_ptr() == (void*)ptr->ret_addr) {
+					gdbout("%s=", varity_base[i].get_name());
 					break;
 				}
 			}
@@ -4350,8 +4358,8 @@ void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 				gdbout("#%d", ptr->opda_addr / 8);
 			} else if(ptr->opda_operand_type == OPERAND_G_VARITY) {
 				for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
-					if(this->language_elment_space.g_varity_node[i].get_content_ptr() == (void*)ptr->opda_addr) {
-						gdbout("%s",this->language_elment_space.g_varity_node[i].get_name());
+					if(varity_base[i].get_content_ptr() == (void*)ptr->opda_addr) {
+						gdbout("%s", varity_base[i].get_name());
 						break;
 					}
 				}
@@ -4388,8 +4396,8 @@ void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 				gdbout("#%d", ptr->opdb_addr / 8);
 			} else if(ptr->opdb_operand_type == OPERAND_G_VARITY) {
 				for(uint j=0; j<this->language_elment_space.g_varity_list.get_count(); j++) {
-					if(this->language_elment_space.g_varity_node[j].get_content_ptr() == (void*)ptr->opdb_addr) {
-						gdbout("%s",this->language_elment_space.g_varity_node[j].get_name());
+					if(varity_base[j].get_content_ptr() == (void*)ptr->opdb_addr) {
+						gdbout("%s", varity_base[j].get_name());
 						break;
 					}
 				}

@@ -93,7 +93,7 @@ public:
 	friend class varity;
 	virtual void* find(const char*);
 	void *f_find(const char*);
-	void init(int esize, void* base_addr, int capacity);
+	void init(int esize, int capacity);
 	inline void reset(void) {kmemset(this->bottom_addr, 0 , this->top); this->count = 0; this->top = 0; this->offset = 0;}
 	inline void endeep(void) {index_table[++current_depth] = this->count; offset_table[current_depth] = offset;}
 	inline void dedeep(void) {offset = offset_table[current_depth]; index_table[current_depth--] = 0;}

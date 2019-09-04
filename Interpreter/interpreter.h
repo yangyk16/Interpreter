@@ -144,16 +144,12 @@ typedef struct node_attribute_s {
 } node_attribute_t;
 
 typedef struct language_element_space {
-	varity_info g_varity_node[MAX_G_VARITY_NODE];
-	varity_info l_varity_node[MAX_L_VARITY_NODE];
 	indexed_stack l_varity_list;
 	stack g_varity_list;
 	varity c_varity;
 	nonseq_info_struct nonseq_info_s;
-	function_info function_node[MAX_FUNCTION_NODE];
 	stack function_list;
 	function c_function;
-	struct_info struct_node[MAX_STRUCT_NODE];
 	stack struct_list;
 	struct_define c_struct;
 	stack macro_list;
