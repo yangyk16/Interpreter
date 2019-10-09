@@ -3760,8 +3760,21 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 	if(node_ptr->node_type == TOKEN_SPECIFIER) {
 		if(node_ptr->data == SPECIFIER_EXTERN) {
 			varity_special_flag = 1;
-		} else if(node_ptr->data == SPECIFIER_GLOBAL) {
-			varity_special_flag = 2;
+		} else if(node_ptr->data == SPECIFIER_DELETE) {
+			int name_flag = 1;
+			node_ptr++;
+			while(--count) {
+				if(name_flag && node_ptr->node_type == TOKEN_NAME) {
+					this->varity_declare->undeclare(node_ptr->value.ptr_value);
+					name_flag = 0;
+				} else if(!name_flag && node_ptr->node_type == TOKEN_OPERATOR) {
+					name_flag = 1;
+				} else {
+					error("error use delete\n");
+				}
+				node_ptr++;
+			}
+			return OK_VARITY_DECLARE;
 		}
 		node_ptr++;
 		count--;
@@ -3921,9 +3934,9 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 			info->data = SPECIFIER_EXTERN;
 			return i;
 		}
-		if(!kstrcmp(symbol_ptr, "global")) {
+		if(!kstrcmp(symbol_ptr, "delete")) {
 			info->node_type = TOKEN_SPECIFIER;
-			info->data = SPECIFIER_GLOBAL;
+			info->data = SPECIFIER_DELETE;
 			return i;
 		}
 		string_info *string_ptr;

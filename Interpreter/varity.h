@@ -101,10 +101,10 @@ public:
 	indexed_stack* local_varity_stack;
 	varity_info* find(char*);
 	varity_info* vfind(char *name, int &scope);
+	int undeclare(char *name);
 	int declare(int scope_flag, char* name, uint size, int, PLATFORM_WORD*);
 	int destroy_local_varity_cur_depth(void);
 	int destroy_local_varity(void);
-	int undeclare();
 };
 
 class struct_define;

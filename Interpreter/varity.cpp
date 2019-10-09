@@ -155,6 +155,21 @@ void varity_info::reset(void)
 	}
 }
 
+int varity::undeclare(char *name)
+{
+	varity_info *varity_ptr = (varity_info*)this->global_varity_stack->find(name);
+	if(varity_ptr) {
+		dec_varity_ref(varity_ptr, true);
+		vfree(varity_ptr->get_content_ptr());
+		varity_info *last_varity_ptr = (varity_info*)this->global_varity_stack->pop();
+		kmemcpy(varity_ptr, last_varity_ptr, sizeof(varity_info));
+	} else {
+		error("variable %s not exist.\n", name);
+		return ERROR_VARITY_NONEXIST;
+	}
+	return ERROR_NO;
+}
+
 int varity::declare(int scope_flag, char *name, uint size, int complex_arg_count, PLATFORM_WORD *complex_info_ptr)
 {//scope_flag = 0:global; 1: local; 2:analysis_tmp
 	int ret;
@@ -321,11 +336,6 @@ int varity::destroy_local_varity(void)
 		//vfree(local_varity_ptr->get_name());
 	}
 	this->local_varity_stack->reset();
-	return 0;
-}
-
-int varity::undeclare(void)
-{
 	return 0;
 }
 
