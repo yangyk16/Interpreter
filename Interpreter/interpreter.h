@@ -384,6 +384,7 @@ class c_interpreter {
 	static void handle_init(void);
 	static int call_opt_handle(c_interpreter *interpreter_ptr);
 	//////////////////////////////////////////////////////////////////////
+	static char* code_complete_callback(char*, int);
 	int post_treat(void);
 	int pre_treat(uint);
 	int preprocess(char *str, int &len);

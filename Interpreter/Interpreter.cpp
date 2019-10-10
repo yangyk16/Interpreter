@@ -2346,6 +2346,31 @@ bool c_interpreter::gdb_check(void)
 	return false;
 }
 
+char* c_interpreter::code_complete_callback(char *tip_str, int no)
+{
+	int i = 0, j;
+	int tiplen = kstrlen(tip_str);
+	int count = c_interpreter::language_elment_space.g_varity_list.get_count();
+	varity_info *varity_base = (varity_info*)c_interpreter::language_elment_space.g_varity_list.get_base_addr();
+	for(j=0; j<count; j++) {
+		if(!kstrncmp(tip_str, varity_base[j].get_name(), tiplen)) {
+			i++;
+			if(i == no)
+				return varity_base[j].get_name() + tiplen;
+		}
+	}
+	count = c_interpreter::language_elment_space.function_list.get_count();
+	function_info *function_base = (function_info*)c_interpreter::language_elment_space.function_list.get_base_addr();
+	for(j=0; j<count; j++) {
+		if(!kstrncmp(tip_str, function_base[j].get_name(), tiplen)) {
+			i++;
+			if(i == no)
+				return function_base[j].get_name() + tiplen;
+		}
+	}
+	return NULL;
+}
+
 int c_interpreter::run_interpreter(void)
 {
 	int ret;
@@ -2358,7 +2383,7 @@ int c_interpreter::run_interpreter(void)
 		} else {
 			if(this->tty_used == &stdio)
 				kprintf(">>> ");
-			len = tty_used->readline(interprete_need_ptr->sentence_buf);
+			len = tty_used->readline(interprete_need_ptr->sentence_buf, '`', c_interpreter::code_complete_callback);
 			if(len == -1) {
 				//TODO: terminal close. file.close();
 				if(this->tty_used == &fileio) {

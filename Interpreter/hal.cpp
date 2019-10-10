@@ -10,7 +10,7 @@
 #include <iostream>
 #include <stdio.h>
 using namespace std;
-int tty::readline(char* str)//最后必须补0
+int tty::readline(char* str, char code_ch, code_fptr callback)//最后必须补0
 {
 	char ch;
 	int i = 0;
@@ -32,11 +32,10 @@ int tty::puts(char* str)
 }
 #elif TTY_TYPE == 1
 #include "../testcase/ff.h"
-extern "C" int uart_getstring(char *str);
-extern "C" void uart_sendstring(char *str);
-int uart::readline(char* str)
+#include "uart.h"
+int uart::readline(char* str, char code_ch, code_fptr callback)
 {
-	int i = uart_getstring(str);
+	int i = uart_getstring(str, code_ch, callback);
 	return i;
 };
 
@@ -61,7 +60,7 @@ void file::dispose(void)
 	vfree(file_ptr);
 }
 
-int file::readline(char *str)
+int file::readline(char* str, char code_ch, code_fptr callback)
 {
 	int i = 0;
 	int len;

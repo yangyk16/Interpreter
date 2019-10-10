@@ -372,7 +372,7 @@ int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction
 		while(1) {
 			instruction_ptr->break_flag &= ~BREAKPOINT_STEP;
 			gdbout("gdb>");
-			interpreter_ptr->tty_used->readline(gdbstr);
+			interpreter_ptr->tty_used->readline(gdbstr, '\t', 0);
 			gdb::parse(gdbstr);
 			gdbret = gdb::exec(interpreter_ptr);
 			if(gdbret == OK_GDB_RUN || gdbret == OK_GDB_STEP_RTL_INTO || gdbret == OK_GDB_STEPINTO || gdbret == OK_GDB_STEPOVER || gdbret == OK_GDB_STEP_RTL_OVER) {

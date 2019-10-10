@@ -5,9 +5,10 @@
 
 #include "config.h"
 
+typedef char *(*code_fptr)(char*, int);
 class terminal{
 public:
-	virtual int readline(char*) = 0;
+	virtual int readline(char* str, char code_ch, code_fptr callback) = 0;
 	virtual int puts(char*) = 0;
 	virtual void dispose(void) = 0;
 };
@@ -15,14 +16,14 @@ public:
 #if TTY_TYPE == 0 
 class tty: public terminal {
 public:
-	virtual int readline(char*);
+	virtual int readline(char* str, char code_ch, code_fptr callback);
 	virtual int puts(char*);
 	virtual void dispose(void){};
 };
 #elif TTY_TYPE == 1
 class uart: public terminal {
 public:
-	virtual int readline(char*);
+	virtual int readline(char* str, char code_ch, code_fptr callback);
 	virtual int puts(char*);
 	virtual void dispose(void){};
 };
@@ -30,7 +31,7 @@ public:
 class file: public terminal {
 	void *file_ptr;
 public:
-	virtual int readline(char*);
+	virtual int readline(char* str, char code_ch, code_fptr callback);
 	virtual int puts(char*){return 0;}
 	virtual void dispose(void);
 	int init(char*);
