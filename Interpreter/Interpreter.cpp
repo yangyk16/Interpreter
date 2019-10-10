@@ -2123,8 +2123,8 @@ int c_interpreter::preprocess(char *str, int &len)
 				} else {
 					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = 1;
 				}
-				if(preprocess_info.ifdef_level > 1)
-					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] &= ~preprocess_info.ifdef_status[preprocess_info.ifdef_level - 2];
+				//if(preprocess_info.ifdef_level > 1)
+				//	preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] &= ~preprocess_info.ifdef_status[preprocess_info.ifdef_level - 2];
 			} else {
 				error("no macro name\n");
 				return ERROR_PREPROCESS;
@@ -2140,16 +2140,16 @@ int c_interpreter::preprocess(char *str, int &len)
 				} else {
 					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = 0;
 				}
-				if(preprocess_info.ifdef_level > 1)
-					preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] &= ~preprocess_info.ifdef_status[preprocess_info.ifdef_level - 2];
+				//if(preprocess_info.ifdef_level > 1)
+				//	preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] &= ~preprocess_info.ifdef_status[preprocess_info.ifdef_level - 2];
 			} else {
 				error("no macro name\n");
 				return ERROR_PREPROCESS;
 			}
 		} else if(!kstrncmp(str, "else", 4)) {
 			preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = !preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1];
-			if(preprocess_info.ifdef_level > 1)
-				preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] &= ~preprocess_info.ifdef_status[preprocess_info.ifdef_level - 2];
+			//if(preprocess_info.ifdef_level > 1)
+			//	preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] &= ~preprocess_info.ifdef_status[preprocess_info.ifdef_level - 2];
 		} else if(!kstrncmp(str, "end", 3)) {
 			if(preprocess_info.ifdef_level)
 				preprocess_info.ifdef_level--;
@@ -2164,7 +2164,15 @@ int c_interpreter::preprocess(char *str, int &len)
 	} else {
 		int index = 0;
 		if(preprocess_info.ifdef_level) {
-			if(preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1]) {
+			int ifdefret = 0;
+			int i;
+			for(i=0; i<preprocess_info.ifdef_level; i++) {
+				if(preprocess_info.ifdef_status[i]) {
+					ifdefret = 1;
+					break;
+				}
+			}
+			if(ifdefret) {
 				str[0] = 0;
 				len = 0;
 				return ERROR_NO;
