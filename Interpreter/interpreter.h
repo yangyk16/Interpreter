@@ -312,6 +312,7 @@ class c_interpreter {
 	int get_token(char *str, node_attribute_t *info);
 	int post_order_expression(node_attribute_t *node_ptr, int count, list_stack&);
 	int generate_mid_code(node_attribute_t*, int count, bool need_semicolon);
+	int get_expression_type(char *str, varity_info *&ret);
 	int ulink(stack *stack_ptr, int mode);//link one function
 	
 	int mem_rearrange(void);

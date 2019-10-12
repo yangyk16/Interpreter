@@ -125,7 +125,7 @@ int exec(void)
         int i;
         if(cmdinfo.argc <= 0)return -1;
         for(i=0; i<cmd_count; i++)
-                if(!strcmp(cmdset[i].cmdname, cmdinfo.argv[0]) && cmdset[i].cmdptr != 0) {
+                if(!kstrcmp(cmdset[i].cmdname, cmdinfo.argv[0]) && cmdset[i].cmdptr != 0) {
                         //uart_printf("Exec cmd: %s\n", cmdinfo.argv[0]);
                         return cmdset[i].cmdptr(cmdinfo.argc, cmdinfo.argv);
                 }

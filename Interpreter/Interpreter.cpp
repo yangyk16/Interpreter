@@ -2354,26 +2354,80 @@ bool c_interpreter::gdb_check(void)
 	return false;
 }
 
+int c_interpreter::get_expression_type(char *str, varity_info *&ret_varity)
+{
+	int ret, len = kstrlen(str), count;
+	mid_code *base_bak = (mid_code*)this->interprete_need_ptr->mid_code_stack.get_base_addr();
+	int count_bak = this->interprete_need_ptr->mid_code_stack.get_count();
+	//mid_code *pc_bak = this->pc;
+	this->interprete_need_ptr->mid_code_stack.set_base(base_bak + count_bak);
+	this->interprete_need_ptr->mid_code_stack.set_count(0);
+	count = this->generate_token_list(str, len);
+	generate_mid_code(this->token_node_ptr, count, false);
+	node_attribute_t *node_ptr = (node_attribute_t*)this->interprete_need_ptr->sentence_analysis_data_struct.tree_root->value;
+	ret = node_ptr->node_type;
+	char *name = (char*)node_ptr->value.ptr_value;
+	switch(ret) {
+		case TOKEN_NAME:
+			if(name[0] == LINK_VARITY_PREFIX || name[0] == TMP_VAIRTY_PREFIX) {
+				ret_varity = (varity_info*)this->interprete_need_ptr->mid_varity_stack.visit_element_by_index(node_ptr->value.ptr_value[1]);
+			} else {
+				ret_varity = (varity_info*)this->varity_declare->find(name);
+			}
+		default:
+			break;
+	} 
+	this->interprete_need_ptr->mid_code_stack.set_base(base_bak);
+	this->interprete_need_ptr->mid_code_stack.set_count(count_bak);
+	//this->pc = pc_bak;
+	return ret;
+}
+
 char* c_interpreter::code_complete_callback(char *tip_str, int no)
 {
 	int i = 0, j;
 	int tiplen = kstrlen(tip_str);
 	int count = c_interpreter::language_elment_space.g_varity_list.get_count();
+	int member_flag = 0, member_pos, member_count;
 	varity_info *varity_base = (varity_info*)c_interpreter::language_elment_space.g_varity_list.get_base_addr();
-	for(j=0; j<count; j++) {
-		if(!kstrncmp(tip_str, varity_base[j].get_name(), tiplen)) {
-			i++;
-			if(i == no)
-				return varity_base[j].get_name() + tiplen;
+	for(j=tiplen-1; j>=0; j--) {
+		if((tip_str[j] == '.' || tip_str[j] == '>' && tip_str[j - 1] == '-') && member_flag == 0) {
+			if(tip_str[j] == '.') {
+				member_pos = j;
+				member_count= 0;
+			} else {
+				member_pos = j - 1;
+				member_count= 1;
+			}
+		} else if(j == -1 || !(tip_str[j] == '_' || kisalnum(tip_str[j]))) {
+			member_pos = j;
+			member_pos = -1;
+			break;
 		}
 	}
-	count = c_interpreter::language_elment_space.function_list.get_count();
-	function_info *function_base = (function_info*)c_interpreter::language_elment_space.function_list.get_base_addr();
-	for(j=0; j<count; j++) {
-		if(!kstrncmp(tip_str, function_base[j].get_name(), tiplen)) {
-			i++;
-			if(i == no)
-				return function_base[j].get_name() + tiplen;
+	if(!member_flag) {
+		for(j=0; j<count; j++) {
+			if(!kstrncmp(tip_str, varity_base[j].get_name(), tiplen)) {
+				i++;
+				if(i == no)
+					return varity_base[j].get_name() + tiplen;
+			}
+		}
+		count = c_interpreter::language_elment_space.function_list.get_count();
+		function_info *function_base = (function_info*)c_interpreter::language_elment_space.function_list.get_base_addr();
+		for(j=0; j<count; j++) {
+			if(!kstrncmp(tip_str, function_base[j].get_name(), tiplen)) {
+				i++;
+				if(i == no)
+					return function_base[j].get_name() + tiplen;
+			}
+		}
+	} else {
+		varity_info *varity_ptr;
+		tip_str[member_pos] = 0;
+		int ret;// = this->get_expression_type(tip_str + j + 1, varity_ptr);
+		if(ret == TOKEN_NAME) {
+			
 		}
 	}
 	return NULL;
