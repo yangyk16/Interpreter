@@ -19,4 +19,8 @@ int find_token_with_bracket_level(node_attribute_t*, int, node_attribute_t*, int
 int get_escape_char(char *str, char &ch);
 int memcheck(void *src, char ch, unsigned int len);
 int sub_replace(char* str, int index, int sublen, char* substr);
+int cmd_enter(char *str, int no);
+char* cmd_up(int no);
+char* cmd_down(int no);
+int cmd_dispose(int no);
 #endif

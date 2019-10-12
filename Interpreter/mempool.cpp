@@ -11,8 +11,8 @@ typedef struct head_head_s{
 	uint isused;
 }head_t;
 
-static char heap[HEAPSIZE];
-char* heapbase = heap;
+static int heap[HEAPSIZE / sizeof(int)];
+char* heapbase = (char*)heap;
 
 static inline uint align_size(uint size)
 {

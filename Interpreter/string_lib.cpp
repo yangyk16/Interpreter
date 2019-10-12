@@ -5,6 +5,7 @@
 #include "error.h"
 #include "cstdlib.h"
 #include "interpreter.h"
+#include "kmalloc.h"
 
 extern char non_seq_key[7][7];
 
@@ -208,4 +209,62 @@ int sub_replace(char* str, int index, int sublen, char* substr)
 	kmemmove(str + index + sub_str_len ,str + index + sublen, kstrlen(str + index + sublen) + 1);
 	kmemcpy(str + index, substr, sub_str_len);
 	return sub_str_len - sublen;
+}
+
+#define CMD_LOG_COUNT   5
+unsigned char cmd_count[2] = {0};
+char cmd_pos[2] = {-1, -1};
+char *cmd_str[2][CMD_LOG_COUNT] = {0};
+int cmd_init(int no)
+{
+	int i;
+	for(i=0; i<CMD_LOG_COUNT; i++)
+		cmd_str[no][i] = 0;
+	return 0;
+}
+
+int cmd_enter(char *str, int no)
+{
+	int i;
+	int hitret = 0;
+	cmd_pos[no] = -1;
+	for(i=0; i<cmd_count[no]; i++) {
+		if(!kstrcmp(str, cmd_str[no][i])) {//TODO: use stable sort instead of exchange
+			char *tmp = cmd_str[no][0];
+			cmd_str[no][0] = cmd_str[no][i];
+			cmd_str[no][i] = tmp;
+			return 0;
+		}
+	}
+	if(cmd_count[no] < 5) 
+		cmd_count[no]++;
+	else	
+		kfree(cmd_str[no][4]);
+	for(i=cmd_count[no]-1; i>0; i--)
+		cmd_str[no][i] = cmd_str[no][i - 1];
+	cmd_str[no][0] = (char*)kmalloc(kstrlen(str) + 1);
+	kstrcpy(cmd_str[no][0], str);
+	return 0;
+}
+
+char* cmd_up(int no)
+{
+	if(cmd_count[no] == 0) return 0; 
+	cmd_pos[no] = (cmd_pos[no] + 1 + cmd_count[no]) % cmd_count[no];
+	return cmd_str[no][cmd_pos[no]];
+}
+
+char* cmd_down(int no)
+{
+	if(cmd_count[no] == 0) return 0; 
+	cmd_pos[no] = (cmd_pos[no] - 1 + cmd_count[no]) % cmd_count[no];
+	return cmd_str[no][cmd_pos[no]];
+}
+
+int cmd_dispose(int no)
+{
+	int i;
+	for(i=0; i<CMD_LOG_COUNT; i++) 
+		if(cmd_str[no][i]) kfree(cmd_str[no][i]);
+	return 0;
 }

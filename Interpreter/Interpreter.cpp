@@ -2524,6 +2524,7 @@ int c_interpreter::dispose(void)
 	if(this->interprete_need_ptr) {
 		this->interprete_need_ptr->mid_code_stack.dispose();
 		vfree(interprete_need_ptr);
+		interprete_need_ptr = 0;
 	}
 	c_interpreter::language_elment_space.struct_list.dispose();
 	c_interpreter::language_elment_space.function_list.dispose();

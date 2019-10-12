@@ -27,6 +27,7 @@ double katof(const char* sptr);
 int kisdigit(int ch);
 int kisupper(int ch);
 int kislower(int ch);
+int kisalnum(int ch);
 #ifdef __cplusplus
 }
 #endif

@@ -2,11 +2,11 @@
 #include "data_struct.h"
 
 #if TTY_TYPE == 0
-tty stdio;
+tty stdio(0);
 #elif TTY_TYPE == 1
-uart stdio;
+uart stdio(1);
 #endif
-file fileio;
+file fileio(0);
 stack string_stack;
 stack name_stack;
 strfifo name_fifo;

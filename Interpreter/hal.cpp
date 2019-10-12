@@ -5,46 +5,173 @@
 #include "error.h"
 #include "interpreter.h"
 #include "global.h"
+#include "string_lib.h"
 
 #if TTY_TYPE == 0
 #include <iostream>
 #include <stdio.h>
 using namespace std;
-int tty::readline(char* str, char code_ch, code_fptr callback)//最后必须补0
+int tty::t_putc(char ch)
 {
-	char ch;
-	int i = 0;
-	while(ch = getchar()) {
-		if(ch == '\n')
-			break;
-		if(ch != '\r') {
-			str[i++] = ch;
-		}
-	}
-	str[i] = 0;
-	return i;
-};
-
-int tty::puts(char* str)
-{
-	cout << str;
+	cout << ch;
 	return 0;
+}
+
+int tty::t_getc(char *ch)
+{
+	*ch = getchar();
+	return 1;
 }
 #elif TTY_TYPE == 1
 #include "../testcase/ff.h"
 #include "uart.h"
-int uart::readline(char* str, char code_ch, code_fptr callback)
+int uart::t_getc(char* ch)
 {
-	int i = uart_getstring(str, code_ch, callback);
+	*ch = uart_getchar_Polling_n(0, 0);
+	return 1;
+};
+
+int uart::t_putc(char ch)
+{
+	uart_putchar(0, ch);
+	return 0;
+};
+
+#endif
+
+int terminal::readline(char* string, char ch, code_fptr callback)//最后必须补0
+{
+	char *string2 = string;
+	char c;
+	int i = 0, j;
+	int ret;
+	int complete_flag = 0;
+	char *word = string;
+	char strtocom[16];
+	int last_com_len = 0;
+	int escape_flag = 0;
+
+	*string = 0;
+	while((ret = this->t_getc(&c)) == 1) {
+		if(c == '\n')
+			break;
+		if(c == '\r')
+			continue;
+		switch(escape_flag) {
+			char *cmd_str;
+			case 0:
+				if(c == 0x1B) {
+					escape_flag = 1;
+					continue;
+				} else {
+					break;
+				}
+			case 1:
+				if(c == 0x5B) {
+					escape_flag = 2;
+					continue;
+				} else {
+					break;
+				}
+			case 2:
+				if(c == 'A' || c == 'B') {//UP/DN
+					if(c == 'A')
+						cmd_str = cmd_up(0);
+					else
+						cmd_str = cmd_down(0);
+					if(cmd_str) {
+						int cmd_len = (int)kstrlen(cmd_str);
+						for(j=0; j<i-cmd_len; j++)
+							this->t_putc('\b');
+						for(j=0; j<i-cmd_len; j++)
+							this->t_putc(' ');
+						for(j=0; j<i; j++)
+							this->t_putc('\b');
+						kstrcpy(string2, cmd_str);
+						i = kstrlen(string2);
+						string = string2 + i;
+						this->t_puts(string2);
+					}
+				} else if(c == 'D') {//LF
+				} else if(c == 'C') {//RG
+				} else if(c == '1' || c == '4') {
+					escape_flag = 3;
+					continue;
+				}
+				escape_flag = 0;
+				complete_flag = 0;
+				last_com_len = 0;
+				continue;
+		}
+		if(c == ch) {
+			if(!callback)
+				continue;
+			/////////////////////////////////////
+			if(!complete_flag)
+				for(j=i-1; j>=-1; j--) {
+					if(j == -1 || !(string2[j] == '_' || kisalnum(string2[j]))) {
+						word = string2 + j + 1;
+					//complete_flag = 0;
+					//last_com_len = 0;
+						break;
+					}
+				}
+			/////////////////////////////////////
+			if(complete_flag++ == 0) {
+				kstrcpy(strtocom, word);
+			}
+			char *ret = callback(strtocom, complete_flag);
+			string -= last_com_len;
+			i -= last_com_len;
+			for(j=0; j<last_com_len; j++)
+				this->t_putc('\b');
+			for(j=0; j<last_com_len; j++)
+				this->t_putc(' ');
+			for(j=0; j<last_com_len; j++)
+				this->t_putc('\b');
+			if(ret) {
+				kstrcpy(string, ret);
+				last_com_len = kstrlen(ret);
+				this->t_puts(ret);
+				string += last_com_len;
+				i += last_com_len;
+			} else {
+				last_com_len = 0;
+				complete_flag = 0;
+			}
+			*string = 0;
+		} else {
+			complete_flag = 0;
+			last_com_len = 0;
+		}
+
+		if(c == '\b') {
+			if((int)string2 < (int)string) {
+				this->t_puts("\b \b");
+				*--string = 0;
+				i--;
+			}
+		} else if(c != ch) {
+			i++;
+			*string++ = c;
+			*string = 0;
+			if(this->echo_en)
+				this->t_putc(c);
+		}
+	}
+	*string='\0';
+	if(!ret && !i)
+		return -1;
+	if(this->echo_en)
+		this->t_putc('\n');
+	cmd_enter(string2, 0);
 	return i;
 };
 
-int uart::puts(char* str)
+int file::t_getc(char *ch)
 {
-	uart_sendstring(str);
-	return 0;
+	return kfread(ch, 1, 1, file_ptr);
 }
-#endif
 
 int file::init(char *filename)
 {
@@ -58,23 +185,6 @@ int file::init(char *filename)
 void file::dispose(void)
 {
 	vfree(file_ptr);
-}
-
-int file::readline(char* str, char code_ch, code_fptr callback)
-{
-	int i = 0;
-	int len;
-	while(len = kfread(str + i, 1, 1, file_ptr)) {
-		if((str[i] == 0) | (str[i] == '\n'))
-			break;
-		if(str[i] == '\r')
-			continue;
-		i++;
-	}
-	if(len == 0 && i == 0)
-		return -1;
-	str[i] = 0;
-	return i;
 }
 
 int kfputs(char *str)
