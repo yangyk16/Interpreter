@@ -11,6 +11,23 @@
 #include <iostream>
 #include <stdio.h>
 using namespace std;
+
+tty::tty(int echo_en): terminal(echo_en)
+{
+#ifdef __GNUC__
+	system("stty raw");
+	system("stty -inlcr -igncr icrnl");
+	system("stty -onlcr ocrnl -onocr -onlret nl0 cr0");
+#endif
+}
+
+void tty::dispose(void)
+{
+#ifdef __GNUC__
+	system("stty sane");
+#endif
+}
+
 int tty::t_putc(char ch)
 {
 	cout << ch;
@@ -47,7 +64,7 @@ int terminal::readline(char* string, char ch, code_fptr callback)//最后必须补0
 	int ret;
 	int complete_flag = 0;
 	char *word = string;
-	char strtocom[16];
+	int i_bak;
 	int last_com_len = 0;
 	int escape_flag = 0;
 
@@ -106,21 +123,11 @@ int terminal::readline(char* string, char ch, code_fptr callback)//最后必须补0
 		if(c == ch) {
 			if(!callback)
 				continue;
-			/////////////////////////////////////
-			if(!complete_flag)
-				for(j=i-1; j>=-1; j--) {
-					if(j == -1 || !(string2[j] == '_' || kisalnum(string2[j]))) {
-						word = string2 + j + 1;
-					//complete_flag = 0;
-					//last_com_len = 0;
-						break;
-					}
-				}
-			/////////////////////////////////////
-			if(complete_flag++ == 0) {
-				kstrcpy(strtocom, word);
-			}
-			char *ret = callback(strtocom, complete_flag);
+			if(complete_flag++ != 0) {
+				string2[i_bak] = 0;
+			} else
+				i_bak = i;
+			char *ret = callback(string2, complete_flag);
 			string -= last_com_len;
 			i -= last_com_len;
 			for(j=0; j<last_com_len; j++)

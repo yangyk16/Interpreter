@@ -2390,24 +2390,30 @@ char* c_interpreter::code_complete_callback(char *tip_str, int no)
 	int count = c_interpreter::language_elment_space.g_varity_list.get_count();
 	int member_flag = 0, member_pos, member_count;
 	varity_info *varity_base = (varity_info*)c_interpreter::language_elment_space.g_varity_list.get_base_addr();
-	for(j=tiplen-1; j>=0; j--) {
-		if((tip_str[j] == '.' || tip_str[j] == '>' && tip_str[j - 1] == '-') && member_flag == 0) {
-			if(tip_str[j] == '.') {
-				member_pos = j;
-				member_count= 0;
-			} else {
-				member_pos = j - 1;
-				member_count= 1;
-			}
+	for(j=tiplen-1; j>=-1; j--) {
+		if(j >= 0 && (tip_str[j] == '.' || tip_str[j] == '>' && tip_str[j - 1] == '-')) {
+			if(member_flag == 0) 
+				if(tip_str[j] == '.') {
+					tip_str[member_pos = j] = 0;
+					member_count= 1;
+					member_flag = 1;
+				} else {
+					tip_str[member_pos = j - 1] = 0;
+					member_count= 2;
+					member_flag = 1;
+				}
 		} else if(j == -1 || !(tip_str[j] == '_' || kisalnum(tip_str[j]))) {
+			if(member_flag)
+				break;
 			member_pos = j;
-			member_pos = -1;
+			member_count = -1;
+			tiplen = kstrlen(&tip_str[j + 1]);
 			break;
 		}
 	}
 	if(!member_flag) {
 		for(j=0; j<count; j++) {
-			if(!kstrncmp(tip_str, varity_base[j].get_name(), tiplen)) {
+			if(!kstrncmp(tip_str + member_pos + 1, varity_base[j].get_name(), tiplen)) {
 				i++;
 				if(i == no)
 					return varity_base[j].get_name() + tiplen;
@@ -2416,18 +2422,39 @@ char* c_interpreter::code_complete_callback(char *tip_str, int no)
 		count = c_interpreter::language_elment_space.function_list.get_count();
 		function_info *function_base = (function_info*)c_interpreter::language_elment_space.function_list.get_base_addr();
 		for(j=0; j<count; j++) {
-			if(!kstrncmp(tip_str, function_base[j].get_name(), tiplen)) {
+			if(!kstrncmp(tip_str + member_pos + 1, function_base[j].get_name(), tiplen)) {
 				i++;
 				if(i == no)
 					return function_base[j].get_name() + tiplen;
 			}
 		}
 	} else {
-		varity_info *varity_ptr;
-		tip_str[member_pos] = 0;
-		int ret;// = this->get_expression_type(tip_str + j + 1, varity_ptr);
-		if(ret == TOKEN_NAME) {
-			
+		varity_info *varity_ptr = NULL;
+		//tip_str[member_pos] = 0;
+		tiplen = kstrlen(&tip_str[member_pos + member_count]);
+		int ret = myinterpreter.get_expression_type(tip_str + j + 1, varity_ptr);
+		if(ret == TOKEN_NAME && varity_ptr) {
+			PLATFORM_WORD *complex_ptr = varity_ptr->get_complex_ptr();
+			struct_info *struct_info_ptr = NULL;
+			count = varity_ptr->get_complex_arg_count();
+			if(GET_COMPLEX_DATA(complex_ptr[count]) == STRUCT) {
+				struct_info_ptr = (struct_info*)complex_ptr[count - 1];
+				tip_str[member_pos] = '.';
+			} else if(GET_COMPLEX_TYPE(complex_ptr[count]) == PTR && GET_COMPLEX_DATA(complex_ptr[count - 1]) == STRUCT) {
+				struct_info_ptr = (struct_info*)complex_ptr[count - 2];
+				tip_str[member_pos] = '-';
+			}
+			if(struct_info_ptr) {
+				count = struct_info_ptr->varity_stack_ptr->get_count();
+				varity_base = (varity_info*)struct_info_ptr->varity_stack_ptr->get_base_addr();
+				for(j=0; j<count; j++) {
+					if(!kstrncmp(tip_str + member_pos + 1, varity_base[j].get_name(), tiplen)) {
+						i++;
+						if(i == no)
+							return varity_base[j].get_name() + tiplen;
+					}
+				}
+			}
 		}
 	}
 	return NULL;

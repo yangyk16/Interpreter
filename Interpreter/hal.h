@@ -19,11 +19,11 @@ public:
 #if TTY_TYPE == 0 
 class tty: public terminal {
 public:
-	tty(int echo_en): terminal(echo_en) {}
+	tty(int echo_en);
 	//virtual int readline(char* str, char code_ch, code_fptr callback);
 	virtual int t_putc(char);
 	virtual int t_getc(char *ch);
-	virtual void dispose(void){};
+	virtual void dispose(void);
 };
 #elif TTY_TYPE == 1
 class uart: public terminal {
