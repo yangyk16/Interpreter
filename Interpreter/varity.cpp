@@ -72,8 +72,8 @@ void varity_info::config_complex_info(int complex_arg_count, PLATFORM_WORD* info
 
 void varity_info::arg_init(char* name, uint size, int arg_count, PLATFORM_WORD *complex_ptr, void* offset)
 {
-	this->content_ptr = offset;
 	this->init_varity(name, size, arg_count, complex_ptr);
+	this->content_ptr = offset;
 }
 
 void varity_info::init_varity(char *name, uint size, int arg_count, PLATFORM_WORD *complex_ptr)
