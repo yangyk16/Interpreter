@@ -2734,12 +2734,28 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 		}
 	}
 
-	if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == L_BIG_BRACKET && nonseq_info->non_seq_struct_depth) {
-		nonseq_info->brace_depth++;
-		if(nonseq_info->last_non_seq_check_ret) {
-			this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1] = SET_BRACE(1, nonseq_info->brace_depth);
-		} else {
+	if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == L_BIG_BRACKET) {
+		if(nonseq_info->non_seq_struct_depth) {
+			nonseq_info->brace_depth++;
+			if(nonseq_info->last_non_seq_check_ret) {
+				this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1] = SET_BRACE(1, nonseq_info->brace_depth);
+			} else {
+				this->varity_declare->local_varity_stack->endeep();
+			}
+		} else if(nonseq_info->row_num == 0) {
+			nonseq_info->brace_depth++;
+			exec_flag_bak = this->exec_flag;
+			if(exec_flag_bak == true)
+				this->varity_global_flag = VARITY_SCOPE_LOCAL;
+			this->exec_flag = EXEC_FLAG_FALSE;
 			this->varity_declare->local_varity_stack->endeep();
+			this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth] = SET_BRACE(1, nonseq_info->brace_depth);
+			nonseq_info->row_info_node[nonseq_info->row_num].non_seq_info = 0;
+			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_BRACE;
+			nonseq_info->non_seq_struct_depth++;
+			nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth = nonseq_info->non_seq_struct_depth;
+			nonseq_info->row_info_node[nonseq_info->row_num].nonseq_type = nonseq_info->non_seq_check_ret;
+			ret = OK_NONSEQ_DEFINE;
 		}
 	} else if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == R_BIG_BRACKET && count) {
 		if(nonseq_info->brace_depth > 0) {
@@ -2917,12 +2933,14 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 				return ERROR_FUNC_ERROR;
 			}
 			this->function_flag_set.function_begin_flag = 0;
+			node_ptr[0].data = L_BIG_BRACKET_F;
 		}
-		if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == L_BIG_BRACKET) {
+		if(node_ptr[0].node_type == TOKEN_OTHER && (node_ptr[0].data == L_BIG_BRACKET || node_ptr[0].data == L_BIG_BRACKET_F)) {
 			this->function_flag_set.brace_depth++;
 		} else if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == R_BIG_BRACKET) {
 			this->function_flag_set.brace_depth--;
 			if(!this->function_flag_set.brace_depth) {
+				node_ptr[0].data == R_BIG_BRACKET_F;
 				mid_code *mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr(), *code_end_ptr = mid_code_ptr;
 				mid_code_ptr->ret_operator = CTL_BXLR;
 				mid_code_ptr->opdb_addr = ((varity_info*)current_function_ptr->arg_list->visit_element_by_index(0))->get_type();//return value type.

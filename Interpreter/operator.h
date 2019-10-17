@@ -85,6 +85,8 @@
 
 #define L_BIG_BRACKET			100
 #define R_BIG_BRACKET			101
+#define L_BIG_BRACKET_F			102
+#define R_BIG_BRACKET_F			103
 
 #define CTL_BRANCH				80
 #define CTL_BRANCH_TRUE			81
