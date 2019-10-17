@@ -110,8 +110,9 @@ typedef struct nonseq_info_struct_s {
 	char* non_seq_begin_addr[MAX_STACK_INDEX];
 	char nonseq_begin_bracket_stack[MAX_STACK_INDEX];
 	char non_seq_type_stack[MAX_STACK_INDEX];
-	int nonseq_begin_stack_ptr;
-	int stack_frame_size;
+	char nonseq_analyse_status;
+	//int nonseq_begin_stack_ptr;
+	//int stack_frame_size;
 	void reset(void);
 } nonseq_info_struct;
 
@@ -303,6 +304,7 @@ class c_interpreter {
 	int struct_analysis(node_attribute_t*, uint);
 	int struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
 	int non_seq_struct_analysis(node_attribute_t*, uint);
+	int non_seq_struct_analysis2(node_attribute_t*, uint);
 	int varity_declare_analysis(node_attribute_t*, int);
 	int label_analysis(node_attribute_t*, int);
 	int sentence_exec(node_attribute_t*, uint, bool);
