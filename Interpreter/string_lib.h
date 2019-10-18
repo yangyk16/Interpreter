@@ -23,4 +23,11 @@ int cmd_enter(char *str, int no);
 char* cmd_up(int no);
 char* cmd_down(int no);
 int cmd_dispose(int no);
+#ifdef __cplusplus
+extern "C" {
+#endif
+int read_codeline(void* tty, char* string, char ch, char *(*callback)(char*, int));
+#ifdef __cplusplus
+}
+#endif
 #endif

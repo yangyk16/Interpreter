@@ -211,6 +211,11 @@ int sub_replace(char* str, int index, int sublen, char* substr)
 	return sub_str_len - sublen;
 }
 
+extern "C" int read_codeline(void* tty, char* string, char ch, char *(*callback)(char*, int))
+{
+	return ((terminal*)tty)->readline(string, ch, callback);
+}
+
 #define CMD_LOG_COUNT   5
 unsigned char cmd_count[2] = {0};
 char cmd_pos[2] = {-1, -1};
