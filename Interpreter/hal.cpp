@@ -62,6 +62,7 @@ int terminal::readline(char* string, char ch, code_fptr callback)//最后必须补0
 	char c;
 	int i = 0, j;
 	int ret;
+	static int lastch;
 	int complete_flag = 0;
 	char *word = string;
 	int i_bak;
@@ -70,10 +71,20 @@ int terminal::readline(char* string, char ch, code_fptr callback)//最后必须补0
 
 	*string = 0;
 	while((ret = this->t_getc(&c)) == 1) {
-		if(c == '\n')
+		if(c == '\n') {
+			if(lastch == '\r') {
+				lastch = c;
+				continue;
+			} else {
+				lastch = c;
+				break;
+			}
+		}
+		if(c == '\r') {
+			lastch = c;
+			this->t_putc(c);
 			break;
-		if(c == '\r')
-			continue;
+		}
 		switch(escape_flag) {
 			char *cmd_str;
 			case 0:
@@ -164,6 +175,7 @@ int terminal::readline(char* string, char ch, code_fptr callback)//最后必须补0
 			*string = 0;
 			if(this->echo_en)
 				this->t_putc(c);
+			lastch = c;
 		}
 	}
 	*string='\0';

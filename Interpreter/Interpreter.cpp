@@ -2295,7 +2295,7 @@ int c_interpreter::pre_treat(uint len)
 				case OPT_EDGE:
 					if(!bracket_depth) {
 						this->interprete_need_ptr->row_pretreat_fifo.write(interprete_need_ptr->sentence_buf + rptr + token_len, len - token_len);
-						interprete_need_ptr->sentence_buf[rptr + token_len + 1] = 0;
+						interprete_need_ptr->sentence_buf[rptr + token_len] = 0;
 					}
 				}
 			} else if(raw_token_ptr[i].node_type == TOKEN_OTHER) {
@@ -3994,6 +3994,8 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 int c_interpreter::sentence_exec(node_attribute_t* node_ptr, uint count, bool need_semicolon)
 {
 	int ret;
+	if(!count)
+		return ERROR_NO;
 	if(node_ptr[0].node_type == TOKEN_OTHER)
 		return ERROR_NO;
 	if(need_semicolon) {

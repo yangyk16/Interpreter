@@ -119,7 +119,9 @@ extern "C" int db(int argc, char **argv)
 		optind = 1;
 	myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 1, stack_size);
 	irq_interpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 0, stack_size);
-	myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
+	ret = myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
+	if(ret)
+		return ret;
 	ret = myinterpreter.run_main(STOP_FLAG_STOP, load_base, bss_base);
 	myinterpreter.dispose();
 	return ret;
