@@ -12,7 +12,7 @@
 #include <stdio.h>
 using namespace std;
 
-tty::tty(int echo_en): terminal(echo_en)
+tty::tty(char echo_en): terminal(echo_en)
 {
 #ifdef __GNUC__
 	system("stty raw");
@@ -62,7 +62,6 @@ int terminal::readline(char* string, char ch, code_fptr callback)//最后必须补0
 	char c;
 	int i = 0, j;
 	int ret;
-	static int lastch;
 	int complete_flag = 0;
 	char *word = string;
 	int i_bak;
@@ -72,16 +71,16 @@ int terminal::readline(char* string, char ch, code_fptr callback)//最后必须补0
 	*string = 0;
 	while((ret = this->t_getc(&c)) == 1) {
 		if(c == '\n') {
-			if(lastch == '\r') {
-				lastch = c;
+			if(this->last_ch == '\r') {
+				this->last_ch = c;
 				continue;
 			} else {
-				lastch = c;
+				this->last_ch = c;
 				break;
 			}
 		}
 		if(c == '\r') {
-			lastch = c;
+			this->last_ch = c;
 			this->t_putc(c);
 			break;
 		}
@@ -175,7 +174,7 @@ int terminal::readline(char* string, char ch, code_fptr callback)//最后必须补0
 			*string = 0;
 			if(this->echo_en)
 				this->t_putc(c);
-			lastch = c;
+			this->last_ch = c;
 		}
 	}
 	*string='\0';

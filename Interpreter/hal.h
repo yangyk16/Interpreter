@@ -6,9 +6,10 @@
 #include "config.h"
 typedef char *(*code_fptr)(char*, int);
 class terminal{
-	int echo_en;
+	char echo_en;
+	char last_ch;
 public:
-	terminal(int echo_en) {this->echo_en = echo_en;}
+	terminal(char echo_en) {this->echo_en = echo_en; this->last_ch = 0;}
 	int readline(char* str, char code_ch, code_fptr callback);
 	int t_puts(char *str) {for(int i=0; str[i]; i++) this->t_putc(str[i]); return 0;}
 	virtual int t_putc(char) = 0;
@@ -19,7 +20,7 @@ public:
 #if TTY_TYPE == 0 
 class tty: public terminal {
 public:
-	tty(int echo_en);
+	tty(char echo_en);
 	//virtual int readline(char* str, char code_ch, code_fptr callback);
 	virtual int t_putc(char);
 	virtual int t_getc(char *ch);
@@ -28,7 +29,7 @@ public:
 #elif TTY_TYPE == 1
 class uart: public terminal {
 public:
-	uart(int echo_en): terminal(echo_en) {}
+	uart(char echo_en): terminal(echo_en) {}
 	//virtual int readline(char* str, char code_ch, code_fptr callback);
 	virtual int t_putc(char);
 	virtual int t_getc(char *ch);
@@ -38,7 +39,7 @@ public:
 class file: public terminal {
 	void *file_ptr;
 public:
-	file(int echo_en): terminal(echo_en) {}
+	file(char echo_en): terminal(echo_en) {}
 	//virtual int readline(char* str, char code_ch, code_fptr callback);
 	virtual int t_putc(char ch){return 0;}
 	virtual int t_getc(char *ch);
