@@ -11,6 +11,7 @@ extern tty stdio;
 extern uart stdio;
 #endif
 extern file fileio;
+extern file lfileio;
 extern stack string_stack;
 extern stack name_stack;
 extern strfifo name_fifo;

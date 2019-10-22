@@ -2478,9 +2478,10 @@ int c_interpreter::run_interpreter(void)
 			if(this->tty_used == &stdio)
 				kprintf(">>> ");
 			len = tty_used->readline(interprete_need_ptr->sentence_buf, '`', c_interpreter::code_complete_callback);
+			this->tty_used->line++;
 			if(len == -1) {
-				//TODO: terminal close. file.close();
 				if(this->tty_used == &fileio) {
+					this->tty_used->dispose();
 				}
 				break;
 			}
@@ -2508,19 +2509,28 @@ int c_interpreter::run_interpreter(void)
 		if(ret < 0)
 			if(this->tty_used == &stdio)
 				continue;
-			else
+			else {
+				error("line %d error.\n", this->tty_used->line);
 				break;
+			}
+		if(this->tty_log) {
+			this->tty_log->t_puts(this->interprete_need_ptr->sentence_buf);
+			this->tty_log->t_putc('\n');
+		}
 		this->post_treat();
 		if(ret == OK_FUNC_RETURN)
 			break;
 	}
+	if(this->tty_log)
+		this->tty_log->dispose();
 	return ret;
 }
 
-int c_interpreter::set_tty(terminal* tty)
+void c_interpreter::set_tty(terminal* tty, terminal* ttylog)
 {
-	this->tty_used = tty;
-	return ERROR_NO;
+	if(tty)
+		this->tty_used = tty;
+	this->tty_log = ttylog;
 }
 
 int c_interpreter::init(terminal* tty_used, int rtl_flag, int interprete_need, int stack_size)
@@ -4548,9 +4558,10 @@ void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 int c_interpreter::open_ref(char *file)
 {
 	int ret;
-	terminal *ttybak = this->get_tty();
-	this->set_tty(&fileio);
-	ret = fileio.init(file);
+	terminal *ttybak, *ttylogbak;
+	this->get_tty(&ttybak, &ttylogbak);
+	this->set_tty(&fileio, 0);
+	ret = fileio.init(file, "r");
 	if(ret)
 		return ret;
 	int count = this->interprete_need_ptr->row_pretreat_fifo.get_count();
@@ -4569,7 +4580,7 @@ int c_interpreter::open_ref(char *file)
 	this->pc = pc_bak;
 	this->interprete_need_ptr->row_pretreat_fifo.write(pretreat_fifo_bak, count);
 	vfree(pretreat_fifo_bak);
-	this->set_tty(ttybak);
+	this->set_tty(ttybak, ttylogbak);
 	return ret;
 
 }

@@ -11,10 +11,11 @@ extern "C" int cc(int argc, char **argv)
 	int link_flag = LINK_ADDR;
 	int extra_flag = 0;
 	const char *output_file_name = NULL;
+	const char *log_file_name = NULL;
 	char *fun_file_name = NULL;
 	void *load_base, *bss_base;
 	int stack_size = STACK_SIZE;
-	while((ch = kgetopt(argc, (char**)argv, "iceo:rg")) != (char)-1) {
+	while((ch = kgetopt(argc, (char**)argv, "iceo:rgw:")) != (char)-1) {
 		switch(ch) {
 		case 'i':
 			link_flag = LINK_ADDR;
@@ -27,6 +28,9 @@ extern "C" int cc(int argc, char **argv)
 			break;
 		case 'o':
 			output_file_name = optarg;
+			break;
+		case 'w':
+			log_file_name = optarg;
 			break;
 		case 'r':
 			run_flag = 1;
@@ -53,9 +57,13 @@ extern "C" int cc(int argc, char **argv)
 				myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 1, stack_size);
 			} else {
 				myinterpreter.init(&fileio, RTL_FLAG_IMMEDIATELY, 1, stack_size);
-				ret = fileio.init(argv[optind]);
+				ret = fileio.init(argv[optind], "r");
 				if(ret)
 					return ret;
+			}
+			if(log_file_name) {
+				lfileio.init(log_file_name, "w");
+				myinterpreter.set_tty(0, &lfileio);
 			}
 			irq_interpreter.init(&stdio, 1, 0, stack_size);
 			myinterpreter.run_interpreter();
@@ -65,7 +73,7 @@ extern "C" int cc(int argc, char **argv)
 		{
 			int file_count = argc - optind;
 			for(int i=0; i<file_count; i++) {
-				ret = fileio.init(argv[optind + i]);
+				ret = fileio.init(argv[optind + i], "r");
 				if(ret) {
 					error("open file %s failed\n", argv[optind + i]);
 					return ERROR_FILE;

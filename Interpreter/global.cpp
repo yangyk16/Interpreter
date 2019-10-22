@@ -7,6 +7,7 @@ tty stdio(0);
 uart stdio(1);
 #endif
 file fileio(0);
+file lfileio(0);
 stack string_stack;
 stack name_stack;
 strfifo name_fifo;

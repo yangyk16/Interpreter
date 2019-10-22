@@ -273,6 +273,7 @@ class c_interpreter {
 	node *root;
 	interprete_need_t *interprete_need_ptr;
 	terminal* tty_used;
+	terminal* tty_log;
 	nonseq_info_struct* nonseq_info;
 	struct_info_struct struct_info_set;
 	function_flag_struct function_flag_set;
@@ -404,8 +405,8 @@ public:
 	int exec_mid_code(mid_code *pc, uint count);
 	void set_break_flag(int flag) {break_flag = flag;}
 	int print_call_stack(void);
-	int set_tty(terminal*);
-	terminal* get_tty(void) {return this->tty_used;}
+	void set_tty(terminal*, terminal*);
+	void get_tty(terminal** ttyused, terminal** ttylog) {if(ttyused) *ttyused = this->tty_used; if(ttylog) *ttylog = this->tty_log;}
 	int init(terminal*, int, int, int);
 	int dispose(void);
 	int run_interpreter(void);

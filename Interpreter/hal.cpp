@@ -191,9 +191,14 @@ int file::t_getc(char *ch)
 	return kfread(ch, 1, 1, file_ptr);
 }
 
-int file::init(char *filename)
+int file::t_putc(char ch)
 {
-	file_ptr = kfopen(filename, "r");
+	return kfwrite(&ch, 1, 1, this->file_ptr);
+}
+
+int file::init(const char *filename, char *mode)
+{
+	file_ptr = kfopen(filename, mode);
 	if(file_ptr)
 		return 0;
 	else
@@ -202,7 +207,7 @@ int file::init(char *filename)
 
 void file::dispose(void)
 {
-	vfree(file_ptr);
+	kfclose(file_ptr);
 }
 
 int kfputs(char *str)
@@ -244,8 +249,11 @@ int kfclose(void *fp)
 #if TTY_TYPE == 0
 	return fclose((FILE*)fp);
 #else
-	vfree(fp);
-	return f_close((FIL*)fp);
+	if(fp) {
+		vfree(fp);
+		return f_close((FIL*)fp);
+	}
+	return 0;
 #endif
 }
 
