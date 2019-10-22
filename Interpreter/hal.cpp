@@ -164,16 +164,24 @@ int terminal::readline(char* string, char ch, code_fptr callback)//×îºó±ØÐë²¹0
 
 		if(c == '\b') {
 			if((int)string2 < (int)string) {
-				this->t_puts("\b \b");
-				*--string = 0;
+				if(*--string == '\t')
+					this->t_puts("\b\b\b\b");
+				else
+					this->t_puts("\b \b");
+				*string = 0;
 				i--;
 			}
 		} else if(c != ch) {
+			if(c == '\t') {
+				if(this->echo_en)
+					this->t_puts("    ");
+			} else {
+				if(this->echo_en)
+					this->t_putc(c);
+			}
 			i++;
 			*string++ = c;
 			*string = 0;
-			if(this->echo_en)
-				this->t_putc(c);
 			this->last_ch = c;
 		}
 	}

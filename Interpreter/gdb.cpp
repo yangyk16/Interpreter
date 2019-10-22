@@ -368,7 +368,7 @@ int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction
 		if(line >= 0)
 			gdbout("Running to function %s line %d.\n", (fptr ? fptr->get_name() : "main"), line);
 		else
-			gdbout("No debug information for function.\n");
+			warning("No debug information for function.\n");
 		while(1) {
 			instruction_ptr->break_flag &= ~BREAKPOINT_STEP;
 			gdbout("gdb>");
