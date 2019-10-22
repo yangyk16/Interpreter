@@ -407,6 +407,10 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	unsigned int function_total_size;
 	int i, j;
 	kfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr);
+	if(compile_info.sum32 != calc_sum32((int*)&compile_info, sizeof(this->compile_info) - sizeof(int))) {
+		error("Not an ELF file.\n");
+		return ERROR_FILE;
+	}
 	function_info *function_info_ptr = (function_info*)dmalloc(sizeof(function_info), "all infos base");
 	kfread(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
 	void *str_base = dmalloc(compile_string_info.string_size + compile_string_info.name_size, "string base");
@@ -830,6 +834,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 								+ compile_function_info.code_map_size + compile_function_info.local_varity_size
 								+ compile_varity_info.data_size + compile_struct_info.varity_size;
 	debug("total size=%d\n", this->compile_info.total_size);
+	this->compile_info.sum32 = calc_sum32((int*)&this->compile_info, sizeof(this->compile_info) - sizeof(int));
 	kfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr);
 	kfwrite(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
 	//kfwrite(string_info_ptr, sizeof(string_info), this->compile_string_info.string_count, file_ptr);

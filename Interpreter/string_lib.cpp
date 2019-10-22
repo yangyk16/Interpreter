@@ -273,3 +273,12 @@ int cmd_dispose(int no)
 		if(cmd_str[no][i]) kfree(cmd_str[no][i]);
 	return 0;
 }
+
+unsigned int calc_sum32(int *p, int len)
+{
+	int sum = 0;
+	for(int i=0; i<len/sizeof(int); i++) {
+		sum += p[i];
+	}
+	return sum;
+}

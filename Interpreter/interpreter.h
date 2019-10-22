@@ -211,7 +211,7 @@ typedef struct compile_info_s {
 	unsigned int string_size;
 	unsigned short export_flag;
 	unsigned short extra_flag;
-	unsigned int struct_flag;
+	unsigned int sum32;
 } compile_info_t;
 
 typedef struct compile_function_info_s {
