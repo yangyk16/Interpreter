@@ -40,7 +40,9 @@ extern "C" int cc(int argc, char **argv)
 	if(run_flag) {
 		myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 0, stack_size);
 		irq_interpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 0, stack_size);
-		myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
+		ret = myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
+		if(ret)
+			return ret;
 		ret = myinterpreter.run_main(STOP_FLAG_RUN, load_base, bss_base);
 		myinterpreter.dispose();
 		return ret;
@@ -51,7 +53,9 @@ extern "C" int cc(int argc, char **argv)
 				myinterpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 1, stack_size);
 			} else {
 				myinterpreter.init(&fileio, RTL_FLAG_IMMEDIATELY, 1, stack_size);
-				fileio.init(argv[optind]);
+				ret = fileio.init(argv[optind]);
+				if(ret)
+					return ret;
 			}
 			irq_interpreter.init(&stdio, 1, 0, stack_size);
 			myinterpreter.run_interpreter();
@@ -72,6 +76,10 @@ extern "C" int cc(int argc, char **argv)
 				int len = kstrlen(argv[optind + i]);
 				argv[optind + i][len - 1] = 'o';
 				ret = myinterpreter.tlink(LINK_STRNO);
+				if(ret) {
+					error("compile error\n");
+					return ret;
+				}
 				tip("compile finish, writing to disk...\n");
 				//compile(argv[optind + i], EXPORT_FLAG_LINK);
 				myinterpreter.write_ofile(argv[optind + i], EXPORT_FLAG_LINK, extra_flag);
