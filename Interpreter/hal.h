@@ -10,7 +10,8 @@ class terminal{
 	char last_ch;
 public:
 	short line;
-	terminal(char echo_en) {this->echo_en = echo_en; this->last_ch = 0; this->line = 0;}
+	terminal(char echo_en) {this->echo_en = echo_en;}
+	void init(void) {this->last_ch = 0; this->line = 0;}
 	int readline(char* str, char code_ch, code_fptr callback);
 	int t_puts(char *str) {for(int i=0; str[i]; i++) this->t_putc(str[i]); return 0;}
 	virtual int t_putc(char) = 0;

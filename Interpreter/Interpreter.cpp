@@ -2406,6 +2406,7 @@ char* c_interpreter::code_complete_callback(char *tip_str, int no)
 					tip_str[member_pos = j - 1] = 0;
 					member_count= 2;
 					member_flag = 1;
+					j--;
 				}
 		} else if(j == -1 || !(tip_str[j] == '_' || kisalnum(tip_str[j]))) {
 			if(member_flag)
@@ -2445,7 +2446,7 @@ char* c_interpreter::code_complete_callback(char *tip_str, int no)
 			if(GET_COMPLEX_DATA(complex_ptr[count]) == STRUCT) {
 				struct_info_ptr = (struct_info*)complex_ptr[count - 1];
 				tip_str[member_pos] = '.';
-			} else if(GET_COMPLEX_TYPE(complex_ptr[count]) == PTR && GET_COMPLEX_DATA(complex_ptr[count - 1]) == STRUCT) {
+			} else if(GET_COMPLEX_TYPE(complex_ptr[count]) == COMPLEX_PTR && GET_COMPLEX_DATA(complex_ptr[count - 1]) == STRUCT) {
 				struct_info_ptr = (struct_info*)complex_ptr[count - 2];
 				tip_str[member_pos] = '-';
 			}
@@ -2453,7 +2454,7 @@ char* c_interpreter::code_complete_callback(char *tip_str, int no)
 				count = struct_info_ptr->varity_stack_ptr->get_count();
 				varity_base = (varity_info*)struct_info_ptr->varity_stack_ptr->get_base_addr();
 				for(j=0; j<count; j++) {
-					if(!kstrncmp(tip_str + member_pos + 1, varity_base[j].get_name(), tiplen)) {
+					if(!kstrncmp(tip_str + member_pos + member_count, varity_base[j].get_name(), tiplen)) {
 						i++;
 						if(i == no)
 							return varity_base[j].get_name() + tiplen;
@@ -2580,6 +2581,7 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag, int interprete_need, i
 	//this->nonseq_info->nonseq_begin_stack_ptr = 0;
 	this->real_time_link = rtl_flag;
 	this->tty_used = tty_used;
+	this->tty_used->init();
 	this->call_func_info.function_depth = 0;
 	this->call_func_info.para_offset = PLATFORM_WORD_LEN;
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
