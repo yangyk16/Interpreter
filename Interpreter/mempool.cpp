@@ -165,7 +165,11 @@ void* dmalloc(unsigned int size, const char *info)
 {
 	unsigned int a_size = size&7?size+(8-(size&7)):size;
 	void* ret = kmalloc(a_size);
+#if INTERPRETER_DEBUG
 	debug("malloc %x, %d, %s\n", ret, size, info);
+#else
+	debug("malloc %x, %d\n", ret, size);
+#endif
 	if(ret) {
 		//size = size&7?size+(8-size&7):size;
 		//debug("malloc %x, %d\n", ret, size);

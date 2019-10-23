@@ -3,15 +3,31 @@
 #define CSTDLIB_H
 
 #include <stdarg.h>
+#include "config.h"
 
 #ifndef NULL
 #define NULL 0
 #endif
 
+#define PRINT_LEVEL_DEBUG	6
+#define PRINT_LEVEL_WARNING	5
+#define PRINT_LEVEL_ERROR	4
+#define PRINT_LEVEL_FATAL	3
+#define PRINT_LEVEL_TIP		1
+#define PRINT_LEVEL_GDBOUT	1
+#define PRINT_LEVEL_MASKALL	0
+
+#if INTERPRETER_DEBUG
+#define PRINT_LEVEL_DEFAULT	PRINT_LEVEL_DEBUG
+#else
+#define PRINT_LEVEL_DEFAULT	PRINT_LEVEL_WARNING
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
 int kprintf(const char *fmt, ...);
+int kprintf_l(int level, const char *fmt, ...);
+void set_print_level(int level);
 int ksprintf(char *buf, const char *fmt, ...);
 void* kmemcpy(void *d, const void *s, unsigned int size);
 void* kmemmove(void *d, const void *s, unsigned int size);
@@ -34,4 +50,10 @@ int kisalnum(int ch);
 void *dmalloc(unsigned int size, char *info);
 void vfree(void*);
 void* vrealloc(void* addr, unsigned int size);
+
+#define debug(fmt, ...) kprintf_l(PRINT_LEVEL_DEBUG, fmt, ##__VA_ARGS__)
+#define tip(fmt, ...) kprintf_l(PRINT_LEVEL_TIP, fmt, ##__VA_ARGS__)
+#define error(fmt, ...)	kprintf_l(PRINT_LEVEL_ERROR, "\033[31m" fmt "\033[0m", ##__VA_ARGS__)
+#define warning(fmt, ...) kprintf_l(PRINT_LEVEL_WARNING, "\033[33m" fmt "\033[0m", ##__VA_ARGS__)
+#define gdbout(fmt, ...) kprintf_l(PRINT_LEVEL_GDBOUT, fmt, ##__VA_ARGS__)
 #endif

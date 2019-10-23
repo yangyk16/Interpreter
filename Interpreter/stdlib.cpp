@@ -1,5 +1,4 @@
 #include <stdarg.h>
-#include <stdio.h>
 #include "hal.h"
 #include "cstdlib.h"
 #include "kmalloc.h"
@@ -351,6 +350,26 @@ extern "C" int kprintf(const char *fmt, ...)
 	va_end(ap);
 	kfputs(string);
 	return len;
+}
+
+static int print_level = PRINT_LEVEL_DEFAULT;
+extern "C" int kprintf_l(int level, const char *fmt, ...)
+{
+	int ret = 0;
+	if(level <= print_level) {
+		char string[0x400]; 
+		va_list ap;
+		va_start(ap, fmt);
+		ret = kvsprintf(string, fmt, ap);
+		kfputs(string);
+		va_end(ap);
+	}
+	return ret;
+}
+
+extern "C" void set_print_level(int level)
+{
+	print_level = level;
 }
 
 extern "C" int ksprintf(char *buf, const char *fmt, ...)

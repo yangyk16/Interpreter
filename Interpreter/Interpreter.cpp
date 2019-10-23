@@ -2438,7 +2438,9 @@ char* c_interpreter::code_complete_callback(char *tip_str, int no)
 		varity_info *varity_ptr = NULL;
 		//tip_str[member_pos] = 0;
 		tiplen = kstrlen(&tip_str[member_pos + member_count]);
+		set_print_level(PRINT_LEVEL_MASKALL);
 		int ret = myinterpreter.get_expression_type(tip_str + j + 1, varity_ptr);
+		set_print_level(PRINT_LEVEL_DEFAULT);
 		if(ret == TOKEN_NAME && varity_ptr) {
 			PLATFORM_WORD *complex_ptr = varity_ptr->get_complex_ptr();
 			struct_info *struct_info_ptr = NULL;
