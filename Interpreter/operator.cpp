@@ -2118,7 +2118,7 @@ int try_assign_handle(int opda_type, int opdb_type, int opda_complex_count, int 
 	}
 	return opda_type;
 wrong:
-	error("Can't assign.\n");
+	//error("Can't assign.\n");
 	return ERROR_ILLEGAL_OPERAND;
 }
 
@@ -2134,7 +2134,7 @@ int try_plus_handle(int opda_type, int opdb_type, int opda_complex_count, int *o
 		goto wrong;
 	}
 wrong:
-	error("Can't plus.\n");
+	//error("Can't plus.\n");
 	return ERROR_ILLEGAL_OPERAND;
 }
 
@@ -2160,7 +2160,7 @@ int try_minus_handle(int opda_type, int opdb_type, int opda_complex_count, int *
 		goto wrong;
 	return ERROR_NO;
 wrong:
-	error("Can't minus.\n");
+	//error("Can't minus.\n");
 	return ERROR_ILLEGAL_OPERAND;
 }
 
@@ -2190,7 +2190,7 @@ int try_compare_handle(int opda_type, int opdb_type, int opda_complex_count, int
 		goto wrong;
 	return ERROR_NO;
 wrong:
-	error("Can't compare.\n");
+	//error("Can't compare.\n");
 	return ERROR_ILLEGAL_OPERAND;
 }
 
@@ -2200,7 +2200,7 @@ int try_mod_handle(int opda_type, int opdb_type, int opda_complex_count, int *op
 		goto wrong;
 	return ERROR_NO;
 wrong:
-	error("Can't mod.\n");
+	//error("Can't mod.\n");
 	return ERROR_ILLEGAL_OPERAND;
 }
 

@@ -38,6 +38,7 @@ int c_interpreter::list_to_tree(node* tree_node, list_stack* post_order_stack)
 	if(!tree_node->right) {
 		last_node = (node*)post_order_stack->pop();
 		if(!last_node) {
+			tip_wrong(((node_attribute_t*)tree_node->value)->pos);
 			error("Operand insufficient.\n");
 			return ERROR_OPERAND_LACKED;
 		}
@@ -83,6 +84,7 @@ int c_interpreter::list_to_tree(node* tree_node, list_stack* post_order_stack)
 	if(!tree_node->left) {
 		last_node = (node*)post_order_stack->pop();
 		if(!last_node) {
+			tip_wrong(((node_attribute_t*)tree_node->value)->pos);
 			error("Operand insufficient.\n");
 			return ERROR_OPERAND_LACKED;
 		}
@@ -1113,12 +1115,14 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		varity_info *member_varity_ptr;
 		if(opt == OPT_MEMBER) {
 			if(instruction_ptr->opda_varity_type != STRUCT) {
-				error("Only struct can use member operator.\n");
+				tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
+				error("Only struct can use . operator.\n");
 				RETURN(ERROR_ILLEGAL_OPERAND);
 			}
 		} else {
 			if(avarity_ptr->get_complex_arg_count() != 3 || GET_COMPLEX_DATA(((PLATFORM_WORD*)avarity_ptr->get_complex_ptr())[2]) != STRUCT || GET_COMPLEX_TYPE(((PLATFORM_WORD*)avarity_ptr->get_complex_ptr())[3]) != COMPLEX_PTR) {
-				error("Only pointer to struct can use reference operator.\n");
+				tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
+				error("Only pointer to struct can use -> operator.\n");
 				RETURN(ERROR_ILLEGAL_OPERAND);
 			}
 		}
@@ -1127,6 +1131,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		varity_number = this->interprete_need_ptr->mid_varity_stack.get_count();
 		member_varity_ptr = (varity_info*)struct_info_ptr->varity_stack_ptr->find(node_attribute->value.ptr_value);
 		if(!member_varity_ptr) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 			error("No member in struct.\n");
 			RETURN(ERROR_STRUCT_MEMBER);
 		}
@@ -1188,6 +1193,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			((node_attribute_t*)opt_node_ptr->value)->value_type = instruction_ptr->opda_operand_type;
 			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
 		} else {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 			error("No array or ptr varity for using [].\n");
 			RETURN(ERROR_USED_INDEX);
 		}
@@ -1205,11 +1211,13 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		}
 		if(opt == OPT_PLUS)
 			ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr, avarity_ptr, bvarity_ptr);
-		else if(opt == OPT_MINUS)//减法可用两个指针减，改用cmp的try_handle
+		else if(opt == OPT_MINUS)//TODO: 减法可用两个指针减，改用cmp的try_handle
 			ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr, avarity_ptr, bvarity_ptr);
 		else
 			ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
+			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
 			RETURN(ret_type);
 		}
 		varity_number = this->interprete_need_ptr->mid_varity_stack.get_count();
@@ -1245,6 +1253,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_SMALL:
 		ret_type = try_call_opt_handle(OPT_EQU, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
+			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
 			RETURN(ret_type);
 		}
 		ret_type = INT;
@@ -1267,6 +1277,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_BIT_XOR_ASSIGN:
 	case OPT_BIT_OR_ASSIGN:
 		if(instruction_ptr->opda_varity_type > U_LONG_LONG || instruction_ptr->opdb_varity_type > U_LONG_LONG) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 			error("Need int type operand.\n");
 			RETURN(ERROR_ILLEGAL_OPERAND);
 		}
@@ -1274,6 +1285,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_ASSIGN:
 		ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
+			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
 			RETURN(ret_type);
 		}
 		goto assign_general;
@@ -1281,18 +1294,23 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_DEVIDE_ASSIGN:
 		ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
+			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
 			RETURN(ret_type);
 		}
 		goto assign_general;
 	case OPT_ADD_ASSIGN:
 		ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
+			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
 			RETURN(ret_type);
 		}
 		if(ret_type == PTR) {
 			if(instruction_ptr->opda_varity_type == PTR)
 				goto assign_general;
 			else {
+				tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 				error("Can't plus assign.\n"); 
 				RETURN(ret_type);
 			}
@@ -1301,6 +1319,8 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	case OPT_MINUS_ASSIGN:
 		ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
+			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
 			RETURN(ret_type);
 		}
 		if(ret_type == instruction_ptr->opda_varity_type)
@@ -1308,14 +1328,18 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		else
 			ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
+			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
 			RETURN(ret_type);
 		}
 		goto assign_general;
 assign_general:
 		if(instruction_ptr->opda_operand_type == OPERAND_T_VARITY) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 			error("Assign operator need left value.\n");
 			RETURN(ERROR_NEED_LEFT_VALUE);
 		} else if(instruction_ptr->opda_operand_type == OPERAND_CONST) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 			error("Const value assigned.\n");
 			RETURN(ERROR_CONST_ASSIGNED);
 		} else {
@@ -1343,6 +1367,7 @@ assign_general:
 	case OPT_L_PLUS_PLUS:
 	case OPT_L_MINUS_MINUS:
 		if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 			error("++ operator need left value.\n");
 			RETURN(ERROR_NEED_LEFT_VALUE);
 		}
@@ -1362,10 +1387,12 @@ assign_general:
 	case OPT_R_PLUS_PLUS:
 	case OPT_R_MINUS_MINUS:
 		if(instruction_ptr->opdb_operand_type == OPERAND_T_VARITY) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 			error("++ operator need left value.\n");
 			RETURN(ERROR_NEED_LEFT_VALUE);
 		}
 		if(instruction_ptr->opdb_operand_type == OPERAND_CONST) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 			error("++ operator cannot used for const.\n");
 			RETURN(ERROR_CONST_ASSIGNED);
 		}
@@ -1445,6 +1472,8 @@ assign_general:
 	case OPT_ASR:
 		ret_type = try_call_opt_handle(OPT_MOD, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
+			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
 			RETURN(ret_type);
 		}
 	case OPT_NOT:
@@ -1557,6 +1586,7 @@ assign_general:
 #endif
 				if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
 					if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
+						tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 						error("Too many parameters\n");
 						RETURN(ERROR_FUNC_ARGS);
 					} else {//可变参数
@@ -1724,6 +1754,7 @@ assign_general:
 		} else if(((node_attribute_t*)opt_node_ptr->right->value)->node_type == TOKEN_OPERATOR && ((node_attribute_t*)opt_node_ptr->right->value)->data == OPT_TYPE_CONVERT) {
 			((node_attribute_t*)opt_node_ptr->value)->value.int_value = get_varity_size(0, (PLATFORM_WORD*)((node_attribute_t*)opt_node_ptr->right->value)->value.ptr_value, ((node_attribute_t*)opt_node_ptr->right->value)->count);
 		} else {
+			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 			error("Wrong use of sizeof.\n");
 			RETURN(ERROR_SIZEOF);
 		}
@@ -3304,7 +3335,8 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 		if(ret) {
 			while(this->interprete_need_ptr->mid_varity_stack.get_count()) {
 				varity_info *tmp_varity_ptr = (varity_info*)this->interprete_need_ptr->mid_varity_stack.pop();
-				dec_varity_ref(tmp_varity_ptr, true);
+				if(tmp_varity_ptr->get_complex_arg_count())
+					dec_varity_ref(tmp_varity_ptr, true);
 			}
 			this->cur_mid_code_stack_ptr->del_element_to(current_code_count);
 			this->call_func_info.function_depth = 0;
