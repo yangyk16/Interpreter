@@ -282,3 +282,11 @@ unsigned int calc_sum32(int *p, int len)
 	}
 	return sum;
 }
+
+int tip_wrong(int pos, char *str)
+{
+	for(int i=0; i<pos+4; i++)
+		error(" ");
+	error("^\n");
+	return 0;
+}

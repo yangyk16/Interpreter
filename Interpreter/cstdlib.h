@@ -9,6 +9,16 @@
 #define NULL 0
 #endif
 
+#ifndef WIN32
+#define GREEN_SEQ "\033[31m"
+#define YELLOW_SEQ "\033[33m"
+#define BLACK_SEQ "\033[0m"
+#else
+#define GREEN_SEQ
+#define YELLOW_SEQ
+#define BLACK_SEQ
+#endif
+
 #define PRINT_LEVEL_DEBUG	6
 #define PRINT_LEVEL_WARNING	5
 #define PRINT_LEVEL_ERROR	4
@@ -53,7 +63,7 @@ void* vrealloc(void* addr, unsigned int size);
 
 #define debug(fmt, ...) kprintf_l(PRINT_LEVEL_DEBUG, fmt, ##__VA_ARGS__)
 #define tip(fmt, ...) kprintf_l(PRINT_LEVEL_TIP, fmt, ##__VA_ARGS__)
-#define error(fmt, ...)	kprintf_l(PRINT_LEVEL_ERROR, "\033[31m" fmt "\033[0m", ##__VA_ARGS__)
-#define warning(fmt, ...) kprintf_l(PRINT_LEVEL_WARNING, "\033[33m" fmt "\033[0m", ##__VA_ARGS__)
+#define error(fmt, ...)	kprintf_l(PRINT_LEVEL_ERROR, GREEN_SEQ fmt BLACK_SEQ, ##__VA_ARGS__)
+#define warning(fmt, ...) kprintf_l(PRINT_LEVEL_WARNING, YELLOW_SEQ fmt BLACK_SEQ, ##__VA_ARGS__)
 #define gdbout(fmt, ...) kprintf_l(PRINT_LEVEL_GDBOUT, fmt, ##__VA_ARGS__)
 #endif

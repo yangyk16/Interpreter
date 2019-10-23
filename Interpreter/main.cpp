@@ -3,6 +3,7 @@
 
 #ifdef WIN32
 #include "stdafx.h"
+#include <windows.h>
 #endif
 #include "interpreter.h"
 #include <stdlib.h>
@@ -133,6 +134,26 @@ int exec(void)
         return -1;
 }
 
+#ifdef WIN32
+bool OpenANSIControlChar()
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE) 
+	{ 
+		return false;
+	}
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode)) {
+		return false;
+	}
+    dwMode |= 0x4;
+    if (!SetConsoleMode(hOut, dwMode)) {
+		return false;
+	}
+    return true;
+}
+#endif
+
 char cmdstr[256];
 #ifdef WIN32
 int _tmain(int argc, _TCHAR* argv[])
@@ -144,6 +165,7 @@ int main(int argc, char *argv[])
 #ifdef WIN32
 	for(int i=1; i<argc; i++)
 		tch2ch((char*)argv[i]);
+	int ret = OpenANSIControlChar();
 #endif
 	global_init();
 	//for(int i=0; i<sizeof(cmdset)/sizeof(tool_cmd); i++) {

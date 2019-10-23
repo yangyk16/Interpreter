@@ -1032,6 +1032,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 				if(opt != OPT_CALL_FUNC) {
 					avarity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
 					if(!avarity_ptr) {
+						tip_wrong(node_attribute->pos);
 						error("Varity not exist.\n");
 						return ERROR_VARITY_NONEXIST;
 					}
@@ -1081,6 +1082,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 					if(!bvarity_ptr) {
 						bvarity_ptr = (varity_info*)this->function_declare->find(node_attribute->value.ptr_value);
 						if(!bvarity_ptr) {
+							tip_wrong(node_attribute->pos);
 							error("Varity not exist.\n");
 							return ERROR_VARITY_NONEXIST;
 						}
@@ -1713,6 +1715,7 @@ assign_general:
 			if(rvarity_ptr) {
 				((node_attribute_t*)opt_node_ptr->value)->value.int_value = get_varity_size(0, rvarity_ptr->get_complex_ptr(), rvarity_ptr->get_complex_arg_count());
 			} else {
+				tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 				error("Varity not exist.\n");
 				RETURN(ERROR_VARITY_NONEXIST);
 			}
@@ -1784,6 +1787,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					int varity_scope;
 					varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
 					if(!varity_ptr) {
+						tip_wrong(node_attribute->pos);
 						error("Varity not exist.\n");
 						return ERROR_VARITY_NONEXIST;
 					}
@@ -1941,10 +1945,12 @@ int c_interpreter::generate_token_list(char *str, uint len)
 	int token_len;
 	node_attribute_t *raw_token_ptr = (node_attribute_t*)this->interprete_need_ptr->mid_code_stack.get_current_ptr();
 	int i = 0;
+	char *strbeg = str;
 	while(len > 0) {
 		token_len = get_token(str, &raw_token_ptr[i]);
 		if(token_len < 0)
 			return token_len;
+		raw_token_ptr[i].pos = str - strbeg;
 		len -= token_len;
 		str += token_len;
 		if(raw_token_ptr[i].node_type != TOKEN_NONEXIST)
@@ -2277,6 +2283,7 @@ int c_interpreter::pre_treat(uint len)
 		token_len = get_token(str + rptr, &raw_token_ptr[i]);
 		if(token_len < 0)
 			return token_len;
+		raw_token_ptr[i].pos += rptr;
 		if(raw_token_ptr[i].node_type != TOKEN_NONEXIST) {
 			if(raw_token_ptr[i].node_type == TOKEN_OPERATOR) {
 				switch(raw_token_ptr[i].data) {
@@ -3370,6 +3377,7 @@ int c_interpreter::generate_expression_value(stack *code_stack_ptr, node_attribu
 			varity_ptr = this->varity_declare->vfind(node_attribute->value.ptr_value, varity_scope);
 			if(!varity_ptr) {
 				this->interprete_need_ptr->mid_varity_stack.pop();
+				tip_wrong(node_attribute->pos);
 				error("Varity not exist.\n");
 				return ERROR_VARITY_NONEXIST;
 			}
@@ -4048,6 +4056,7 @@ int c_interpreter::get_token(char *str, node_attribute_t *info)
 	while(str[i] == ' ' || str[i] == '\t')i++;
 	real_token_pos = i;
 	kmemset(info, 0, sizeof(node_attribute_t));
+	info->pos = i;
 	if(is_letter(str[i])) {
 		i++;
 		for(int j=sizeof(type_key)/sizeof(type_key[0])-1; j>=0; j--) {//避免多段字符串构成的类型检测不到，使用strncmp

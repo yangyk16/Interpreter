@@ -142,7 +142,8 @@ typedef struct node_attribute_s {
 	char value_type;//”≈œ»º∂
 	char data;
 	char count;
-	int reserve;
+	short pos;
+	short reserve;
 } node_attribute_t;
 
 typedef struct language_element_space {
