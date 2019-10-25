@@ -4235,13 +4235,13 @@ int_value_handle:
 				string_info *str_node_ptr = (string_info*)string_stack.find(symbol_ptr);
 				if(str_node_ptr) {
 					p = (char*)str_node_ptr->get_name();
-					info->value.int_value = str_node_ptr->index;
+					//info->value.int_value = str_node_ptr->index;
 				} else {
 					string_info str_info;
 					p = (char*)dmalloc(count + 1, "string space");
 					str_info.set_name(p);
-					str_info.index = string_stack.get_count();
-					info->value.int_value = str_info.index;
+					//str_info.index = string_stack.get_count();
+					//info->value.int_value = str_info.index;
 					kstrcpy(p, symbol_ptr);
 					string_stack.push(&str_info);
 				}

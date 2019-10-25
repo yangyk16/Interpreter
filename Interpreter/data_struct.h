@@ -15,7 +15,7 @@ public:
 };
 
 typedef struct string_info_s: public element {
-	unsigned int index;
+	//unsigned int index;
 } string_info;
 
 class data_struct {
