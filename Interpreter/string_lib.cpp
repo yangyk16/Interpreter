@@ -192,7 +192,7 @@ bool is_non_zero(int type, void* addr)
 int find_token_with_bracket_level(node_attribute_t* node_list, int n, node_attribute_t *node, int level)
 {
 	for(int i=0, cur_level=0; i<n; i++) {
-		if(!kmemcmp(&node_list[i], node, sizeof(node_attribute_t)) && level == cur_level) {
+		if(!kmemcmp(&node_list[i], node, sizeof(node_attribute_t) - 4) && level == cur_level) {//can't cmp pos & reserve
 			return i;
 		} else if((node_list[i].data == OPT_L_SMALL_BRACKET || node_list[i].data == OPT_L_MID_BRACKET) && node_list[i].node_type == TOKEN_OPERATOR) {
 			cur_level++;

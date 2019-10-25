@@ -1000,7 +1000,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 	register mid_code *instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
 	int varity_number;
 	bool avarity_use_flag = 0, bvarity_use_flag = 0;
-	//void *avarity_info = 0, *bvarity_info = 0;
+	int ret;
 	int function_flag = 0;
 	if(opt_number[opt] > 1) {
 		node_attribute = (node_attribute_t*)opt_node_ptr->left->value;//判断是否是双目，单目不能看左树
@@ -1217,7 +1217,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
-			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
+			error("Can't use operator %s here\n", opt_str[opt]);
 			RETURN(ret_type);
 		}
 		varity_number = this->interprete_need_ptr->mid_varity_stack.get_count();
@@ -1254,7 +1254,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		ret_type = try_call_opt_handle(OPT_EQU, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
-			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
+			error("Can't use operator %s here\n", opt_str[opt]);
 			RETURN(ret_type);
 		}
 		ret_type = INT;
@@ -1286,7 +1286,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
-			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
+			error("Can't use operator %s here\n", opt_str[opt]);
 			RETURN(ret_type);
 		}
 		goto assign_general;
@@ -1295,7 +1295,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		ret_type = try_call_opt_handle(OPT_MUL, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
-			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
+			error("Can't use operator %s here\n", opt_str[opt]);
 			RETURN(ret_type);
 		}
 		goto assign_general;
@@ -1303,7 +1303,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		ret_type = try_call_opt_handle(OPT_PLUS, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
-			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
+			error("Can't use operator %s here\n", opt_str[opt]);
 			RETURN(ret_type);
 		}
 		if(ret_type == PTR) {
@@ -1320,7 +1320,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		ret_type = try_call_opt_handle(OPT_MINUS, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
-			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
+			error("Can't use operator %s here\n", opt_str[opt]);
 			RETURN(ret_type);
 		}
 		if(ret_type == instruction_ptr->opda_varity_type)
@@ -1329,7 +1329,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			ret_type = try_call_opt_handle(OPT_ASSIGN, instruction_ptr, avarity_ptr, bvarity_ptr);
 		if(ret_type < 0) {
 			tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
-			error("Can't use operator %s here\n", opt_str[instruction_ptr->ret_operator]);
+			error("Can't use operator %s here\n", opt_str[opt]);
 			RETURN(ret_type);
 		}
 		goto assign_general;
@@ -2329,7 +2329,7 @@ int c_interpreter::pre_treat(uint len)
 						return ERROR_BRACKET_UNMATCH;
 					}
 				case OPT_R_MID_BRACKET:
-					if(bracket_depth-- > 0 && bracket_stack[bracket_depth] == OPT_R_MID_BRACKET) {
+					if(bracket_depth-- > 0 && bracket_stack[bracket_depth] == OPT_L_MID_BRACKET) {
 						break;
 					} else {
 						error("Bracket unmatch.\n");
@@ -2997,7 +2997,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 		} else if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == R_BIG_BRACKET) {
 			this->function_flag_set.brace_depth--;
 			if(!this->function_flag_set.brace_depth) {
-				node_ptr[0].data == R_BIG_BRACKET_F;
+				node_ptr[0].data = R_BIG_BRACKET_F;
 				mid_code *mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr(), *code_end_ptr = mid_code_ptr;
 				mid_code_ptr->ret_operator = CTL_BXLR;
 				mid_code_ptr->opdb_addr = ((varity_info*)current_function_ptr->arg_list->visit_element_by_index(0))->get_type();//return value type.
