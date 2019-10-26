@@ -313,7 +313,6 @@ int c_interpreter::ulink(stack *stack_ptr, int mode)
 		error("function %s not exist\n", symbol_name);
 		break;
 	}
-	error("link error\n");
 	return link_ret;
 }
 
@@ -336,8 +335,13 @@ int c_interpreter::tlink(int mode)
 		return ERROR_NOMAIN;
 	}
 	for(int i=0; i<count; i++) {
-		if(!function_base[i].compile_func_flag)
-			this->ulink(&function_base[i].mid_code_stack, mode);
+		if(!function_base[i].compile_func_flag) {
+			int ret = this->ulink(&function_base[i].mid_code_stack, mode);
+			if(ret) {
+				error("function %s link error\n", function_base[i].get_name());
+				return ret;
+			}
+		}
 	}
 
 	return ERROR_NO;
@@ -1826,7 +1830,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 						instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
 					else
 						instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
-					instruction_ptr->opdb_addr = (int)varity_ptr->get_content_ptr();
+					instruction_ptr->opdb_addr = (int)varity_ptr->get_name();
 					instruction_ptr->opdb_varity_type = varity_ptr->get_type();
 				}
 			}
@@ -3302,6 +3306,8 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 	//		debug("%s\n",tmp->value.ptr_value);
 	//	else if(tmp->node_type == TOKEN_STRING)
 	//		debug("%s\n", tmp->value.ptr_value);
+	//	else if(tmp->node_type == TOKEN_CONST_VALUE)
+	//		debug("%d\n", tmp->value.int_value);
 	//	else
 	//		debug("%d %d\n",tmp->data,tmp->value_type);
 	//}
@@ -4402,7 +4408,7 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 				continue;
 normal_bracket:
 				//if(i > 0 && (node_ptr[i - 1].node_type == TOKEN_NAME || node_ptr[i - 1].node_type == TOKEN_OPERATOR && (node_ptr[i - 1].data == OPT_R_SMALL_BRACKET || node_ptr[i - 1].data == OPT_R_MID_BRACKET))) {
-				if(i > 0 && (node_ptr[i - 1].node_type == TOKEN_NAME || node_ptr[wptr - 1].node_type == TOKEN_OPERATOR && (node_ptr[wptr - 1].data == OPT_R_SMALL_BRACKET || node_ptr[wptr - 1].data == OPT_R_MID_BRACKET))) {
+				if(i > 0 && (node_ptr[i - 1].node_type == TOKEN_NAME || this->token_node_ptr[wptr - 1].node_type == TOKEN_OPERATOR && (this->token_node_ptr[wptr - 1].data == OPT_R_SMALL_BRACKET || this->token_node_ptr[wptr - 1].data == OPT_R_MID_BRACKET))) {
 					this->token_node_ptr[wptr] = node_ptr[i];
 					this->token_node_ptr[wptr++].data = OPT_CALL_FUNC;
 					this->token_node_ptr[wptr++] = node_ptr[i];

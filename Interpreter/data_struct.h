@@ -30,12 +30,18 @@ public:
 	inline uint get_count(void) {return this->count;}
 };
 
+typedef struct str_list {
+	char *next;
+	//char *last;
+} str_list;
+
 class strfifo: public data_struct {
-	uint wptr;
 public:
 	char* write(const char*);
 	int del(char*);
-	void init(uint count);
+	char* get_real_wptr(uint count, int &remain);
+	char* get_new_block(uint count);
+	void init(uint length);
 	void dispose(void);
 };
 
@@ -65,7 +71,7 @@ protected:
 	uint top;
 public:
 	void push(void*);
-	void push(void) {this->top += this->element_size; this->count++;}
+	void push(void);
 	void* pop(void);
 	virtual void* find(const char*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}

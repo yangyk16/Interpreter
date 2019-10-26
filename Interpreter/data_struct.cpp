@@ -55,6 +55,12 @@ void stack::push(void* eptr)
 	this->count++;
 }
 
+void stack::push(void)
+{
+	this->top += this->element_size;
+	this->count++;
+}
+
 void* stack::pop(void)
 {
 	if(count == 0) {
@@ -303,33 +309,59 @@ int list_stack::del(node *obj)
 	}
 }
 
+char* strfifo::get_real_wptr(uint count, int &remain)
+{
+	void *block_base = this->bottom_addr;
+	int block_count = count / this->length;
+	for(int i=0; i<block_count; i++)
+		block_base = ((str_list*)block_base)->next;
+	remain = this->length * (block_count + 1) - count;
+	return (char*)block_base + sizeof(str_list) + count - block_count * this->length;
+}
+
+char* strfifo::get_new_block(uint count)
+{
+	if(this->length >= count)
+		return (char*)this->bottom_addr;
+	else {
+		void *block_base = this->bottom_addr;
+		int block_count = count / this->length;
+		for(int i=0; i<block_count-1; i++)
+			block_base = ((str_list*)block_base)->next;
+		return ((str_list*)block_base)->next = (char*)dmalloc(this->length + sizeof(str_list), "string fifo new block");
+	}
+}
+
 char* strfifo::write(const char *str)
 {
-	char *ret = (char*)this->bottom_addr + this->wptr;
+	int remain;
+	char *wptr = this->get_real_wptr(this->count, remain);
 	unsigned int len = kstrlen(str) + 1;
-	if(this->count - this->wptr < len) {
-		this->bottom_addr = krealloc(this->bottom_addr, this->count *= 2);
-		if(!this->bottom_addr)
-			return NULL;
+	this->count += len;
+	if(remain >= len) {
+		kmemcpy(wptr, str, len);
+	} else {
+		this->count += remain;
+		wptr = this->get_new_block(this->count);
+		kmemcpy(wptr, str, len);
 	}
-	kmemcpy((char*)this->bottom_addr + this->wptr, str, len);
-	this->wptr += len;
-	return ret;
+	return wptr;
 }
 
 void strfifo::dispose(void)
 {
-	vfree(this->bottom_addr);
+	if(this->bottom_addr)
+		vfree(this->bottom_addr);
 	this->bottom_addr = 0;
 }
 
-void strfifo::init(uint count)
+void strfifo::init(uint length)
 {
 	if(!this->bottom_addr)
-		this->bottom_addr = dmalloc(count, "string fifo base");
+		this->bottom_addr = dmalloc(length + sizeof(str_list), "string fifo base");
 	this->element_size = 1;
-	this->wptr = 0;
-	this->count = count;
+	this->count = 0;
+	this->length = length;
 }
 
 int strfifo::del(char* str)
@@ -339,6 +371,6 @@ int strfifo::del(char* str)
 		return -1;
 	len = kstrlen(str) + 1;
 	kmemmove(str, str + len, len);
-	this->wptr -= len;
+	//this->wptr -= len;
 	return 0;
 }
