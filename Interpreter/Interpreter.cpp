@@ -2235,7 +2235,7 @@ int c_interpreter::preprocess(char *str, int &len)
 					if(!macro_ptr->macro_arg_name[0]) {//no para macro
 						delta_len = sub_replace(str, index, ret, macro_ptr->macro_instead_str);
 						index += ret + delta_len;
-						len += ret + delta_len;
+						len += delta_len;
 					} else {
 						int extra_len = get_token(str + index + ret, &node);
 						int para_begin_pos[3] = {0}, para_end_pos;
@@ -2915,6 +2915,9 @@ int c_interpreter::generate_compile_func(void)
 	static stack memcpy_stack;
 	this->generate_arg_list("void*,void*,void*,unsigned int;", 4, memcpy_stack);
 	this->function_declare->add_compile_func("memcpy", (void*)kmemcpy, &memcpy_stack, 0);
+	static stack memcmp_stack;
+	this->generate_arg_list("int,void*,void*,unsigned int;", 4, memcmp_stack);
+	this->function_declare->add_compile_func("memcmp", (void*)kmemcmp, &memcmp_stack, 0);
 	static stack memset_stack;
 	this->generate_arg_list("void*,void*,int,unsigned int;", 4, memset_stack);
 	this->function_declare->add_compile_func("memset", (void*)kmemset, &memset_stack, 0);
@@ -4241,7 +4244,7 @@ int_value_handle:
 				string_info *str_node_ptr = (string_info*)string_stack.find(symbol_ptr);
 				if(str_node_ptr) {
 					p = (char*)str_node_ptr->get_name();
-					//info->value.int_value = str_node_ptr->index;
+					info->value.int_value = str_node_ptr - (string_info*)string_stack.get_base_addr();
 				} else {
 					string_info str_info;
 					p = (char*)dmalloc(count + 1, "string space");
