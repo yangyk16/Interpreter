@@ -619,7 +619,7 @@ negative_calc:
 		return -ans;
 }
 
-extern "C" int kisspace(int ch) {return ch == ' ';}
+extern "C" int kisspace(int ch) {return ch == ' ' || ch == '\t';}
 extern "C" int kislower(int ch) {return ch >= 'a' && ch <= 'z';}
 extern "C" int kisupper(int ch) {return ch >= 'A' && ch <= 'Z';}
 extern "C" int kisdigit(int ch) {return ch >= '0' && ch <= '9';}

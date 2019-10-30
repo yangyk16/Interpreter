@@ -2107,7 +2107,7 @@ int c_interpreter::preprocess(char *str, int &len)
 	macro_info *macro_ptr;
 	if(str[0] == '#') {
 		str++;
-		if(!kstrncmp(str, "define", 6) && str[6] == ' ') {
+		if(!kstrncmp(str, "define", 6) && kisspace(str[6])) {
 			int para_count = 0;
 			int status = 0;
 			str += 7;
@@ -2118,7 +2118,7 @@ int c_interpreter::preprocess(char *str, int &len)
 				macro_info.set_name(node.value.ptr_value);
 				str += ret;
 				ret = get_token(str, &node);
-				if(node.node_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET) {
+				if(node.node_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET && node.pos == 0) {
 					while(1) {
 						str += ret;
 						ret = get_token(str, &node);
@@ -2303,13 +2303,12 @@ int c_interpreter::preprocess(char *str, int &len)
 	}
 }
 
-int c_interpreter::pre_treat(uint len)
+int c_interpreter::pre_treat(char *str, uint len)
 {
 	int spacenum = 0;
 	int rptr = 0, wptr = 0, first_word = 1, space_flag = 0;
 	int string_flag = 0;
 	char bracket_stack[32], bracket_depth = 0;
-	char *str = this->interprete_need_ptr->sentence_buf;
 	interprete_need_ptr->str_count_bak = string_stack.get_count();
 
 	int i = 0, token_len;
@@ -2538,9 +2537,9 @@ int c_interpreter::run_interpreter(void)
 		}
 #endif
 		ret = preprocess(this->interprete_need_ptr->sentence_buf, len);
-		if(ret == OK_PREPROCESS)
+		if(ret == OK_PREPROCESS || ret < 0)
 			continue;
-		len = pre_treat(len);
+		len = pre_treat(this->interprete_need_ptr->sentence_buf, len);
 		if(len < 0)
 			continue;
 		ret = this->token_convert((node_attribute_t*)this->interprete_need_ptr->mid_code_stack.get_current_ptr(), len);

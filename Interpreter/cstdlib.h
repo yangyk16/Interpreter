@@ -50,6 +50,7 @@ int kstrncmp(const char *str1, const char *str2, unsigned int size);
 char *kstrcpy(char *d, const char *s);
 int katoi(const char* sptr);
 double katof(const char* sptr);
+int kisspace(int ch);
 int kisdigit(int ch);
 int kisupper(int ch);
 int kislower(int ch);
