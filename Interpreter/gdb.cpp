@@ -285,7 +285,6 @@ cmd_t cmd_tab[] = {
 
 int gdb::parse(char *cmd_str)
 {
-begin:
 	int char_index = 0;
 	int char_total_index = 0;
 	char last_char = ' ';
@@ -333,8 +332,6 @@ begin:
 	}
 	if(argc >= 0)
 		argv[argc][char_index] = 0;
-	else
-		goto begin;
 	argc++;
 	return argc;
 }

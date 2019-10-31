@@ -346,10 +346,10 @@ void irq_reg(int irq_no, void *func_ptr, void *data)
 #endif
 }
 
-int hard_fault_check(int addr)
+int hard_fault_check(unsigned int addr)
 {
 #if TTY_TYPE == 1
-	if(addr < 0x200000 || addr >= 0x14000000 || (addr > 0x37FFFF && addr < 0x2000000) || (addr > 0x2400000 && addr <= 0x10000000)) {
+	if(addr < 0x200000 || addr >= 0x14000000 && addr < 0xFFFF0000 || (addr > 0x37FFFF && addr < 0x2000000) || (addr > 0x2400000 && addr <= 0x10000000)) {
 		return ERROR_HARD_FAULT;
 	}
 #else
