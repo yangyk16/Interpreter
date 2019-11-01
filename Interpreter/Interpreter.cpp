@@ -1826,11 +1826,14 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 						error("Varity not exist.\n");
 						return ERROR_VARITY_NONEXIST;
 					}
-					if(varity_scope == VARITY_SCOPE_GLOBAL)
+					if (varity_scope == VARITY_SCOPE_GLOBAL) {
 						instruction_ptr->opdb_operand_type = OPERAND_G_VARITY;
-					else
+						instruction_ptr->opdb_addr = (int)varity_ptr->get_name();
+					} else {
 						instruction_ptr->opdb_operand_type = OPERAND_L_VARITY;
-					instruction_ptr->opdb_addr = (int)varity_ptr->get_name();
+						instruction_ptr->opdb_addr = (int)varity_ptr->get_content_ptr();
+					}
+					
 					instruction_ptr->opdb_varity_type = varity_ptr->get_type();
 				}
 			}
@@ -3543,14 +3546,13 @@ int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 int c_interpreter::nonseq_mid_gen_mid_code(node_attribute_t* node_ptr, int count)
 {
 	mid_code* mid_code_ptr;
-	int cur_depth = nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth;
+	int cur_depth = nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth;
 	mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 	mid_code_ptr->ret_operator = CTL_BRANCH;
 	this->cur_mid_code_stack_ptr->push();
 	nonseq_info->row_info_node[nonseq_info->row_num].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 	for(int i=nonseq_info->row_num-1; i>=0; i--) {
-		if(nonseq_info->row_info_node[i].non_seq_depth == cur_depth + 1
-			&& nonseq_info->row_info_node[i].non_seq_info == 0) {
+		if(nonseq_info->row_info_node[i].non_seq_depth == cur_depth	&& nonseq_info->row_info_node[i].non_seq_info == 0) {
 			mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 			mid_code_ptr->opda_addr++;
 			nonseq_info->row_info_node[i].finish_flag = 1;
