@@ -353,9 +353,10 @@ int get_varity_size(int basic_type, PLATFORM_WORD *complex_info, int complex_arg
 	int &n = complex_arg_count;
 	if(basic_type <= VOID && basic_type >= CHAR)
 		return sizeof_type[basic_type];
-	else if(basic_type == STRUCT) {
+	else if(basic_type == STRUCT)
 		return ((struct_info*)complex_info[1])->struct_size;
-	}
+	else if(basic_type == PTR)
+		return PLATFORM_WORD_LEN;
 	for(int i=1; i<n+1; i++) {
 		switch(GET_COMPLEX_TYPE(complex_info[i])) {
 		case COMPLEX_BASIC:

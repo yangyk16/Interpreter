@@ -493,6 +493,8 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		}
 		if(compile_info.export_flag == EXPORT_FLAG_LINK || compile_info.extra_flag)
 			function_info_ptr->set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)function_info_ptr ->get_name()]))->get_name());
+		else
+			function_info_ptr->set_name(NULL);
 		mid_code_ptr += function_info_ptr->mid_code_stack.get_count();
 		this->function_declare->function_stack_ptr->push(function_info_ptr);
 	}
@@ -557,30 +559,28 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		}
 		kmemcpy(varity_type_info_ptr, varity_type_stack_ptr, sizeof(varity_type_stack_t));
 	}
-	varity_info *varity_info_ptr;
-	if(this->compile_info.export_flag >= EXPORT_FLAG_LINK || this->compile_info.extra_flag) {
-		varity_info_ptr = (varity_info*)((char*)varity_type_ptr + compile_varity_info.type_size);
-		for(i=0; i<compile_varity_info.varity_count; i++) {
-			kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
+	varity_info *varity_info_ptr = (varity_info*)((char*)varity_type_ptr + compile_varity_info.type_size);
+	for(i=0; i<compile_varity_info.varity_count; i++) {
+		kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
+		if(compile_info.extra_flag || compile_info.export_flag == EXPORT_FLAG_LINK)
 			varity_info_ptr->set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)varity_info_ptr->get_name()]))->get_name());
-			//int type_no = varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), (void*)((char*)varity_type_ptr + (int)varity_type_info_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()]));
-			if(compile_info.extra_flag) {
-				int type_no = varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), (varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()]));
-				if(type_no >= 0) {
-					varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), (PLATFORM_WORD*)varity_type_stack.type_info_addr[type_no]);
-				} else {
-					int complex_size = (varity_info_ptr->get_complex_arg_count() + 1) * sizeof(void*);
-					PLATFORM_WORD *complex_ptr = (PLATFORM_WORD*)dmalloc(complex_size, "complex info ptr");
-					kmemcpy(complex_ptr, varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()], complex_size);
-					varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), complex_ptr);
-					varity_type_stack.arg_count[varity_type_stack.count] = varity_info_ptr->get_complex_arg_count();
-					varity_type_stack.type_info_addr[varity_type_stack.count] = complex_ptr;
-					varity_type_stack.push();
-				}
+		if(compile_info.extra_flag) {
+			int type_no = varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), (varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()]));
+			if(type_no >= 0) {
+				varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), (PLATFORM_WORD*)varity_type_stack.type_info_addr[type_no]);
+			} else {
+				int complex_size = (varity_info_ptr->get_complex_arg_count() + 1) * sizeof(void*);
+				PLATFORM_WORD *complex_ptr = (PLATFORM_WORD*)dmalloc(complex_size, "complex info ptr");
+				kmemcpy(complex_ptr, varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()], complex_size);
+				varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), complex_ptr);
+				varity_type_stack.arg_count[varity_type_stack.count] = varity_info_ptr->get_complex_arg_count();
+				varity_type_stack.type_info_addr[varity_type_stack.count] = complex_ptr;
+				varity_type_stack.push();
 			}
-			this->varity_declare->global_varity_stack->push(varity_info_ptr);
 		}
+		this->varity_declare->global_varity_stack->push(varity_info_ptr);
 	}
+
 	for(i=0; i<compile_function_info.function_count; i++) {
 		function_info *function_info_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 		if(compile_info.extra_flag) {
@@ -1687,7 +1687,7 @@ assign_general:
 			}
 			instruction_ptr->opda_varity_type = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) / PLATFORM_WORD_LEN;
 			instruction_ptr->data = this->varity_declare->local_varity_stack->offset;
-			instruction_ptr->opdb_addr = this->interprete_need_ptr->mid_varity_stack.get_count() * 8;
+			instruction_ptr->opdb_addr = this->interprete_need_ptr->mid_varity_stack.get_count() * 8;//TODO:==ret_addr? use opdb to log struct return size.
 			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
@@ -4040,11 +4040,13 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 					generate_mid_code(node_ptr, exp_len, false);
 					mid_code *code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 					kmemcpy(&code_ptr->opdb_addr, &(code_ptr - 1)->opda_addr, sizeof(code_ptr->opda_addr) + sizeof(code_ptr->opda_operand_type) + sizeof(code_ptr->double_space1) + sizeof(code_ptr->opda_varity_type));
-					code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_content_ptr();
-					if(this->varity_global_flag == VARITY_SCOPE_LOCAL)
+					if(this->varity_global_flag == VARITY_SCOPE_LOCAL) {
+						code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_content_ptr();
 						code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_L_VARITY;
-					else
+					} else {
+						code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_name();
 						code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_G_VARITY;
+					}
 					code_ptr->ret_varity_type = code_ptr->opda_varity_type = new_varity_ptr->get_type();
 					code_ptr->data = new_varity_ptr->get_element_size();
 					code_ptr->ret_operator = OPT_ASSIGN;

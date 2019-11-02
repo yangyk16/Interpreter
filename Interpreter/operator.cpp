@@ -680,7 +680,8 @@ int c_interpreter::opt_asl_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_ARG_INT_OPT_EXEC(<<);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -695,7 +696,8 @@ int c_interpreter::opt_asr_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_ARG_INT_OPT_EXEC(>>);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -710,7 +712,8 @@ int c_interpreter::opt_big_equ_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_RET_INT_OPT_EXEC(>=);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -725,7 +728,8 @@ int c_interpreter::opt_small_equ_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_RET_INT_OPT_EXEC(<=);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -740,7 +744,8 @@ int c_interpreter::opt_equ_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_RET_INT_OPT_EXEC(==);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -755,7 +760,8 @@ int c_interpreter::opt_not_equ_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_RET_INT_OPT_EXEC(!=);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -767,7 +773,8 @@ int c_interpreter::opt_devide_assign_handle(c_interpreter *interpreter_ptr)
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
 	ASSIGN_OPT_EXEC(/=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
-	interpreter_ptr->last_ret_abs_addr = opda_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)opda_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->opda_varity_type;
 	return ERROR_NO;
 }
 
@@ -779,7 +786,8 @@ int c_interpreter::opt_mul_assign_handle(c_interpreter *interpreter_ptr)
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
 	ASSIGN_OPT_EXEC(*=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
-	interpreter_ptr->last_ret_abs_addr = opda_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)opda_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->opda_varity_type;
 	return ERROR_NO;
 }
 
@@ -791,7 +799,8 @@ int c_interpreter::opt_mod_assign_handle(c_interpreter *interpreter_ptr)
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
 	ASSIGN_OPT_INT_EXEC(%=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
-	interpreter_ptr->last_ret_abs_addr = opda_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)opda_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->opda_varity_type;
 	return ERROR_NO;
 }
 
@@ -976,7 +985,8 @@ int c_interpreter::opt_add_assign_handle(c_interpreter *interpreter_ptr)
 			break;
 		}
 	}
-	interpreter_ptr->last_ret_abs_addr = opda_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)opda_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->opda_varity_type;
 	return 0;
 }
 
@@ -1161,7 +1171,8 @@ int c_interpreter::opt_minus_assign_handle(c_interpreter *interpreter_ptr)
 			break;
 		}
 	}
-	interpreter_ptr->last_ret_abs_addr = opda_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)opda_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->opda_varity_type;
 	return ERROR_NO;
 }
 
@@ -1173,7 +1184,8 @@ int c_interpreter::opt_bit_and_assign_handle(c_interpreter *interpreter_ptr)
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
 	ASSIGN_OPT_INT_EXEC(&=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
-	interpreter_ptr->last_ret_abs_addr = opda_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)opda_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->opda_varity_type;
 	return ERROR_NO;
 }
 
@@ -1185,7 +1197,8 @@ int c_interpreter::opt_xor_assign_handle(c_interpreter *interpreter_ptr)
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
 	ASSIGN_OPT_INT_EXEC(^=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
-	interpreter_ptr->last_ret_abs_addr = opda_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)opda_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->opda_varity_type;
 	return ERROR_NO;
 }
 
@@ -1197,7 +1210,8 @@ int c_interpreter::opt_bit_or_assign_handle(c_interpreter *interpreter_ptr)
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
 	ASSIGN_OPT_INT_EXEC(|=, instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type, opda_addr, opdb_addr);
-	interpreter_ptr->last_ret_abs_addr = opda_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)opda_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->opda_varity_type;
 	return ERROR_NO;
 }
 
@@ -1213,7 +1227,8 @@ int c_interpreter::opt_and_handle(c_interpreter *interpreter_ptr)
 	if(ret)
 		return ERROR_TYPE_CONVERT;
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, &converted_varityb);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return 0;
 }
 
@@ -1229,7 +1244,8 @@ int c_interpreter::opt_or_handle(c_interpreter *interpreter_ptr)
 	if(ret)
 		return ERROR_TYPE_CONVERT;
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, &converted_varityb);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1241,7 +1257,8 @@ int c_interpreter::opt_member_handle(c_interpreter *interpreter_ptr)
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
 	PTR_N_VALUE(ret_addr) = (PLATFORM_WORD)opda_addr + PTR_N_VALUE(opdb_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1283,9 +1300,12 @@ int c_interpreter::opt_minus_handle(c_interpreter *interpreter_ptr)
 		DOUBLE_VALUE(&mid_ret) = DOUBLE_VALUE(opda_addr) - DOUBLE_VALUE(opdb_addr);
 	} else if(ret_type == FLOAT) {
 		FLOAT_VALUE(&mid_ret) = FLOAT_VALUE(opda_addr) - FLOAT_VALUE(opdb_addr);
+	} else if(ret_type == PTR) {
+		PTR_N_VALUE(&mid_ret) = PTR_N_VALUE(opda_addr) - INT_VALUE(opdb_addr) * instruction_ptr->data;
 	}
 	varity_convert(ret_addr, instruction_ptr->ret_varity_type, &mid_ret, ret_type);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1299,7 +1319,8 @@ int c_interpreter::opt_bit_revert_handle(c_interpreter *interpreter_ptr)
 	mid_type = INT;
 	UNARY_OPT_EXEC(~);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1314,7 +1335,8 @@ int c_interpreter::opt_mul_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_OPT_EXEC(*);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return 0;
 }
 
@@ -1329,7 +1351,8 @@ int c_interpreter::opt_bit_and_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_ARG_INT_OPT_EXEC(&);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1343,7 +1366,8 @@ int c_interpreter::opt_not_handle(c_interpreter *interpreter_ptr)
 	mid_type = INT;
 	UNARY_OPT_EXEC(!);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1364,7 +1388,8 @@ int c_interpreter::opt_divide_handle(c_interpreter *interpreter_ptr)
 #endif
 	BINARY_OPT_EXEC(/);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1379,7 +1404,8 @@ int c_interpreter::opt_mod_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_ARG_INT_OPT_EXEC(%);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1418,7 +1444,8 @@ ITCM_TEXT int c_interpreter::opt_plus_handle(c_interpreter *interpreter_ptr)
 		else 
 			PTR_N_VALUE(ret_addr) = (PLATFORM_WORD)opda_addr + PTR_N_VALUE(opdb_addr) * instruction_ptr->data;
 	}
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1433,7 +1460,8 @@ int c_interpreter::opt_big_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_RET_INT_OPT_EXEC(>);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1448,7 +1476,8 @@ ITCM_TEXT int c_interpreter::opt_small_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_RET_INT_OPT_EXEC(<);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1463,7 +1492,8 @@ int c_interpreter::opt_bit_xor_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_ARG_INT_OPT_EXEC(^);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1478,7 +1508,8 @@ int c_interpreter::opt_bit_or_handle(c_interpreter *interpreter_ptr)
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_ARG_INT_OPT_EXEC(|);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1709,7 +1740,8 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 			PTR_N_VALUE(opda_addr) = (PLATFORM_WORD)opdb_addr;
 		}
 	}
-	interpreter_ptr->last_ret_abs_addr = opda_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)opda_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->opda_varity_type;
 	return 0;
 }
 
@@ -1742,7 +1774,8 @@ int c_interpreter::opt_negative_handle(c_interpreter *interpreter_ptr)
 		FLOAT_VALUE(ret_addr) = - FLOAT_VALUE(opdb_addr);
 	}
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1755,7 +1788,8 @@ int c_interpreter::opt_positive_handle(c_interpreter *interpreter_ptr)
 	GET_RET_ADDR();
 	DOUBLE_VALUE(ret_addr) = DOUBLE_VALUE(opdb_addr);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1770,7 +1804,8 @@ int c_interpreter::opt_ptr_content_handle(c_interpreter *interpreter_ptr)
 	else if(instruction_ptr->opdb_varity_type == PTR) {
 		PTR_VALUE(ret_addr) = PTR_VALUE(opdb_addr);
 	}
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1781,7 +1816,8 @@ int c_interpreter::opt_address_of_handle(c_interpreter *interpreter_ptr)
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
 	PTR_VALUE(ret_addr) = opdb_addr;//生成中间变量
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1803,7 +1839,8 @@ int c_interpreter::opt_index_handle(c_interpreter *interpreter_ptr)
 		INT_VALUE(ret_addr) = (int)opda_addr + INT_VALUE(opdb_addr) * (instruction_ptr->data & ~(0xFF << 24));
 	else if(instruction_ptr->opda_varity_type == PTR)
 		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) + INT_VALUE(opdb_addr) * (instruction_ptr->data & ~(0xFF << 24));
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
 }
 
@@ -1898,7 +1935,8 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 		return ERROR_NO;
 	}
 	varity_convert(ret_addr, instruction_ptr->ret_varity_type, &ret, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
-	interpreter_ptr->last_ret_abs_addr = ret_addr;
+	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
+	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return 0;
 }
 
@@ -1941,10 +1979,9 @@ ITCM_TEXT int c_interpreter::ctl_branch_handle(c_interpreter *interpreter_ptr)
 ITCM_TEXT int c_interpreter::ctl_branch_true_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
-	mid_code *last_instruction_ptr = instruction_ptr - 1;
-	if(last_instruction_ptr->ret_varity_type < CHAR || last_instruction_ptr->ret_varity_type > U_LONG_LONG)
+	if(interpreter_ptr->cpsr.last_type < CHAR || interpreter_ptr->cpsr.last_type > U_LONG_LONG)
 		return ERROR_CONDITION_TYPE;
-	if(is_non_zero(last_instruction_ptr->ret_varity_type, interpreter_ptr->last_ret_abs_addr))
+	if(is_non_zero(interpreter_ptr->cpsr.last_type, interpreter_ptr->cpsr.last_ret_addr))
 		instruction_ptr += instruction_ptr->opda_addr - 1;
 	return ERROR_NO;
 }
@@ -1952,10 +1989,9 @@ ITCM_TEXT int c_interpreter::ctl_branch_true_handle(c_interpreter *interpreter_p
 ITCM_TEXT int c_interpreter::ctl_branch_false_handle(c_interpreter *interpreter_ptr)
 {
 	mid_code *&instruction_ptr = interpreter_ptr->pc;
-	mid_code *last_instruction_ptr = instruction_ptr - 1;
-	if(last_instruction_ptr->ret_varity_type < CHAR || last_instruction_ptr->ret_varity_type > U_LONG_LONG)
+	if(interpreter_ptr->cpsr.last_type < CHAR || interpreter_ptr->cpsr.last_type > U_LONG_LONG)
 		return ERROR_CONDITION_TYPE;
-	if(!is_non_zero(last_instruction_ptr->ret_varity_type, interpreter_ptr->last_ret_abs_addr))//TODO:确认又|| && :?等跳转指令过来的时候使用上一条的type是否合理
+	if(!is_non_zero(interpreter_ptr->cpsr.last_type, interpreter_ptr->cpsr.last_ret_addr))//TODO:确认又|| && :?等跳转指令过来的时候使用上一条的type是否合理
 		instruction_ptr += instruction_ptr->opda_addr - 1;
 	return ERROR_NO;
 }
@@ -1980,9 +2016,8 @@ int c_interpreter::ctl_bxlr_handle(c_interpreter *interpreter_ptr)
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
 	t_varity_sp += (int)instruction_ptr->opdb_addr;//24;
 	GET_RET_ADDR();
-	//function_info *function_ptr = (function_info*)instruction_ptr->opda_addr;//TODO:delete rem
-	//varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp + instruction_ptr->opdb_addr - 8, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
-	varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp + instruction_ptr->opdb_addr - 8, this_instruction_ptr->opdb_addr);
+	//varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp + instruction_ptr->opdb_addr - 8, this_instruction_ptr->opdb_addr);
+	varity_convert(ret_addr, instruction_ptr->ret_varity_type, t_varity_sp - instruction_ptr->ret_addr - 8, this_instruction_ptr->opdb_addr);
 	return ERROR_NO;
 }
 
@@ -2076,6 +2111,8 @@ int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 	if(opt_handle[instruction_ptr->ret_operator]) {
 		//tick1 = HWREG(0x2040018);
 		ret = opt_handle[instruction_ptr->ret_operator](interpreter_ptr);
+		if(gdb::get_trace_status())
+			kprintf("ret=%08x\n", *interpreter_ptr->cpsr.last_ret_addr);
 		//tick2 = HWREG(0x2040018);
 		//opt_time += tick1 - tick2;
 #if DEBUG_EN

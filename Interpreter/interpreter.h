@@ -259,6 +259,11 @@ typedef struct interprete_need_s {
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;//TODO:ÒÆµ½interprete need
 } interprete_need_t;
 
+typedef struct cpsr_s {
+	int last_type;
+	PLATFORM_WORD *last_ret_addr;
+} cpsr_t;
+
 int user_eval(char *str);
 extern "C" void global_init(void);
 extern "C" void global_dispose(void);
@@ -399,7 +404,7 @@ class c_interpreter {
 	friend int refscript(char *file);
 	friend class gdb;
 public:
-	int *last_ret_abs_addr;
+	cpsr_t cpsr;
 	int tlink(int mode);//link all function
 	int load_ofile(char *file, int flag, void **load_base, void **bss_base);
 	int write_ofile(const char *file, int export_flag, int extra_flag);
