@@ -264,6 +264,13 @@ typedef struct cpsr_s {
 	PLATFORM_WORD *last_ret_addr;
 } cpsr_t;
 
+typedef struct mid_ret_s {
+	PLATFORM_WORD *opda_addr;
+	PLATFORM_WORD *opdb_addr;
+	long long opda;
+	long long opdb;
+} mid_ret_t;
+
 int user_eval(char *str);
 extern "C" void global_init(void);
 extern "C" void global_dispose(void);
@@ -300,6 +307,7 @@ class c_interpreter {
 	char tmp_varity_stack[TMP_VARITY_STACK_SIZE];
 	bool exec_flag;
 	call_func_info_t call_func_info;
+	mid_ret_t mid_ret;
 	static preprocess_info_t preprocess_info;
 	static compile_info_t compile_info;
 	static compile_function_info_t compile_function_info;
@@ -402,6 +410,7 @@ class c_interpreter {
 	int eval(node_attribute_t*, int);
 	friend int user_eval(char *str);
 	friend int refscript(char *file);
+	friend int exec_invisible_type_convert(c_interpreter* interpreter_ptr, int*& opda_addr, int*& opdb_addr);
 	friend class gdb;
 public:
 	cpsr_t cpsr;

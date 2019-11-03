@@ -45,40 +45,6 @@ func13 func13_ptr;
 func14 func14_ptr;
 func15 func15_ptr;
 func16 func16_ptr;
-static int operator_convert(char* str, int* opt_type_ptr, int opt_pos, int* opt_len_ptr)
-{
-	if(*opt_type_ptr == OPT_PLUS || *opt_type_ptr == OPT_MINUS) {
-		if(!is_valid_c_char(str[opt_pos - 1])) {
-			if(*opt_type_ptr == OPT_PLUS) {
-				*opt_type_ptr = OPT_POSITIVE;
-			} else {
-				*opt_type_ptr = OPT_NEGATIVE;
-			}
-			return 1;
-		} else {
-			return 0;
-		}
-	} else if(*opt_type_ptr == OPT_PLUS_PLUS || *opt_type_ptr == OPT_MINUS_MINUS) {
-		if(is_valid_c_char(str[opt_pos - 1]) && is_valid_c_char(str[opt_pos + *opt_len_ptr])) {
-			if(*opt_type_ptr == OPT_PLUS_PLUS) {
-				*opt_type_ptr = OPT_PLUS;
-			} else {
-				*opt_type_ptr = OPT_MINUS;
-			}
-			*opt_len_ptr = 1;
-			return 1;
-		}
-	} else if(*opt_type_ptr == OPT_MUL || *opt_type_ptr == OPT_BIT_AND) {
-		if(!is_valid_c_char(str[opt_pos - 1])) {
-			if(*opt_type_ptr == OPT_MUL)
-				*opt_type_ptr = OPT_PTR_CONTENT;
-			else
-				*opt_type_ptr = OPT_ADDRESS_OF;
-			return 1;
-		}
-	}
-	return 0;
-}
 
 #define GET_OPDA_ADDR_NOCHECK() \
 	int *opda_addr; \
@@ -645,6 +611,31 @@ int varity_convert(void *converted_ptr, int converted_type, void *converting_ptr
 		}
 	}
 	return ERROR_NO;
+}
+
+int exec_invisible_type_convert(c_interpreter* interpreter_ptr, int*& opda_addr, int*& opdb_addr)
+{
+	register int ret_type;
+	mid_code* instruction_ptr = interpreter_ptr->pc;
+	if(instruction_ptr->opda_varity_type < VOID && instruction_ptr->opdb_varity_type < VOID) {
+		ret_type = instruction_ptr->opda_varity_type < instruction_ptr->opdb_varity_type ? instruction_ptr->opdb_varity_type : instruction_ptr->opda_varity_type;
+		if(ret_type < INT)
+			ret_type = INT;
+	} else if(instruction_ptr->opda_varity_type >= PTR && instruction_ptr->opdb_varity_type < VOID || instruction_ptr->opdb_varity_type >= PTR && instruction_ptr->opda_varity_type < VOID) {
+		ret_type = PTR;
+	} else if(instruction_ptr->opda_varity_type >= PTR && instruction_ptr->opdb_varity_type >= PTR) {
+		ret_type = INT;
+	} else
+		ret_type = INT;
+	if(instruction_ptr->opda_varity_type != ret_type && instruction_ptr->opda_varity_type < PTR) {
+		opda_addr = (int*)&interpreter_ptr->mid_ret.opda;
+		varity_convert(opda_addr, ret_type, (void*)instruction_ptr->opda_addr, instruction_ptr->opda_varity_type);
+	}
+	if (instruction_ptr->opdb_varity_type != ret_type && instruction_ptr->opdb_varity_type < PTR) {
+		opdb_addr = (int*)&interpreter_ptr->mid_ret.opdb;
+		varity_convert(opdb_addr, ret_type, (void*)instruction_ptr->opdb_addr, instruction_ptr->opdb_varity_type);
+	}
+	return 0;
 }
 
 int exec_opt_preprocess(mid_code *instruction_ptr, int *&opda_addr, int *&opdb_addr)
