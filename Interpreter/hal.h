@@ -13,7 +13,7 @@ public:
 	terminal(char echo_en) {this->echo_en = echo_en;}
 	void init(void) {this->last_ch = 0; this->line = 0;}
 	int readline(char* str, char code_ch, code_fptr callback);
-	int t_puts(char *str) {for(int i=0; str[i]; i++) this->t_putc(str[i]); return 0;}
+	int t_puts(const char *str) {for(int i=0; str[i]; i++) this->t_putc(str[i]); return 0;}
 	virtual int t_putc(char) = 0;
 	virtual int t_getc(char *ch) = 0;
 	virtual void dispose(void) = 0;
@@ -43,7 +43,7 @@ public:
 	virtual int t_putc(char ch);
 	virtual int t_getc(char *ch);
 	virtual void dispose(void);
-	int init(const char*, char*);
+	int init(const char*, const char*);
 };
 
 int kfputs(char *str);

@@ -628,14 +628,14 @@ int exec_invisible_type_convert(c_interpreter* interpreter_ptr, int*& opda_addr,
 	} else
 		ret_type = INT;
 	if(instruction_ptr->opda_varity_type != ret_type && instruction_ptr->opda_varity_type < PTR) {
+		varity_convert(&interpreter_ptr->mid_ret.opda, ret_type, (void*)opda_addr, instruction_ptr->opda_varity_type);
 		opda_addr = (int*)&interpreter_ptr->mid_ret.opda;
-		varity_convert(opda_addr, ret_type, (void*)instruction_ptr->opda_addr, instruction_ptr->opda_varity_type);
 	}
 	if (instruction_ptr->opdb_varity_type != ret_type && instruction_ptr->opdb_varity_type < PTR) {
+		varity_convert(&interpreter_ptr->mid_ret.opdb, ret_type, (void*)opdb_addr, instruction_ptr->opdb_varity_type);
 		opdb_addr = (int*)&interpreter_ptr->mid_ret.opdb;
-		varity_convert(opdb_addr, ret_type, (void*)instruction_ptr->opdb_addr, instruction_ptr->opdb_varity_type);
 	}
-	return 0;
+	return ret_type;
 }
 
 int exec_opt_preprocess(mid_code *instruction_ptr, int *&opda_addr, int *&opdb_addr)
@@ -1323,7 +1323,8 @@ int c_interpreter::opt_mul_handle(c_interpreter *interpreter_ptr)
 	GET_OPDA_ADDR();
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
-	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
+	mid_type = exec_invisible_type_convert(interpreter_ptr, opda_addr, opdb_addr);
+	//mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_OPT_EXEC(*);
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
 	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
@@ -1394,6 +1395,21 @@ int c_interpreter::opt_mod_handle(c_interpreter *interpreter_ptr)
 	GET_RET_ADDR();
 	mid_type = exec_opt_preprocess(instruction_ptr, opda_addr, opdb_addr);
 	BINARY_ARG_INT_OPT_EXEC(%);
+	switch(mid_type) {
+	case INT:
+	case LONG:
+		INT_VALUE(ret_addr) = INT_VALUE(opda_addr) % INT_VALUE(opdb_addr);
+		break;
+	case U_INT:
+	case U_LONG:
+		U_INT_VALUE(ret_addr) = U_INT_VALUE(opda_addr) % U_INT_VALUE(opdb_addr);
+		break;
+	case LONG_LONG:
+		LONG_LONG_VALUE(ret_addr) = LONG_LONG_VALUE(opda_addr) % LONG_LONG_VALUE(opdb_addr);
+		break;
+	case U_LONG_LONG:
+		U_LONG_LONG_VALUE(ret_addr) = U_LONG_LONG_VALUE(opda_addr) % U_LONG_LONG_VALUE(opdb_addr);
+	}
 	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
 	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
 	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
@@ -2152,18 +2168,18 @@ wrong:
 
 int try_plus_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
 {
+	int ret_type;
 	if(opda_type < VOID && opdb_type < VOID) {
-		return opda_type<opdb_type?opdb_type:opda_type;
+		ret_type = opda_type < opdb_type ? opdb_type : opda_type;
+		if(ret_type < INT)
+			ret_type = INT;
+		return ret_type;
 	} else if(opda_type == STRUCT || opdb_type == STRUCT || opda_type == VOID || opdb_type == VOID) {
-		goto wrong;
+		return ERROR_ILLEGAL_OPERAND;
 	} else if(opda_type >= PTR && opdb_type < VOID || opda_type < VOID && opdb_type >= PTR) {
 		return PTR;
-	} else if(opda_type >= PTR && opdb_type >= PTR) {
-		goto wrong;
-	}
-wrong:
-	//error("Can't plus.\n");
-	return ERROR_ILLEGAL_OPERAND;
+	} else
+		return ERROR_ILLEGAL_OPERAND;
 }
 
 int try_minus_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
@@ -2224,12 +2240,14 @@ wrong:
 
 int try_mod_handle(int opda_type, int opdb_type, int opda_complex_count, int *opda_type_info, int opdb_complex_count, int *opdb_type_info)
 {
-	if(opda_type > U_LONG_LONG || opdb_type > U_LONG_LONG)
-		goto wrong;
-	return ERROR_NO;
-wrong:
-	//error("Can't mod.\n");
-	return ERROR_ILLEGAL_OPERAND;
+	int ret_type;
+	if(opda_type <= U_LONG_LONG && opdb_type <= U_LONG_LONG) {
+		ret_type = opda_type < opdb_type ? opdb_type : opda_type;
+		if(ret_type < INT)
+			ret_type = INT;
+		return ret_type;
+	} else
+		return ERROR_ILLEGAL_OPERAND;
 }
 
 int try_call_opt_handle(int opt, mid_code* instruction_ptr, void *avarity_ptr, void *bvarity_ptr)

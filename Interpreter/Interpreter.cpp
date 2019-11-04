@@ -1245,7 +1245,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_operator = opt;
 		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
-		instruction_ptr->ret_varity_type = get_ret_type(instruction_ptr->opda_varity_type, instruction_ptr->opdb_varity_type);
+		instruction_ptr->ret_varity_type = ret_type;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 		break;
@@ -1489,6 +1489,9 @@ assign_general:
 		if(opt == OPT_POSITIVE || opt == OPT_NEGATIVE) {
 			rvarity_ptr->set_type(instruction_ptr->opdb_varity_type);
 			instruction_ptr->ret_varity_type = instruction_ptr->opdb_varity_type;
+		} else if(opt == OPT_MOD) {
+			rvarity_ptr->set_type(ret_type);
+			instruction_ptr->ret_varity_type = ret_type;
 		} else {
 			rvarity_ptr->set_type(INT);
 			instruction_ptr->ret_varity_type = INT;

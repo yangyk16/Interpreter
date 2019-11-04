@@ -15,16 +15,16 @@ using namespace std;
 tty::tty(char echo_en): terminal(echo_en)
 {
 #ifdef __GNUC__
-	system("stty raw");
-	system("stty -inlcr -igncr icrnl");
-	system("stty -onlcr ocrnl -onocr -onlret nl0 cr0");
+//	system("stty raw");
+//	system("stty -inlcr -igncr icrnl");
+//	system("stty -onlcr ocrnl -onocr -onlret nl0 cr0");
 #endif
 }
 
 void tty::dispose(void)
 {
 #ifdef __GNUC__
-	system("stty sane");
+//	system("stty sane");
 #endif
 }
 
@@ -204,7 +204,7 @@ int file::t_putc(char ch)
 	return kfwrite(&ch, 1, 1, this->file_ptr);
 }
 
-int file::init(const char *filename, char *mode)
+int file::init(const char *filename, const char *mode)
 {
 	file_ptr = kfopen(filename, mode);
 	if(file_ptr)
