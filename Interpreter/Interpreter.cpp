@@ -879,7 +879,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 					int name_no = (string_info*)name_stack.find(arg_varity_ptr->get_name()) - (string_info*)name_stack.get_base_addr();
 					arg_varity_ptr->set_name((char*)name_no);
 					PLATFORM_WORD *complex_ptr = arg_varity_ptr->get_complex_ptr();
-					unsigned type_no = varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
+					unsigned int type_no = varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
 					arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), (PLATFORM_WORD*)type_no);
 					kfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr);
 					arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
@@ -918,7 +918,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 			for(int j=0; j<arg_count; j++) {
 				varity_info* arg_varity_ptr = (varity_info*)struct_ptr[i].varity_stack_ptr->visit_element_by_index(j);
 				PLATFORM_WORD *complex_ptr = arg_varity_ptr->get_complex_ptr();
-				unsigned type_no = varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
+				unsigned int type_no = varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
 				arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), (PLATFORM_WORD*)type_no);
 				kfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr);
 				arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
@@ -3925,6 +3925,7 @@ varity_end:
 						vfree(complex_info);
 					} else {
 						ret_info = complex_info;
+						varity_type_stack.push(node_count + basic_info_node_count, complex_info);
 					}
 				} else {
 					if(is_varity_declare == STRUCT)
