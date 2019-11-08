@@ -2113,58 +2113,7 @@ int c_interpreter::preprocess(char *str, int &len)
 	macro_info *macro_ptr;
 	if(str[0] == '#') {
 		str++;
-		if(!kstrncmp(str, "define", 6) && kisspace(str[6])) {
-			int para_count = 0;
-			int status = 0;
-			str += 7;
-			ret = get_token(str, &node);
-			if(node.node_type == TOKEN_NAME) {
-				macro_info macro_info;
-				kmemset(macro_info.macro_arg_name, 0, sizeof(macro_info.macro_arg_name));
-				macro_info.set_name(node.value.ptr_value);
-				str += ret;
-				ret = get_token(str, &node);
-				if(node.node_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET && node.pos == 0) {
-					while(1) {
-						str += ret;
-						ret = get_token(str, &node);
-						if(status == 0) {
-							if(node.node_type == TOKEN_NAME) {
-								status = 1;
-								macro_info.macro_arg_name[para_count] = node.value.ptr_value;
-							} else {
-								error("Macro define error\n");
-								return ERROR_MACRO_DEF;
-							}
-						} else {
-							if(node.node_type == TOKEN_OPERATOR) {
-								if(node.data == OPT_COMMA) {
-									status = 0;
-									if(++para_count > MAX_MACRO_ARG_COUNT) {
-										error("Macro parameters too much.\n");
-										return ERROR_MACRO_DEF;
-									}
-								} else if(node.data == OPT_R_SMALL_BRACKET) {
-									str += ret;
-									break;
-								}
-							} else {
-								error("Macro define error\n");
-								return ERROR_MACRO_DEF;
-							}
-						}
-					}
-					while(*str == ' ' || *str == '\t') str++;
-					macro_info.macro_instead_str = (char*)dmalloc(kstrlen(str) + 1, "macro string");
-					kstrcpy(macro_info.macro_instead_str, str);
-				} else {
-					while(*str == ' ' || *str == '\t') str++;
-					macro_info.macro_instead_str = (char*)dmalloc(kstrlen(str) + 1, "macro string");
-					kstrcpy(macro_info.macro_instead_str, str);
-				}
-				this->macro_declare->declare(macro_info.get_name(), macro_info.macro_arg_name, macro_info.macro_instead_str);
-			}
-		} else if(!kstrncmp(str, "ifdef", 5) && kisspace(str[5])) {
+		if(!kstrncmp(str, "ifdef", 5) && kisspace(str[5])) {
 			str += 6;
 			ret = get_token(str, &node);
 			if(node.node_type == TOKEN_NAME) {
@@ -2202,28 +2151,20 @@ int c_interpreter::preprocess(char *str, int &len)
 			preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] = !preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1];
 			//if(preprocess_info.ifdef_level > 1)
 			//	preprocess_info.ifdef_status[preprocess_info.ifdef_level - 1] &= ~preprocess_info.ifdef_status[preprocess_info.ifdef_level - 2];
-		} else if(!kstrncmp(str, "end", 3)) {
+		} else if(!kstrncmp(str, "endif", 5)) {
 			if(preprocess_info.ifdef_level)
 				preprocess_info.ifdef_level--;
 			else {
 				error("no #ifdef/ifndef corresponding\n");
 				return ERROR_PREPROCESS;
 			}
-		} else if(!kstrncmp(str, "include", 7) && kisspace(str[7])) {
-			str += 8;
-			ret = get_token(str, &node);
-			if(node.node_type == TOKEN_STRING) {
-				this->open_ref(((string_info*)string_stack.visit_element_by_index(node.value.int_value))->get_name());
-				return OK_PREPROCESS;
-			} else {
-				error("#include error");
-				return ERROR_PREPROCESS;
-			}
 		} else {
-			return ERROR_PREPROCESS;
+			str--;
+			goto preprocess_noif;
 		}
 		return OK_PREPROCESS;
 	} else {
+preprocess_noif:
 		int index = 0;
 		if(preprocess_info.ifdef_level) {
 			int ifdefret = 0;
@@ -2239,6 +2180,72 @@ int c_interpreter::preprocess(char *str, int &len)
 				len = 0;
 				return ERROR_NO;
 			}
+		}
+		if(str[0] == '#') {
+			str++;
+			if(!kstrncmp(str, "define", 6) && kisspace(str[6])) {
+				int para_count = 0;
+				int status = 0;
+				str += 7;
+				ret = get_token(str, &node);
+				if(node.node_type == TOKEN_NAME) {
+					macro_info macro_info;
+					kmemset(macro_info.macro_arg_name, 0, sizeof(macro_info.macro_arg_name));
+					macro_info.set_name(node.value.ptr_value);
+					str += ret;
+					ret = get_token(str, &node);
+					if(node.node_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET && node.pos == 0) {
+						while(1) {
+							str += ret;
+							ret = get_token(str, &node);
+							if(status == 0) {
+								if(node.node_type == TOKEN_NAME) {
+									status = 1;
+									macro_info.macro_arg_name[para_count] = node.value.ptr_value;
+								} else {
+									error("Macro define error\n");
+									return ERROR_MACRO_DEF;
+								}
+							} else {
+								if(node.node_type == TOKEN_OPERATOR) {
+									if(node.data == OPT_COMMA) {
+										status = 0;
+										if(++para_count > MAX_MACRO_ARG_COUNT) {
+											error("Macro parameters too much.\n");
+											return ERROR_MACRO_DEF;
+										}
+									} else if(node.data == OPT_R_SMALL_BRACKET) {
+										str += ret;
+										break;
+									}
+								} else {
+									error("Macro define error\n");
+									return ERROR_MACRO_DEF;
+								}
+							}
+						}
+						while(*str == ' ' || *str == '\t') str++;
+						macro_info.macro_instead_str = (char*)dmalloc(kstrlen(str) + 1, "macro string");
+						kstrcpy(macro_info.macro_instead_str, str);
+					} else {
+						while(*str == ' ' || *str == '\t') str++;
+						macro_info.macro_instead_str = (char*)dmalloc(kstrlen(str) + 1, "macro string");
+						kstrcpy(macro_info.macro_instead_str, str);
+					}
+					this->macro_declare->declare(macro_info.get_name(), macro_info.macro_arg_name, macro_info.macro_instead_str);
+				}
+			} else if(!kstrncmp(str, "include", 7) && kisspace(str[7])) {
+				str += 8;
+				ret = get_token(str, &node);
+				if(node.node_type == TOKEN_STRING) {
+					this->open_ref(((string_info*)string_stack.visit_element_by_index(node.value.int_value))->get_name());
+					return OK_PREPROCESS;
+				} else {
+					error("#include error");
+					return ERROR_PREPROCESS;
+				}
+			}
+			return OK_PREPROCESS;
 		}
 		while(1) {
 			int delta_len;
