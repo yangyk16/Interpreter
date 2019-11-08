@@ -2164,7 +2164,7 @@ int c_interpreter::preprocess(char *str, int &len)
 				}
 				this->macro_declare->declare(macro_info.get_name(), macro_info.macro_arg_name, macro_info.macro_instead_str);
 			}
-		} else if(!kstrncmp(str, "ifdef", 5) && str[5] == ' ') {
+		} else if(!kstrncmp(str, "ifdef", 5) && kisspace(str[5])) {
 			str += 6;
 			ret = get_token(str, &node);
 			if(node.node_type == TOKEN_NAME) {
@@ -2181,7 +2181,7 @@ int c_interpreter::preprocess(char *str, int &len)
 				error("no macro name\n");
 				return ERROR_PREPROCESS;
 			}
-		} else if(!kstrncmp(str, "ifndef", 6) && str[6] == ' ') {
+		} else if(!kstrncmp(str, "ifndef", 6) && kisspace(str[6])) {
 			str += 7;
 			ret = get_token(str, &node);
 			if(node.node_type == TOKEN_NAME) {
@@ -2207,6 +2207,16 @@ int c_interpreter::preprocess(char *str, int &len)
 				preprocess_info.ifdef_level--;
 			else {
 				error("no #ifdef/ifndef corresponding\n");
+				return ERROR_PREPROCESS;
+			}
+		} else if(!kstrncmp(str, "include", 7) && kisspace(str[7])) {
+			str += 8;
+			ret = get_token(str, &node);
+			if(node.node_type == TOKEN_STRING) {
+				this->open_ref(((string_info*)string_stack.visit_element_by_index(node.value.int_value))->get_name());
+				return OK_PREPROCESS;
+			} else {
+				error("#include error");
 				return ERROR_PREPROCESS;
 			}
 		} else {
@@ -4257,7 +4267,7 @@ int_value_handle:
 					p = (char*)dmalloc(count + 1, "string space");
 					str_info.set_name(p);
 					//str_info.index = string_stack.get_count();
-					//info->value.int_value = str_info.index;
+					info->value.int_value = string_stack.get_count();
 					kstrcpy(p, symbol_ptr);
 					string_stack.push(&str_info);
 				}
