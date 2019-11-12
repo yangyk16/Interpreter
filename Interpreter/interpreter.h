@@ -406,6 +406,7 @@ class c_interpreter {
 	static char* code_complete_callback(char*, int);
 	int post_treat(void);
 	int pre_treat(char*, uint);
+	int macro_instead(char *str, int &len);
 	int preprocess(char *str, int &len);
 	int eval(node_attribute_t*, int);
 	friend int user_eval(char *str);

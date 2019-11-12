@@ -2109,8 +2109,8 @@ int c_interpreter::print_call_stack(void)
 int c_interpreter::preprocess(char *str, int &len)
 {
 	int ret;
-	node_attribute_t node;
 	macro_info *macro_ptr;
+	node_attribute_t node;
 	if(str[0] == '#') {
 		str++;
 		if(!kstrncmp(str, "ifdef", 5) && kisspace(str[5])) {
@@ -2165,7 +2165,6 @@ int c_interpreter::preprocess(char *str, int &len)
 		return OK_PREPROCESS;
 	} else {
 preprocess_noif:
-		int index = 0;
 		if(preprocess_info.ifdef_level) {
 			int ifdefret = 0;
 			int i;
@@ -2194,6 +2193,7 @@ preprocess_noif:
 					macro_info.set_name(node.value.ptr_value);
 					str += ret;
 					ret = get_token(str, &node);
+					int nousedlen = 0;//macro define sentence won't be execute after preprocess, so len is nothing serious
 					if(node.node_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET && node.pos == 0) {
 						while(1) {
 							str += ret;
@@ -2224,11 +2224,13 @@ preprocess_noif:
 								}
 							}
 						}
-						while(*str == ' ' || *str == '\t') str++;
+						while(kisspace(*str)) str++;
+						this->macro_instead(str, nousedlen);
 						macro_info.macro_instead_str = (char*)dmalloc(kstrlen(str) + 1, "macro string");
 						kstrcpy(macro_info.macro_instead_str, str);
 					} else {
-						while(*str == ' ' || *str == '\t') str++;
+						while(kisspace(*str)) str++;
+						this->macro_instead(str, nousedlen);
 						macro_info.macro_instead_str = (char*)dmalloc(kstrlen(str) + 1, "macro string");
 						kstrcpy(macro_info.macro_instead_str, str);
 					}
@@ -2247,83 +2249,93 @@ preprocess_noif:
 			}
 			return OK_PREPROCESS;
 		}
-		while(1) {
-			int delta_len;
-			ret = get_token(str + index, &node);
-			if(node.node_type == TOKEN_NONEXIST || !ret)
-				break;
-			if(node.node_type == TOKEN_NAME) {
-				macro_ptr = this->macro_declare->find(node.value.ptr_value);
-				if(macro_ptr) {
-					if(!macro_ptr->macro_arg_name[0]) {//no para macro
-						delta_len = sub_replace(str, index, ret, macro_ptr->macro_instead_str);
-						index += ret + delta_len;
-						len += delta_len;
-					} else {
-						int extra_len = get_token(str + index + ret, &node);
-						int para_begin_pos[3] = {0}, para_end_pos;
-						int para_count = 0;
-						int i, j, pos, cur_level;
-						char *macro_para = str + index + ret + extra_len;
-						if(node.node_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET) {
-							char *expand_macro = (char*)dmalloc(3 * kstrlen(macro_ptr->macro_instead_str), "macro expand");
-							//TODO: 判断宏展开长度是否过长，超出分配空间
-							for(i=0, cur_level=0; macro_para[i]; i++) {
-								if((macro_para[i] == ',' || macro_para[i] == ')') && 0 == cur_level) {
-									if(++para_count > MAX_MACRO_ARG_COUNT) {
-										vfree(expand_macro);
-										error("too much macro parameters.\n");
-										return ERROR_MACRO_EXP;
-									}
-									if(para_count < MAX_MACRO_ARG_COUNT)
-										para_begin_pos[para_count] = i + 1;
-									if(macro_para[i] == ')') {
-										macro_para[i] = 0;
-										para_end_pos = i;
-										break;
-									}
-									macro_para[i] = 0;
-								} else if(macro_para[i] == '(' || macro_para[i] == '[') {
-									cur_level++;
-								} else if(macro_para[i] == ')' || macro_para[i] == ']') {
-									cur_level--;
-								}
-							}
-							
-							for(i=0, pos=0;;) {
-								ret = get_token(macro_ptr->macro_instead_str + i, &node);
-								if(!ret || node.node_type == TOKEN_NONEXIST)
-									break;
-								if(node.node_type == TOKEN_NAME && (j = macro_ptr->find(node.value.ptr_value)) >= 0) {
-									int strlen = kstrlen(&macro_para[para_begin_pos[j]]);
-									kmemcpy(expand_macro + pos, macro_para + para_begin_pos[j], strlen); 
-									pos += strlen;
-									i += ret;
-								} else {
-									kmemcpy(expand_macro + pos,  macro_ptr->macro_instead_str + i, ret);
-									i += ret;
-									pos += ret;
-								}
-							}
-							expand_macro[pos] = 0;
-							delta_len = sub_replace(str, index, &macro_para[para_end_pos] - (str + index) + 1, expand_macro);
-							index += pos;//ret + delta_len;
-							len += ret + delta_len;
-							vfree(expand_macro);
-						} else {
-							error("error macro %s\n", macro_ptr->get_name());
-							return ERROR_MACRO_EXP;
-						}
-					}
+		ret = this->macro_instead(str, len);
+		return ret;
+	}
+}
+
+int c_interpreter::macro_instead(char *str, int &len)
+{
+	int ret;
+	node_attribute_t node;
+	int index = 0;
+	macro_info *macro_ptr;
+	while(1) {
+		int delta_len;
+		ret = get_token(str + index, &node);
+		if(node.node_type == TOKEN_NONEXIST || !ret)
+			break;
+		if(node.node_type == TOKEN_NAME) {
+			macro_ptr = this->macro_declare->find(node.value.ptr_value);
+			if(macro_ptr) {
+				if(!macro_ptr->macro_arg_name[0]) {//no para macro
+					delta_len = sub_replace(str, index, ret, macro_ptr->macro_instead_str);
+					index += ret + delta_len;
+					len += delta_len;
 				} else {
-					index += ret;
+					int extra_len = get_token(str + index + ret, &node);
+					int para_begin_pos[3] = {0}, para_end_pos;
+					int para_count = 0;
+					int i, j, pos, cur_level;
+					char *macro_para = str + index + ret + extra_len;
+					if(node.node_type == TOKEN_OPERATOR && node.data == OPT_L_SMALL_BRACKET) {
+						char *expand_macro = (char*)dmalloc(3 * kstrlen(macro_ptr->macro_instead_str), "macro expand");
+						//TODO: 判断宏展开长度是否过长，超出分配空间
+						for(i=0, cur_level=0; macro_para[i]; i++) {
+							if((macro_para[i] == ',' || macro_para[i] == ')') && 0 == cur_level) {
+								if(++para_count > MAX_MACRO_ARG_COUNT) {
+									vfree(expand_macro);
+									error("too much macro parameters.\n");
+									return ERROR_MACRO_EXP;
+								}
+								if(para_count < MAX_MACRO_ARG_COUNT)
+									para_begin_pos[para_count] = i + 1;
+								if(macro_para[i] == ')') {
+									macro_para[i] = 0;
+									para_end_pos = i;
+									break;
+								}
+								macro_para[i] = 0;
+							} else if(macro_para[i] == '(' || macro_para[i] == '[') {
+								cur_level++;
+							} else if(macro_para[i] == ')' || macro_para[i] == ']') {
+								cur_level--;
+							}
+						}
+							
+						for(i=0, pos=0;;) {
+							ret = get_token(macro_ptr->macro_instead_str + i, &node);
+							if(!ret || node.node_type == TOKEN_NONEXIST)
+								break;
+							if(node.node_type == TOKEN_NAME && (j = macro_ptr->find(node.value.ptr_value)) >= 0) {
+								int strlen = kstrlen(&macro_para[para_begin_pos[j]]);
+								kmemcpy(expand_macro + pos, macro_para + para_begin_pos[j], strlen); 
+								pos += strlen;
+								i += ret;
+							} else {
+								kmemcpy(expand_macro + pos,  macro_ptr->macro_instead_str + i, ret);
+								i += ret;
+								pos += ret;
+							}
+						}
+						expand_macro[pos] = 0;
+						delta_len = sub_replace(str, index, &macro_para[para_end_pos] - (str + index) + 1, expand_macro);
+						index += pos;//ret + delta_len;
+						len += ret + delta_len;
+						vfree(expand_macro);
+					} else {
+						error("error macro %s\n", macro_ptr->get_name());
+						return ERROR_MACRO_EXP;
+					}
 				}
 			} else {
 				index += ret;
 			}
+		} else {
+			index += ret;
 		}
-		return ERROR_NO;
 	}
+	return ERROR_NO;
 }
 
 int c_interpreter::pre_treat(char *str, uint len)
