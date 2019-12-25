@@ -1,9 +1,6 @@
 #include "interpreter.h"
-#include "operator.h"
 #include "string_lib.h"
 #include "error.h"
-#include "varity.h"
-#include "data_struct.h"
 #include "macro.h"
 #include "cstdlib.h"
 #include "kmalloc.h"
@@ -2683,33 +2680,50 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag, int interprete_need, i
 		handle_init();
 		c_interpreter::cstdlib_func_count = 0;
 		this->generate_compile_func();
-		c_interpreter::language_elment_space.init_done = 1;
 	}
+	c_interpreter::language_elment_space.init_done++;
 	return ERROR_NO;
 	///////////
 }
 
 int c_interpreter::dispose(void)
 {
-	string_stack.dispose();
-	name_stack.dispose();
-	name_fifo.dispose();
-	varity_type_stack.dispose();
-	for(int i=0; i<this->cstdlib_func_count; i++)
-		((function_info*)this->function_declare->function_stack_ptr->visit_element_by_index(i))->arg_list->dispose();
+	c_interpreter::language_elment_space.init_done--;
+	if(!c_interpreter::language_elment_space.init_done) {
+		int i, count;
+		name_stack.dispose();
+		name_fifo.dispose();
+		for (i=0, count=string_stack.get_count(); i<count; i++)
+			vfree(((string_info*)string_stack.visit_element_by_index(i))->get_name());
+		string_stack.dispose();
+		for(i=0; i<this->cstdlib_func_count; i++)
+			((function_info*)this->function_declare->function_stack_ptr->visit_element_by_index(i))->dispose();
+		for(i=this->cstdlib_func_count; i<this->function_declare->function_stack_ptr->get_count(); i++)
+			((function_info*)this->function_declare->function_stack_ptr->visit_element_by_index(i))->dispose();
+		for(i=0, count=this->macro_declare->macro_stack_ptr->get_count(); i<count; i++)
+			((macro_info*)this->macro_declare->macro_stack_ptr->visit_element_by_index(i))->dispose();
+		for(i=0, count=this->struct_declare->struct_stack_ptr->get_count(); i<count; i++)
+			((struct_info*)this->struct_declare->struct_stack_ptr->visit_element_by_index(i))->dispose();
+		for(i=sizeof(basic_type_info)/sizeof(basic_type_info[0]), count=varity_type_stack.count; i<count; i++) {
+			vfree(varity_type_stack.type_info_addr[i]);
+		}
+		for(i=0, count=this->varity_declare->global_varity_stack->get_count(); i<count; i++)
+			((varity_info*)this->varity_declare->global_varity_stack->visit_element_by_index(i))->dispose();
+		varity_type_stack.dispose();
+		c_interpreter::language_elment_space.struct_list.dispose();
+		c_interpreter::language_elment_space.function_list.dispose();
+		c_interpreter::language_elment_space.g_varity_list.dispose();
+		c_interpreter::language_elment_space.l_varity_list.dispose();
+		c_interpreter::language_elment_space.macro_list.dispose();
+	}
 	if(this->interprete_need_ptr) {
 		this->interprete_need_ptr->mid_code_stack.dispose();
 		vfree(interprete_need_ptr);
 		interprete_need_ptr = 0;
 	}
-	c_interpreter::language_elment_space.struct_list.dispose();
-	c_interpreter::language_elment_space.function_list.dispose();
-	c_interpreter::language_elment_space.g_varity_list.dispose();
-	c_interpreter::language_elment_space.l_varity_list.dispose();
-	c_interpreter::language_elment_space.macro_list.dispose();
 	vfree(this->simulation_stack);
 	this->tty_used->dispose();
-	c_interpreter::language_elment_space.init_done = 0;
+	//heap_debug();
 	return ERROR_NO;
 }
 
@@ -3056,7 +3070,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 						}
 						if(i == this->interprete_need_ptr->sentence_analysis_data_struct.label_count) {
 							error("No label called \"%s\"\n", (char*)&mid_code_ptr->ret_addr);
-							current_function_ptr->reset();
+							current_function_ptr->dispose();
 							vfree(current_function_ptr->arg_list->get_base_addr());
 							vfree(current_function_ptr->arg_list);
 							this->varity_declare->destroy_local_varity();
@@ -4424,6 +4438,7 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 							return ERROR_FUNC_ARG_LIST;
 						}
 					}
+					//TODO: 将arg_stack加入队列，退出回收，避免内存泄漏
 				}
 				if(arg_stack && arg_stack->get_count() == 1 && !varity_name[0]) {
 					this->token_node_ptr[wptr].data = OPT_TYPE_CONVERT;
@@ -4718,6 +4733,9 @@ extern "C" void global_init(void)
 extern "C" void global_dispose(void)
 {
 	token_fifo.dispose();
+	cmd_dispose(0);
+	cmd_dispose(1);
+	heap_debug();
 }
 
 void clear_arglist(stack *arg_stack_ptr)
@@ -4731,3 +4749,12 @@ void clear_arglist(stack *arg_stack_ptr)
 	vfree(arg_stack_ptr);
 }
 
+void node_visit_callback(void *value)
+{
+	node_attribute_t *tmp = (node_attribute_t*)value;
+	debug("%d ",tmp->node_type);
+	if(tmp->node_type == TOKEN_NAME)
+		debug("%s\n",tmp->value.ptr_value);
+	else
+		debug("%d\n",tmp->value.int_value);
+}

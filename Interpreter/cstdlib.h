@@ -64,6 +64,7 @@ void* vrealloc(void* addr, unsigned int size);
 
 #define debug(fmt, ...) kprintf_l(PRINT_LEVEL_DEBUG, fmt, ##__VA_ARGS__)
 #define tip(fmt, ...) kprintf_l(PRINT_LEVEL_TIP, fmt, ##__VA_ARGS__)
+#define fatal(fmt, ...) kprintf_l(PRINT_LEVEL_FATAL, fmt, ##__VA_ARGS__)
 #define error(fmt, ...)	kprintf_l(PRINT_LEVEL_ERROR, GREEN_SEQ fmt BLACK_SEQ, ##__VA_ARGS__)
 #define warning(fmt, ...) kprintf_l(PRINT_LEVEL_WARNING, YELLOW_SEQ fmt BLACK_SEQ, ##__VA_ARGS__)
 #define gdbout(fmt, ...) kprintf_l(PRINT_LEVEL_GDBOUT, fmt, ##__VA_ARGS__)

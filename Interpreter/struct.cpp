@@ -24,10 +24,9 @@ int struct_info::init(char* name, stack* varity_list)
 	return 0;
 }
 
-int struct_info::reset(void)
+int struct_info::dispose(void)
 {
-	if(this->name)
-		vfree(this->name);
+	//destroy_varity_stack(this->varity_stack_ptr);
 	if(this->varity_stack_ptr) {
 		vfree(this->varity_stack_ptr->visit_element_by_index(0));//TODO:检查是否释放所有成员
 		vfree(this->varity_stack_ptr);

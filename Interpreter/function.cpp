@@ -79,15 +79,15 @@ int function_info::copy_local_varity_stack(indexed_stack *lvsp)
 }
 #endif
 
-int function_info::reset(void)
+int function_info::dispose(void)
 {
-	if(this->name)
-		vfree(this->name);
 	if(this->buffer)
 		vfree(this->buffer);
 #if DEBUG_EN
 	if(this->row_code_ptr)
 		vfree(this->row_code_ptr);
+	if(this->local_varity_stack.get_base_addr())
+		vfree(this->local_varity_stack.get_base_addr());
 #endif
 	if(this->row_begin_pos)
 		vfree(this->row_begin_pos);
@@ -95,6 +95,7 @@ int function_info::reset(void)
 		vfree(this->row_len);
 	if(this->arg_list) {
 		destroy_varity_stack(this->arg_list);
+		//vfree(this->arg_list);
 	}
 	void *code_addr = this->mid_code_stack.get_base_addr();
 	if(code_addr) {

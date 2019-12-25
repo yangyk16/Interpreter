@@ -49,6 +49,7 @@ extern "C" int cc(int argc, char **argv)
 			return ret;
 		ret = myinterpreter.run_main(STOP_FLAG_RUN, load_base, bss_base);
 		myinterpreter.dispose();
+		irq_interpreter.dispose();
 		return ret;
 	}
 	switch(link_flag) {
@@ -68,6 +69,7 @@ extern "C" int cc(int argc, char **argv)
 			irq_interpreter.init(&stdio, 1, 0, stack_size);
 			myinterpreter.run_interpreter();
 			myinterpreter.dispose();
+			irq_interpreter.dispose();
 			break;
 		case LINK_STRNO:
 		{
@@ -118,6 +120,7 @@ extern "C" int cc(int argc, char **argv)
 			tip("%s made success!\n", output_file_name);
 			link_exit:
 			myinterpreter.dispose();
+
 			break;
 		}
 	}

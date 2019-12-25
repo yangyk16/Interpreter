@@ -1,7 +1,5 @@
 #include "data_struct.h"
-#include "varity.h"
 #include "cstdlib.h"
-#include "interpreter.h"
 #include "string_lib.h"
 #include "kmalloc.h"
 
@@ -221,18 +219,26 @@ char* round_queue::readline(int& len)
 	return &((char*)bottom_addr)[ret];
 }
 
-void node::middle_visit(void)
+void node::middle_visit(void (*cb)(void*))
 {
 	if(this->left)
-		this->left->middle_visit();
-	node_attribute_t *tmp = (node_attribute_t*)this->value;
-	debug("%d ",tmp->node_type);
-	if(tmp->node_type == TOKEN_NAME)
-		debug("%s\n",tmp->value.ptr_value);
-	else
-		debug("%d\n",tmp->value.int_value);
+		this->left->middle_visit(cb);
+	cb(this->value);
 	if(this->right)
-		this->right->middle_visit();
+		this->right->middle_visit(cb);
+}
+
+int varity_type_stack_t::del(char arg_count, unsigned long *type_info_addr)
+{
+	int pos = this->find(arg_count, type_info_addr);
+	if(pos >= 0) {
+		this->arg_count[pos] = this->arg_count[this->count - 1];
+		this->type_info_addr[pos] = this->type_info_addr[this->count - 1];
+		this->count--;
+		return 0;
+	}
+	error("Varity type not exist, can't be delete\n");
+	return -1;
 }
 
 int varity_type_stack_t::find(char arg_count, unsigned long *type_info_addr)

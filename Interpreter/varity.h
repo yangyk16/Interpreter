@@ -59,7 +59,6 @@
 #define PTR 16u
 #define ARRAY 17u
 #define PLATFORM_TYPE LONG
-typedef unsigned long PLATFORM_WORD;
 
 class varity_info:public element {
 protected:
@@ -87,8 +86,8 @@ public:
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
 	void set_type(int type);
 	void set_name(char *name_ptr) {this->name = name_ptr;}
-	void reset(void);
-	~varity_info(){this->reset();}
+	void dispose(void);
+	~varity_info(){this->dispose();}
 };
 
 class varity {

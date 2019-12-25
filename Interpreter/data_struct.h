@@ -110,7 +110,7 @@ typedef struct node_s {
 	struct node_s *right;
 	void *value;
 	void link_reset(void) {this->left = this->right = 0;}
-	void middle_visit(void);
+	void middle_visit(void (*cb)(void*));
 } node;
 
 class list_stack {
@@ -137,6 +137,7 @@ typedef struct varity_type_stack_s {
 	int find(char arg_count, unsigned long *type_info_addr);
 	int init(void);
 	void dispose(void);
+	int del(char arg_count, unsigned long *type_info_addr);
 	int push(void);
 	int push(char arg_count, unsigned long *type_info_addr);
 } varity_type_stack_t;

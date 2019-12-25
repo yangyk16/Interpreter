@@ -178,6 +178,8 @@ int main(int argc, char *argv[])
 		koptrst();
 		tip("sh> ");
 		cin.getline(cmdstr, 256);
+		if (!kstrcmp(cmdstr, "exit"))
+			break;
 		parse(cmdstr);
 		exec();
 	}

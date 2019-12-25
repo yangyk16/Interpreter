@@ -247,7 +247,7 @@ int cmd_enter(char *str, int no)
 		kfree(cmd_str[no][4]);
 	for(i=cmd_count[no]-1; i>0; i--)
 		cmd_str[no][i] = cmd_str[no][i - 1];
-	cmd_str[no][0] = (char*)kmalloc(kstrlen(str) + 1);
+	cmd_str[no][0] = (char*)dmalloc(kstrlen(str) + 1, "cmd log str");
 	kstrcpy(cmd_str[no][0], str);
 	return 0;
 }

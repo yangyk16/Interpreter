@@ -23,15 +23,28 @@ static void print_mempool(void)
 {
 	head_t *head_ptr;
 	for(head_ptr = (head_t*)heapbase; head_ptr; head_ptr = head_ptr->next)
-		debug("0x%x, %d, u=%d\n", head_ptr + 1, head_ptr->size, head_ptr->isused);
-	debug("mempool print finish.\n");
+		memdebug("0x%x, %d, u=%d\n", head_ptr + 1, head_ptr->size, head_ptr->isused);
+	memdebug("mempool print finish.\n");
+}
+
+static int heap_self_check(void)
+{
+	head_t *head_ptr;
+	for (head_ptr = ((head_t*)heapbase)->next; head_ptr; head_ptr = head_ptr->next)
+		if (head_ptr->last->next != head_ptr || head_ptr->next && head_ptr->next->last != head_ptr) {
+			fatal("heap wrong.\n");
+			return 1;
+		}
+	return 0;
+	memdebug("mempool print finish.\n");
 }
 
 extern "C" void heap_debug(void)
 {
 	head_t *begin = (head_t*)heapbase;
+	heap_self_check();
 	while(begin) {
-		kprintf("%08x,isused=%d,size=%d\n", begin, begin->isused, begin->size);
+		kprintf("%08x,isused=%d,size=%d\n", begin + 1, begin->isused, begin->size);
 		begin = begin->next;
 	}
 }
@@ -50,7 +63,7 @@ extern "C" void* kmalloc(uint size) {
 	//debug("tsize=%d\n", tsize + sizeof(head_t));
 	next_head_ptr = head_ptr->next;
 	if(!next_head_ptr)
-		next_head_ptr = (head_t*)&heap[HEAPSIZE];
+		next_head_ptr = (head_t*)(&heap + 1);
 	if((long)next_head_ptr - (long)head_ptr - sizeof(head_t) - tsize > 0) {
 		new_next_ptr = (head_t*)((long)head_ptr + sizeof(head_t) + tsize);
 		new_next_ptr->size = (uint)next_head_ptr - (uint)new_next_ptr - sizeof(head_t);
@@ -102,18 +115,20 @@ extern "C" void* krealloc(void *ptr, uint size)
 			new_next_ptr = (head_t*)((uint)headptr + sizeof(head_t) + align_size(size));
 			new_next_ptr->size = next_headptr->size + (uint)next_headptr - (uint)headptr;
 			new_next_ptr->next = next_headptr->next;
+			new_next_ptr->next && (new_next_ptr->next->last = new_next_ptr);
 			new_next_ptr->last = headptr;
 			new_next_ptr->isused = 0;
 			headptr->next = new_next_ptr;
 			headptr->size = align_size(size);
 		} else {
 			if(!next_headptr)
-				next_headptr = (head_t*)&heap[HEAPSIZE];
+				next_headptr = (head_t*)(&heap + 1);
 			if((uint)next_headptr - (uint)headptr - sizeof(head_t) - align_size(size) > sizeof(head_t)) {
 				new_next_ptr = (head_t*)((uint)headptr + sizeof(head_t) + align_size(size));
 				new_next_ptr->size = (uint)next_headptr - (uint)new_next_ptr - sizeof(head_t);//操作顺序严格按结构体定义顺序
 				new_next_ptr->last = headptr;
 				new_next_ptr->next = headptr->next;
+				new_next_ptr->next && (new_next_ptr->next->last = new_next_ptr);
 				new_next_ptr->isused = 0;
 				headptr->next = new_next_ptr;
 				headptr->size = align_size(size);
@@ -129,6 +144,7 @@ extern "C" void* krealloc(void *ptr, uint size)
 					new_next_ptr->isused = 0;//操作顺序严格按结构体定义顺序倒序
 					new_next_ptr->last = headptr;
 					new_next_ptr->next = next_headptr->next;
+					new_next_ptr->next && (new_next_ptr->next->last = new_next_ptr);
 					new_next_ptr->size = (uint)new_next_ptr->next - (uint)new_next_ptr - sizeof(head_t);
 					headptr->next = new_next_ptr;
 					headptr->size = align_size(size);
@@ -155,7 +171,7 @@ extern "C" void* krealloc(void *ptr, uint size)
 extern "C" void heapinit(void) {
 	head_t *head;
 	head = (head_t*)heapbase;
-	head->size = HEAPSIZE - sizeof(head_t);
+	head->size = sizeof(heap) - sizeof(head_t);
 	head->isused = 0;
 	head->last = 0;
 	head->next = 0;
@@ -166,10 +182,11 @@ void* dmalloc(unsigned int size, const char *info)
 	unsigned int a_size = size&7?size+(8-(size&7)):size;
 	void* ret = kmalloc(a_size);
 #if INTERPRETER_DEBUG
-	debug("malloc %x, %d, %s\n", ret, size, info);
+	memdebug("malloc %x, %d, %s\n", ret, size, info);
 #else
-	debug("malloc %x, %d\n", ret, size);
+	memdebug("malloc %x, %d\n", ret, size);
 #endif
+	//heap_debug();
 	if(ret) {
 		//size = size&7?size+(8-size&7):size;
 		//debug("malloc %x, %d\n", ret, size);
@@ -185,12 +202,14 @@ void* dmalloc(unsigned int size, const char *info)
 void vfree(void *ptr)
 {
 	kfree(ptr);
-	debug("free %x\n", ptr);
+	memdebug("free %x\n", ptr);
+	//heap_debug();
 }
 
 void* vrealloc(void* addr, unsigned int size)
 {
 	void *ret = krealloc(addr, size);
-	debug("realloc %x to %x, %d\n", addr, ret, size);
+	memdebug("realloc %x to %x, %d\n", addr, ret, size);
+	//heap_debug();
 	return ret;
 }

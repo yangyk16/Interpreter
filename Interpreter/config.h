@@ -5,7 +5,7 @@
 #define PLATFORM_X86	1
 #define PLATFORM_ARM	0
 ////////////////config//////////////////
-#define INTERPRETER_DEBUG		0
+#define INTERPRETER_DEBUG		1
 #define SECTION_OPTIMIZE		0
 #define DEBUG_EN				1
 #define HW_PLATFORM				PLATFORM_X86//0:ARM 1:X86
@@ -68,4 +68,7 @@ void *vmalloc(unsigned int, const char*);
 #define dmalloc(size, info) vmalloc(size)
 void *vmalloc(unsigned int);
 #endif
+
+#define memdebug	debug
+#define refdebug	
 #endif

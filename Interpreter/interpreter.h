@@ -320,7 +320,7 @@ class c_interpreter {
 	int struct_analysis(node_attribute_t*, uint);
 	int struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
 	int non_seq_struct_analysis(node_attribute_t*, uint);
-	int non_seq_struct_analysis2(node_attribute_t*, uint);
+	//int non_seq_struct_analysis2(node_attribute_t*, uint);
 	int varity_declare_analysis(node_attribute_t*, int);
 	int label_analysis(node_attribute_t*, int);
 	int sentence_exec(node_attribute_t*, uint, bool);

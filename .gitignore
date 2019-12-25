@@ -23,5 +23,5 @@ Interpreter/jk
 *.tmp
 *.o
 *.elf
-Interpreter/test*.c
+Interpreter/*test*.*
 *.bak

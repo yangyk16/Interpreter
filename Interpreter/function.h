@@ -27,7 +27,7 @@ public:
 #endif
 	int init(char*, stack*, int);
 	int init(const char *name, void* addr, stack *arg_list, char variable_arg_flag);
-	int reset(void);
+	int dispose(void);
 	int save_sentence(char* ,uint);
 #if DEBUG_EN
 	int copy_local_varity_stack(indexed_stack *lvsp);

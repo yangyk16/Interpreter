@@ -2,10 +2,8 @@
 #ifndef STRUCT_H
 #define STRUCT_H
 #include "data_struct.h"
-#include "function.h"
 #include "config.h"
 #include "type.h"
-#include "varity.h"
 
 #define MAX_VARITY_COUNT_IN_STRUCT (MAX_FUNCTION_LINE - 2)
 
@@ -15,7 +13,7 @@ public:
 	stack *varity_stack_ptr;
 	PLATFORM_WORD *type_info_ptr;
 	int init(char*, stack*);
-	int reset(void);
+	int dispose(void);
 };
 
 class struct_define {

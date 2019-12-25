@@ -22,15 +22,17 @@ const char type_len[] = {5, 6, 4, 6, 5, 18, 9, 13, 4, 12, 3, 14, 5, 13, 4};
 void inc_varity_ref(varity_info *varity_ptr)
 {
 	PTR_N_VALUE(varity_ptr->get_complex_ptr())++;
-	debug("inc %x,%s\n", varity_ptr, varity_ptr->get_name());
+	refdebug("inc %x,%s\n", varity_ptr, varity_ptr->get_name());
 }
 
 void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag)
 {
 	int remain_count = --PTR_N_VALUE(varity_ptr->get_complex_ptr());
-	if(destroy_flag && !remain_count)
+	if(destroy_flag && !remain_count) {
 		vfree(varity_ptr->get_complex_ptr());
-	debug("dec %x\n", varity_ptr);
+		varity_type_stack.del(varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr());
+	}
+	refdebug("dec %x\n", varity_ptr);
 }
 
 int destroy_varity_stack(stack *stack_ptr)//仅限局部变量和参数表
@@ -38,8 +40,9 @@ int destroy_varity_stack(stack *stack_ptr)//仅限局部变量和参数表
 	varity_info *varity_ptr = (varity_info*)stack_ptr->get_base_addr();
 	for(uint i=0; i<stack_ptr->get_count(); i++, varity_ptr++) {
 		dec_varity_ref(varity_ptr, true);
-		vfree(varity_ptr->get_name());
+		//vfree(varity_ptr->get_name());
 	}
+	vfree(stack_ptr->get_base_addr());
 	return ERROR_NO;
 }
 
@@ -142,7 +145,7 @@ int varity_info::apply_space(void)
 	return 0;
 }
 
-void varity_info::reset(void)
+void varity_info::dispose(void)
 {
 	this->size = 0;
 	if(this->content_ptr) {

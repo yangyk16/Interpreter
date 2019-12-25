@@ -18,6 +18,12 @@ void macro::init(stack* stack_ptr)
 	this->macro_stack_ptr = stack_ptr;
 }
 
+void macro_info::dispose(void)
+{
+	if(this->macro_instead_str)
+		vfree(this->macro_instead_str);
+}
+
 void macro_info::init(char* name, char* parameter[3], char* instead_str)
 {
 	this->name = name;

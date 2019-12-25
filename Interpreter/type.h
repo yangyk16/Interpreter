@@ -6,6 +6,7 @@
 typedef unsigned int uint;
 typedef unsigned char uchar;
 typedef unsigned short ushort;
+typedef unsigned long PLATFORM_WORD;
 
 #define MAX_INT 2147483647
 #endif
