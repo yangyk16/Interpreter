@@ -2625,6 +2625,7 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag, int interprete_need, i
 		string_stack.init(sizeof(string_info), DEFAULT_STRING_NODE);
 		name_stack.init(sizeof(string_info), DEFAULT_NAME_NODE);
 		name_fifo.init(DEFAULT_NAME_LENGTH);
+		string_fifo.init(DEFAULT_STRING_LENGTH);
 		for(int i=0; i<MAX_A_VARITY_NODE; i++) {
 			link_varity_name[i][0] = LINK_VARITY_PREFIX;
 			tmp_varity_name[i][0] = TMP_VAIRTY_PREFIX;
@@ -2693,8 +2694,7 @@ int c_interpreter::dispose(void)
 		int i, count;
 		name_stack.dispose();
 		name_fifo.dispose();
-		for (i=0, count=string_stack.get_count(); i<count; i++)
-			vfree(((string_info*)string_stack.visit_element_by_index(i))->get_name());
+		string_fifo.dispose();
 		string_stack.dispose();
 		for(i=0; i<this->cstdlib_func_count; i++)
 			((function_info*)this->function_declare->function_stack_ptr->visit_element_by_index(i))->dispose();
@@ -3126,7 +3126,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 			}
 			uint arg_count = arg_stack_ptr->get_count();
 			varity_info *arg_ptr = (varity_info*)arg_stack_ptr->get_base_addr();
-			varity_info *all_arg_ptr = (varity_info*)dmalloc(sizeof(varity_info) * (arg_count + 1), "function's all args");
+			varity_info *all_arg_ptr = (varity_info*)dmalloc(sizeof(varity_info) * (arg_count + 1), "function's all args");//TODO: very import: consider return type is ptr!!!
 			kmemcpy(all_arg_ptr + 1, arg_ptr, sizeof(varity_info) * (arg_count));
 
 			for(int n=0; n<arg_count; n++) {
@@ -4291,18 +4291,14 @@ int_value_handle:
 					}
 				}
 				symbol_ptr[count] = 0;
-				string_info *str_node_ptr = (string_info*)string_stack.find(symbol_ptr);
-				if(str_node_ptr) {
-					p = (char*)str_node_ptr->get_name();
-					info->value.int_value = str_node_ptr - (string_info*)string_stack.get_base_addr();
-				} else {
-					string_info str_info;
-					p = (char*)dmalloc(count + 1, "string space");
-					str_info.set_name(p);
-					//str_info.index = string_stack.get_count();
+				string_info *string_ptr = (string_info*)string_stack.find(symbol_ptr);
+				if(!string_ptr) {
+					string_info tmp;
 					info->value.int_value = string_stack.get_count();
-					kstrcpy(p, symbol_ptr);
-					string_stack.push(&str_info);
+					tmp.set_name(string_fifo.write(symbol_ptr));
+					string_stack.push(&tmp);
+				} else {
+					info->value.int_value = string_ptr - (string_info*)string_stack.get_base_addr();
 				}
 				info->node_type = TOKEN_STRING;
 				return i + 1;

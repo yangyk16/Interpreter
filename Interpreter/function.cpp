@@ -6,6 +6,7 @@
 #include "interpreter.h"
 #include "cstdlib.h"
 #include "global.h"
+#include "string_lib.h"
 
 int function_info::init(char* name, stack* arg_list, int flag)
 {//TODO: add malloc fail action.
@@ -25,7 +26,6 @@ int function_info::init(char* name, stack* arg_list, int flag)
 	if(!(flag & FUNC_FLAG_PROTOTYPE)) {
 		this->buffer = (char*)dmalloc(MAX_FUNCTION_LEN, "function code buffer");
 		this->row_begin_pos = (unsigned int*)dmalloc(MAX_FUNCTION_LINE * sizeof(char*), "function row ptr");
-		this->row_len = (int*)dmalloc(MAX_FUNCTION_LINE * sizeof(int), "function row length");
 #if DEBUG_EN
 		this->row_code_ptr = (mid_code**)dmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*), "function row map mid code");
 #endif
@@ -81,18 +81,16 @@ int function_info::copy_local_varity_stack(indexed_stack *lvsp)
 
 int function_info::dispose(void)
 {
-	if(this->buffer)
-		vfree(this->buffer);
+	//if(this->buffer)
+	//	vfree(this->buffer);
 #if DEBUG_EN
-	if(this->row_code_ptr)
-		vfree(this->row_code_ptr);
+	//if(this->row_code_ptr)
+	//	vfree(this->row_code_ptr);
 	if(this->local_varity_stack.get_base_addr())
 		vfree(this->local_varity_stack.get_base_addr());
 #endif
-	if(this->row_begin_pos)
-		vfree(this->row_begin_pos);
-	if(this->row_len)
-		vfree(this->row_len);
+	//if(this->row_begin_pos)
+	//	vfree(this->row_begin_pos);
 	if(this->arg_list) {
 		destroy_varity_stack(this->arg_list);
 		//vfree(this->arg_list);
@@ -106,19 +104,44 @@ int function_info::dispose(void)
 
 int function_info::size_adapt(void)
 {
-	vrealloc(this->mid_code_stack.get_base_addr(), this->mid_code_stack.get_count() * sizeof(mid_code));
+	unsigned int size;
+	this->data_size = this->mid_code_stack.get_count() * sizeof(mid_code) + this->row_line * sizeof(unsigned int)
+				+ make_align(this->wptr, 4);
+	//vrealloc(this->mid_code_stack.get_base_addr(), this->mid_code_stack.get_count() * sizeof(mid_code));
 #if DEBUG_EN
-	vrealloc(this->row_code_ptr, this->row_line * sizeof(mid_code*));
+	this->data_size += this->row_line * sizeof(mid_code*);
+	//vrealloc(this->row_code_ptr, this->row_line * sizeof(mid_code*));
 #endif
-	vrealloc(this->buffer, this->wptr);
-	vfree(this->row_len);
-	vrealloc(this->row_begin_pos, this->row_line * sizeof(unsigned int));
+	//vrealloc(this->buffer, this->wptr);
+	//vrealloc(this->row_begin_pos, this->row_line * sizeof(unsigned int));
+	char *function_data = (char*)dmalloc(this->data_size, "all function data");
+	size = this->mid_code_stack.get_count() * sizeof(mid_code);
+	kmemcpy(function_data, this->mid_code_stack.get_base_addr(), size);
+	vfree(this->mid_code_stack.get_base_addr());
+	this->mid_code_stack.set_base(function_data);
+	function_data += size;
+	size = this->row_line * sizeof(unsigned int);
+	kmemcpy(function_data, this->row_begin_pos, size);
+	vfree(this->row_begin_pos);
+	this->row_begin_pos = (unsigned int*)function_data;
+	function_data += size;
+	size = make_align(this->wptr, 4);
+	kmemcpy(function_data, this->buffer, size);
+	vfree(this->buffer);
+	this->buffer = function_data;
+	function_data += size;
+#if DEBUG_EN
+	size = this->row_line * sizeof(mid_code*);
+	kmemcpy(function_data, this->row_code_ptr, size);
+	vfree(this->row_code_ptr);
+	this->row_code_ptr = (mid_code**)function_data;
+	function_data += size;
+#endif
 	return ERROR_NO;
 }
 
 int function_info::save_sentence(char* str, uint len)
 {
-	this->row_len[row_line] = len;
 	this->row_begin_pos[row_line] = wptr;
 	this->row_line++;
 	kmemcpy(this->buffer + wptr, str, len);

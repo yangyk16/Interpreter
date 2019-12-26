@@ -18,7 +18,7 @@ public:
 	stack mid_code_stack;
 	int row_line;
 	unsigned int *row_begin_pos;
-	int *row_len;
+	unsigned int data_size;
 	int stack_frame_size;
 	stack* arg_list;
 #if DEBUG_EN

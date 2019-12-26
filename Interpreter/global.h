@@ -15,6 +15,7 @@ extern file lfileio;
 extern stack string_stack;
 extern stack name_stack;
 extern strfifo name_fifo;
+extern strfifo string_fifo;
 extern c_interpreter myinterpreter;
 extern c_interpreter irq_interpreter;
 extern varity_type_stack_t varity_type_stack;
