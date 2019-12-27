@@ -84,8 +84,10 @@ extern "C" int kfree(void *ptr) {
 	if(!ptr)
 		return -1;
 	head_t *headptr = (head_t*)ptr - 1;
-	if(headptr->isused == 0)
+	if(headptr->isused == 0) {
+		fatal("free memory freed\n");
 		return -1;
+	}
 	if(headptr->next != 0) {
 		if(headptr->next->isused == 0) {
 			headptr->size += headptr->next->size + sizeof(head_t);

@@ -1682,7 +1682,7 @@ assign_general:
 			instruction_ptr->opdb_operand_type = OPERAND_CONST;
 			instruction_ptr->opda_addr = (int)function_ptr->get_name();
 			instruction_ptr->ret_operator = opt;
-			instruction_ptr->ret_varity_type = varity_get_type(function_ptr->arg_count, function_ptr->arg);//return_varity_ptr->get_type();
+			instruction_ptr->ret_varity_type = varity_get_type(function_ptr->arg_count - 2, function_ptr->arg);//return_varity_ptr->get_type();
 			varity_number = this->interprete_need_ptr->mid_varity_stack.get_count();
 			instruction_ptr->ret_addr = varity_number * 8;
 			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] < this->call_func_info.arg_count[this->call_func_info.function_depth - 1]) {
@@ -1696,7 +1696,7 @@ assign_general:
 			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 			rvarity_ptr = (varity_info*)this->interprete_need_ptr->mid_varity_stack.visit_element_by_index(varity_number);
-			rvarity_ptr->config_complex_info(function_ptr->arg_count, function_ptr->arg);
+			rvarity_ptr->config_complex_info(function_ptr->arg_count - 2, function_ptr->arg);
 			inc_varity_ref(rvarity_ptr);
 			this->interprete_need_ptr->mid_varity_stack.push();
 			this->call_func_info.function_depth--;
@@ -3030,6 +3030,19 @@ int c_interpreter::generate_arg_list(const char *str, int count, int &arg_count,
 		str += token_len;
 		len -= token_len;
 	}
+	int no = varity_type_stack.find(arg_count, arg);
+	if(no < 0) {
+		arg[0] = 1;
+		varity_type_stack.arg_count[varity_type_stack.count] = arg_count;
+		varity_type_stack.type_info_addr[varity_type_stack.count] = arg;
+		varity_type_stack.push();
+	} else {
+		vfree(arg);
+		vfree(function_arg_stack);
+		vfree(arg_stack);
+		arg = varity_type_stack.type_info_addr[no];
+		arg[0]++;
+	}
 	return ERROR_NO;
 }
 
@@ -3277,7 +3290,7 @@ int c_interpreter::ctl_analysis(node_attribute_t *node_ptr, int count)
 				return ret;
 			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 			//int func_ret_type = ((varity_info*)this->function_declare->get_current_node()->arg_list->visit_element_by_index(0))->get_type();
-			int func_ret_type = varity_get_type(this->function_declare->get_current_node()->arg_count, this->function_declare->get_current_node()->arg);
+			int func_ret_type = varity_get_type(this->function_declare->get_current_node()->arg_count - 2, this->function_declare->get_current_node()->arg);
 			if(((node_attribute_t*)root->value)->node_type == TOKEN_NAME && ((node_attribute_t*)root->value)->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {//$0ÒÑÌîÈë
 				varity_info *ret_varity_ptr = (varity_info*)this->interprete_need_ptr->mid_varity_stack.visit_element_by_index(0);//because ((node_attribute_t*)root->value)->value.ptr_value[1]==0
 				if(ret_varity_ptr->get_type() != func_ret_type) {
