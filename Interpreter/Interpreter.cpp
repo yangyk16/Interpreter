@@ -66,10 +66,10 @@ int c_interpreter::list_to_tree(node* tree_node, list_stack* post_order_stack)
 					error("Function %s not found.\n", ((node_attribute_t*)tree_node->value - 1)->value.ptr_value);
 					return ERROR_NO_FUNCTION;
 				} else {
-					arg_count = ((stack*)varity_info_ptr->get_complex_ptr()[2])->get_count();
+					arg_count = ((stack*)varity_info_ptr->get_complex_ptr()[2])->get_count();//TODO: why is 2
 				}
 			} else {
-				arg_count = function_ptr->arg_list->get_count() - 1;
+				arg_count = function_ptr->arg_list->get_count();
 			}
 			if(arg_count == 0) {//无参数函数
 				tree_node->left = last_node;
@@ -1588,13 +1588,13 @@ assign_general:
 #if HW_PLATFORM == PLATFORM_X86
 				instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + this->call_func_info.para_offset;
 #endif
-				if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
+				if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1]) {
 					if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
 						tip_wrong(((node_attribute_t*)opt_node_ptr->value)->pos);
 						error("Too many parameters\n");
 						RETURN(ERROR_FUNC_ARGS);
 					} else {//可变参数
-						if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] == this->call_func_info.arg_count[this->call_func_info.function_depth - 1]) {
+						if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] == this->call_func_info.arg_count[this->call_func_info.function_depth - 1] + 1) {
 							this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
 						}
 						if(instruction_ptr->opdb_varity_type <= U_LONG && instruction_ptr->opdb_varity_type >= CHAR) {//TODO:平台相关，应该换掉
@@ -1632,7 +1632,7 @@ assign_general:
 						}
 					}
 				} else {//确定参数
-					varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] + 1));
+					varity_info *arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
 #if HW_PLATFORM == PLATFORM_ARM
 					switch(instruction_ptr->opdb_varity_type) {
 					case DOUBLE:
@@ -1664,7 +1664,7 @@ assign_general:
 			}
 		}
 		if(opt == OPT_CALL_FUNC) {
-			varity_info *return_varity_ptr;
+			//varity_info *return_varity_ptr;
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
 			function_info *function_ptr;
 			function_ptr = this->function_declare->find(node_attribute->value.ptr_value);
@@ -1674,14 +1674,14 @@ assign_general:
 			instruction_ptr->ret_operator = CTL_SP_ADD;
 			instruction_ptr++->opda_addr = make_align((PLATFORM_WORD)this->varity_declare->local_varity_stack->offset, 4) + this->call_func_info.para_offset;
 			code_stack_ptr->push();
-			return_varity_ptr = (varity_info*)function_ptr->arg_list->visit_element_by_index(0);
+			//return_varity_ptr = (varity_info*)function_ptr->arg_list->visit_element_by_index(0);
 			instruction_ptr->opdb_operand_type = OPERAND_CONST;
 			instruction_ptr->opda_addr = (int)function_ptr->get_name();
 			instruction_ptr->ret_operator = opt;
-			instruction_ptr->ret_varity_type = return_varity_ptr->get_type();
+			instruction_ptr->ret_varity_type = varity_get_type(function_ptr->ret_arg_count, function_ptr->ret_arg);//return_varity_ptr->get_type();
 			varity_number = this->interprete_need_ptr->mid_varity_stack.get_count();
 			instruction_ptr->ret_addr = varity_number * 8;
-			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] < this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
+			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] < this->call_func_info.arg_count[this->call_func_info.function_depth - 1]) {
 				error("Insufficient parameters for %s.\n", node_attribute->value.ptr_value);
 				RETURN(ERROR_FUNC_ARGS);
 			}
@@ -1692,7 +1692,7 @@ assign_general:
 			((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 			((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = tmp_varity_name[varity_number];
 			rvarity_ptr = (varity_info*)this->interprete_need_ptr->mid_varity_stack.visit_element_by_index(varity_number);
-			rvarity_ptr->config_complex_info(return_varity_ptr->get_complex_arg_count(), return_varity_ptr->get_complex_ptr());
+			rvarity_ptr->config_complex_info(function_ptr->ret_arg_count, function_ptr->ret_arg);
 			inc_varity_ref(rvarity_ptr);
 			this->interprete_need_ptr->mid_varity_stack.push();
 			this->call_func_info.function_depth--;
@@ -1843,12 +1843,12 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 #if HW_PLATFORM == PLATFORM_X86
 			instruction_ptr->ret_addr = instruction_ptr->opda_addr = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN) + make_align(this->varity_declare->local_varity_stack->offset, PLATFORM_WORD_LEN) + this->call_func_info.para_offset;
 #endif
-			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1] - 1) {
+			if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] >= this->call_func_info.arg_count[this->call_func_info.function_depth - 1]) {
 				if(!this->call_func_info.function_ptr[this->call_func_info.function_depth - 1]->variable_para_flag) {
 					error("Too many parameters\n");
 					return ERROR_FUNC_ARGS;
 				} else {
-					if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] == this->call_func_info.arg_count[this->call_func_info.function_depth - 1]) {
+					if(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] == this->call_func_info.arg_count[this->call_func_info.function_depth - 1] + 1) {
 						this->call_func_info.offset[this->call_func_info.function_depth - 1] = make_align(this->call_func_info.offset[this->call_func_info.function_depth - 1], PLATFORM_WORD_LEN);
 					}
 					if(instruction_ptr->opdb_varity_type <= U_LONG && instruction_ptr->opdb_varity_type >= CHAR) {
@@ -1886,7 +1886,7 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 					}
 				}
 			} else {
-				arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1] + 1));
+				arg_varity_ptr = (varity_info*)(arg_list_ptr->visit_element_by_index(this->call_func_info.cur_arg_number[this->call_func_info.function_depth - 1]));
 #if HW_PLATFORM == PLATFORM_ARM
 				switch(instruction_ptr->opdb_varity_type) {
 				case DOUBLE:
@@ -2956,48 +2956,42 @@ struct_end_check:
 
 int c_interpreter::generate_compile_func(void)
 {
-	static stack eval_stack;
-	this->generate_arg_list("int,char*;", 2, eval_stack);
-	this->function_declare->add_compile_func("eval", (void*)user_eval, &eval_stack, 0);
-	///////////////////////////////////////////
-	static stack memcpy_stack;
-	this->generate_arg_list("void*,void*,void*,unsigned int;", 4, memcpy_stack);
-	this->function_declare->add_compile_func("memcpy", (void*)kmemcpy, &memcpy_stack, 0);
-	static stack memcmp_stack;
-	this->generate_arg_list("int,void*,void*,unsigned int;", 4, memcmp_stack);
-	this->function_declare->add_compile_func("memcmp", (void*)kmemcmp, &memcmp_stack, 0);
-	static stack memset_stack;
-	this->generate_arg_list("void*,void*,int,unsigned int;", 4, memset_stack);
-	this->function_declare->add_compile_func("memset", (void*)kmemset, &memset_stack, 0);
-	static stack printf_stack;
-	this->generate_arg_list("int,char*;", 2, printf_stack);
-	this->function_declare->add_compile_func("printf", (void*)kprintf, &printf_stack, 1);
-	static stack sprintf_stack;
-	this->generate_arg_list("int,char*,char*;", 3, sprintf_stack);
-	this->function_declare->add_compile_func("sprintf", (void*)ksprintf, &sprintf_stack, 1);
-	static stack strcmp_stack;
-	this->generate_arg_list("int,char*,char*;", 3, strcmp_stack);
-	this->function_declare->add_compile_func("strcmp", (void*)kstrcmp, &strcmp_stack, 0);
-	static stack irqreg_stack;
-	this->generate_arg_list("void,int,void*,void*;", 4, irqreg_stack);
-	this->function_declare->add_compile_func("irq_reg", (void*)irq_reg, &irqreg_stack, 0);
-	static stack refscript_stack;
-	this->generate_arg_list("int,char*;", 2, refscript_stack);
-	this->function_declare->add_compile_func("ref", (void*)refscript, &refscript_stack, 0);
+	static stack eval_stack, memcpy_stack, memcmp_stack, memset_stack, printf_stack, sprintf_stack;
+	static stack strcmp_stack, irqreg_stack, refscript_stack;
+	varity_info eval_ret, memcpy_ret, memcmp_ret, memset_ret, printf_ret, sprintf_ret;
+	varity_info strcmp_ret, irqreg_ret, refscript_ret;
+	this->generate_arg_list("int,char*;", 2, eval_stack, eval_ret);
+	this->function_declare->add_compile_func("eval", (void*)user_eval, &eval_stack, &eval_ret, 0);
+	this->generate_arg_list("void*,void*,void*,unsigned int;", 4, memcpy_stack, memcpy_ret);
+	this->function_declare->add_compile_func("memcpy", (void*)kmemcpy, &memcpy_stack, &memcpy_ret, 0);
+	this->generate_arg_list("int,void*,void*,unsigned int;", 4, memcmp_stack, memcmp_ret);
+	this->function_declare->add_compile_func("memcmp", (void*)kmemcmp, &memcmp_stack, &memcmp_ret, 0);
+	this->generate_arg_list("void*,void*,int,unsigned int;", 4, memset_stack, memset_ret);
+	this->function_declare->add_compile_func("memset", (void*)kmemset, &memset_stack, &memset_ret, 0);
+	this->generate_arg_list("int,char*;", 2, printf_stack, printf_ret);
+	this->function_declare->add_compile_func("printf", (void*)kprintf, &printf_stack, &printf_ret, 1);
+	this->generate_arg_list("int,char*,char*;", 3, sprintf_stack, sprintf_ret);
+	this->function_declare->add_compile_func("sprintf", (void*)ksprintf, &sprintf_stack, &sprintf_ret, 1);
+	this->generate_arg_list("int,char*,char*;", 3, strcmp_stack, strcmp_ret);
+	this->function_declare->add_compile_func("strcmp", (void*)kstrcmp, &strcmp_stack, &strcmp_ret, 0);
+	this->generate_arg_list("void,int,void*,void*;", 4, irqreg_stack, irqreg_ret);
+	this->function_declare->add_compile_func("irq_reg", (void*)irq_reg, &irqreg_stack, &irqreg_ret, 0);
+	this->generate_arg_list("int,char*;", 2, refscript_stack, refscript_ret);
+	this->function_declare->add_compile_func("ref", (void*)refscript, &refscript_stack, &refscript_ret, 0);
 	this->cstdlib_func_count = this->function_declare->function_stack_ptr->get_count();
 	return ERROR_NO;
 }
 
-int c_interpreter::generate_arg_list(const char *str, int count, stack &arg_list_ptr)//没有容错，不开放给终端输入，仅用于链接标准库函数，仅能使用1级指针
+int c_interpreter::generate_arg_list(const char *str, int count, stack &arg_list_ptr, varity_info &ret_varity)//没有容错，不开放给终端输入，仅用于链接标准库函数，仅能使用1级指针
 {
 	int len = kstrlen(str);
-	void *arg_stack = dmalloc(sizeof(varity_info) * count, "arg stack");
+	void *arg_stack = dmalloc(sizeof(varity_info) * --count, "arg stack");
 	arg_list_ptr.init(sizeof(varity_info), arg_stack, count);
 	varity_info *varity_ptr = (varity_info*)arg_list_ptr.get_base_addr();
 	node_attribute_t node;
 	int token_len;
 	int type;
-	char ptr_flag = 0;
+	char ptr_flag = 0, ret_flag = 0;
 	while(len > 0) {
 		token_len = get_token((char*)str, &node);
 		if(node.node_type == TOKEN_KEYWORD_TYPE) {
@@ -3006,9 +3000,14 @@ int c_interpreter::generate_arg_list(const char *str, int count, stack &arg_list
 			if(node.data == OPT_MUL) {
 				ptr_flag = 1;
 			} else {
-				varity_ptr->init_varity(0, 4, 1 + ptr_flag, basic_type_info[type]);
-				varity_ptr++;
-				arg_list_ptr.push();
+				if(ret_flag) {
+					varity_ptr->init_varity(0, 4, 1 + ptr_flag, basic_type_info[type]);
+					varity_ptr++;
+					arg_list_ptr.push();
+				} else {
+					ret_flag = 1;
+					ret_varity.init_varity(0, 4, 1 + ptr_flag, basic_type_info[type]);
+				}
 				ptr_flag = 0;
 			}
 		}
@@ -3126,20 +3125,19 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 			}
 			uint arg_count = arg_stack_ptr->get_count();
 			varity_info *arg_ptr = (varity_info*)arg_stack_ptr->get_base_addr();
-			varity_info *all_arg_ptr = (varity_info*)dmalloc(sizeof(varity_info) * (arg_count + 1), "function's all args");//TODO: very import: consider return type is ptr!!!
-			kmemcpy(all_arg_ptr + 1, arg_ptr, sizeof(varity_info) * (arg_count));
-
+			//varity_info *all_arg_ptr = (varity_info*)dmalloc(sizeof(varity_info) * (arg_count + 1), "function's all args");//TODO: very import: consider return type is ptr!!!
+			//kmemcpy(all_arg_ptr + 1, arg_ptr, sizeof(varity_info) * (arg_count));
 			for(int n=0; n<arg_count; n++) {
 				int size = get_varity_size(0, arg_ptr[n].get_complex_ptr(), arg_ptr[n].get_complex_arg_count());
 				size = make_align(size, 4);
 				this->varity_declare->declare(VARITY_SCOPE_LOCAL, arg_ptr[n].get_name(), size, arg_ptr[n].get_complex_arg_count(), arg_ptr[n].get_complex_ptr());
 			}
-			vfree(arg_ptr);
-			arg_stack_ptr->set_base(all_arg_ptr);
-			arg_stack_ptr->set_count(arg_count + 1);
-			all_arg_ptr->config_complex_info(complex_count - 2, complex_info);
-			inc_varity_ref(all_arg_ptr);
-			ret_function_define = this->function_declare->declare(function_name, arg_stack_ptr, func_flag);
+			//vfree(arg_ptr);
+			//arg_stack_ptr->set_base(all_arg_ptr);
+			//arg_stack_ptr->set_count(arg_count + 1);
+			//all_arg_ptr->config_complex_info(complex_count - 2, complex_info);
+			//inc_varity_ref(all_arg_ptr);
+			ret_function_define = this->function_declare->declare(function_name, complex_count - 2, complex_info, arg_stack_ptr, func_flag);
 			if(ret_function_define) {
 				clear_arglist(arg_stack_ptr);
 				vfree(complex_info);
@@ -3262,7 +3260,8 @@ int c_interpreter::ctl_analysis(node_attribute_t *node_ptr, int count)
 			if(ret)
 				return ret;
 			mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-			int func_ret_type = ((varity_info*)this->function_declare->get_current_node()->arg_list->visit_element_by_index(0))->get_type();
+			//int func_ret_type = ((varity_info*)this->function_declare->get_current_node()->arg_list->visit_element_by_index(0))->get_type();
+			int func_ret_type = varity_get_type(this->function_declare->get_current_node()->ret_arg_count, this->function_declare->get_current_node()->ret_arg);
 			if(((node_attribute_t*)root->value)->node_type == TOKEN_NAME && ((node_attribute_t*)root->value)->value.ptr_value[0] == TMP_VAIRTY_PREFIX) {//$0已填入
 				varity_info *ret_varity_ptr = (varity_info*)this->interprete_need_ptr->mid_varity_stack.visit_element_by_index(0);//because ((node_attribute_t*)root->value)->value.ptr_value[1]==0
 				if(ret_varity_ptr->get_type() != func_ret_type) {

@@ -173,7 +173,7 @@ void function::init(stack* function_stack_ptr)
 	this->function_stack_ptr = function_stack_ptr;
 }
 
-int function::declare(char* name, stack* arg_list, int flag)
+int function::declare(char *name, int ret_arg_count, PLATFORM_WORD *ret_arg, stack *arg_list, int flag)
 {
 	function_info* function_node_ptr;
 	if(this->function_stack_ptr->find(name)) {
@@ -186,6 +186,8 @@ int function::declare(char* name, stack* arg_list, int flag)
 	}
 	function_node_ptr = (function_info*)function_stack_ptr->get_current_ptr();
 	function_node_ptr->init(name, arg_list, flag);
+	function_node_ptr->ret_arg = ret_arg;
+	function_node_ptr->ret_arg_count = ret_arg_count;
 	if(!(flag & FUNC_FLAG_PROTOTYPE))
 		function_node_ptr->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
 	this->current_node = function_node_ptr;
@@ -193,7 +195,7 @@ int function::declare(char* name, stack* arg_list, int flag)
 	return 0;
 }
 
-int function::add_compile_func(const char *name, void *addr, stack *arg_list, char variable_arg_flag)
+int function::add_compile_func(const char *name, void *addr, stack *arg_list, varity_info *ret_varity, char variable_arg_flag)
 {
 	function_info* function_node_ptr;
 	if(this->function_stack_ptr->find(name)) {
@@ -206,6 +208,8 @@ int function::add_compile_func(const char *name, void *addr, stack *arg_list, ch
 	}
 	function_node_ptr = (function_info*)function_stack_ptr->get_current_ptr();
 	function_node_ptr->init(name, addr, arg_list, variable_arg_flag);
+	function_node_ptr->ret_arg_count = ret_varity->get_complex_arg_count();
+	function_node_ptr->ret_arg = ret_varity->get_complex_ptr();
 	function_stack_ptr->push();
 	return ERROR_NO;
 }

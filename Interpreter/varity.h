@@ -108,6 +108,7 @@ public:
 
 class struct_define;
 
+int varity_get_type(int arg_count, PLATFORM_WORD *arg);
 int get_varity_size(int basic_type, PLATFORM_WORD *complex_info = 0, int complex_arg_count = 0);
 int array_to_ptr(PLATFORM_WORD *&complex_info, int complex_arg_count);
 void dec_varity_ref(varity_info *varity_ptr, bool destroy_flag);

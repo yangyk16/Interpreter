@@ -51,20 +51,25 @@ varity_info::varity_info()
 	kmemset(this, 0, sizeof(*this));
 }
 
-int varity_info::get_type(void)
+int varity_get_type(int arg_count, PLATFORM_WORD *arg)
 {
-	if(this->complex_arg_count == 1)
-		return GET_COMPLEX_DATA(this->comlex_info_ptr[1]);
-	else if(this->complex_arg_count == 2 && GET_COMPLEX_DATA(this->comlex_info_ptr[2]) == STRUCT && GET_COMPLEX_TYPE(this->comlex_info_ptr[2]) == COMPLEX_BASIC)
+	if(arg_count == 1)
+		return GET_COMPLEX_DATA(arg[1]);
+	else if(arg_count == 2 && GET_COMPLEX_DATA(arg[2]) == STRUCT && GET_COMPLEX_TYPE(arg[2]) == COMPLEX_BASIC)
 		return STRUCT;
 	else {
-		if(GET_COMPLEX_TYPE(this->comlex_info_ptr[this->complex_arg_count]) == COMPLEX_PTR) {
+		if(GET_COMPLEX_TYPE(arg[arg_count]) == COMPLEX_PTR) {
 			return PTR;
-		} else if(GET_COMPLEX_TYPE(this->comlex_info_ptr[this->complex_arg_count]) == COMPLEX_ARRAY) {
+		} else if(GET_COMPLEX_TYPE(arg[arg_count]) == COMPLEX_ARRAY) {
 			return ARRAY;
 		}
 	}
 	return INT;
+}
+
+int varity_info::get_type(void)
+{
+	return varity_get_type(this->complex_arg_count, this->comlex_info_ptr);
 }
 
 void varity_info::config_complex_info(int complex_arg_count, PLATFORM_WORD* info_ptr)
@@ -98,15 +103,6 @@ void varity_info::init_varity(char *name, uint size, int arg_count, PLATFORM_WOR
 		inc_varity_ref(varity_ptr);
 	//}
 }
-
-/*varity_info::varity_info(char* name, int type, uint size)
-{
-	int name_len = kstrlen(name);
-	this->name = (char*)dmalloc(name_len + 1, "");
-	kstrcpy(this->name, name);
-	this->size = size;
-	this->content_ptr = 0;
-}*/
 
 void varity_info::set_type(int type)
 {
