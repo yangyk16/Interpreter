@@ -8,7 +8,7 @@
 #include "global.h"
 #include "string_lib.h"
 
-int function_info::init(char* name, stack* arg_list, int flag)
+int function_info::init(char* name, int flag)
 {//TODO: add malloc fail action.
 	int name_len = kstrlen(name);
 	string_info *string_ptr;
@@ -30,14 +30,13 @@ int function_info::init(char* name, stack* arg_list, int flag)
 		this->row_code_ptr = (mid_code**)dmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*), "function row map mid code");
 #endif
 	}
-	this->arg_list = arg_list;
 	this->compile_func_flag = flag;
 	this->variable_para_flag = 0;
 	this->debug_flag = 1;
 	return 0;
 }
 
-int function_info::init(const char *name, void* addr, stack *arg_list, char variable_arg_flag)
+int function_info::init(const char *name, void* addr, char variable_arg_flag)
 {
 	int name_len = kstrlen(name);
 	string_info *string_ptr;
@@ -50,12 +49,10 @@ int function_info::init(const char *name, void* addr, stack *arg_list, char vari
 	} else {
 		this->name = string_ptr->get_name();
 	}
-	//this->name = (char*)dmalloc(name_len + 1, "");
-	//kstrcpy(this->name, name);
 	this->func_addr = addr;
 	this->compile_func_flag = 1;
 	this->variable_para_flag = variable_arg_flag;
-	this->arg_list = arg_list;
+	//this->arg_list = arg_list;
 	return ERROR_NO;
 }
 
@@ -91,10 +88,9 @@ int function_info::dispose(void)
 #endif
 	//if(this->row_begin_pos)
 	//	vfree(this->row_begin_pos);
-	if(this->arg_list) {
+	/*if(this->arg_list) {
 		destroy_varity_stack(this->arg_list);
-		//vfree(this->arg_list);
-	}
+	}*/
 	void *code_addr = this->mid_code_stack.get_base_addr();
 	if(code_addr) {
 		vfree(code_addr);
@@ -173,7 +169,7 @@ void function::init(stack* function_stack_ptr)
 	this->function_stack_ptr = function_stack_ptr;
 }
 
-int function::declare(char *name, int ret_arg_count, PLATFORM_WORD *ret_arg, stack *arg_list, int flag)
+int function::declare(char *name, int arg_count, PLATFORM_WORD *arg, int flag)
 {
 	function_info* function_node_ptr;
 	if(this->function_stack_ptr->find(name)) {
@@ -185,9 +181,9 @@ int function::declare(char *name, int ret_arg_count, PLATFORM_WORD *ret_arg, sta
 		return ERROR_FUNC_COUNT_MAX;
 	}
 	function_node_ptr = (function_info*)function_stack_ptr->get_current_ptr();
-	function_node_ptr->init(name, arg_list, flag);
-	function_node_ptr->ret_arg = ret_arg;
-	function_node_ptr->ret_arg_count = ret_arg_count;
+	function_node_ptr->init(name, flag);
+	function_node_ptr->arg = arg;
+	function_node_ptr->arg_count = arg_count;
 	if(!(flag & FUNC_FLAG_PROTOTYPE))
 		function_node_ptr->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
 	this->current_node = function_node_ptr;
@@ -195,7 +191,7 @@ int function::declare(char *name, int ret_arg_count, PLATFORM_WORD *ret_arg, sta
 	return 0;
 }
 
-int function::add_compile_func(const char *name, void *addr, stack *arg_list, varity_info *ret_varity, char variable_arg_flag)
+int function::add_compile_func(const char *name, void *addr, int arg_cnt, PLATFORM_WORD *arg, char variable_arg_flag)
 {
 	function_info* function_node_ptr;
 	if(this->function_stack_ptr->find(name)) {
@@ -207,9 +203,9 @@ int function::add_compile_func(const char *name, void *addr, stack *arg_list, va
 		return ERROR_FUNC_COUNT_MAX;
 	}
 	function_node_ptr = (function_info*)function_stack_ptr->get_current_ptr();
-	function_node_ptr->init(name, addr, arg_list, variable_arg_flag);
-	function_node_ptr->ret_arg_count = ret_varity->get_complex_arg_count();
-	function_node_ptr->ret_arg = ret_varity->get_complex_ptr();
+	function_node_ptr->init(name, addr, variable_arg_flag);
+	function_node_ptr->arg_count = arg_cnt;
+	function_node_ptr->arg = arg;
 	function_stack_ptr->push();
 	return ERROR_NO;
 }

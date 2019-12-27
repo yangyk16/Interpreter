@@ -1941,7 +1941,7 @@ ITCM_TEXT int c_interpreter::opt_call_func_handle(c_interpreter *interpreter_ptr
 		error("Arg size cannot exceed 64B.\n");
 		return ERROR_NO;
 	}
-	varity_convert(ret_addr, instruction_ptr->ret_varity_type, &ret, ((varity_info*)function_ptr->arg_list->visit_element_by_index(0))->get_type());
+	varity_convert(ret_addr, instruction_ptr->ret_varity_type, &ret, varity_get_type(function_ptr->arg_count - 2, function_ptr->arg));
 	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
 	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return 0;

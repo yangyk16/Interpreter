@@ -22,15 +22,15 @@ public:
 	unsigned int *row_begin_pos;
 	unsigned int data_size;
 	int stack_frame_size;
-	stack* arg_list;
-	int ret_arg_count;
-	PLATFORM_WORD *ret_arg;
+	//stack* arg_list;
+	int arg_count;
+	PLATFORM_WORD *arg;
 #if DEBUG_EN
 	mid_code **row_code_ptr;
 	indexed_stack local_varity_stack;
 #endif
-	int init(char*, stack*, int);
-	int init(const char *name, void* addr, stack *arg_list, char variable_arg_flag);
+	int init(char*, int);
+	int init(const char *name, void* addr, char variable_arg_flag);
 	int dispose(void);
 	int save_sentence(char* ,uint);
 #if DEBUG_EN
@@ -51,7 +51,7 @@ public:
 	void current_node_abort(void);
 	int save_sentence(char* ,uint);
 	int destroy_sentence(void);
-	int declare(char*, int, PLATFORM_WORD*,stack*, int);
-	int add_compile_func(const char *name, void *addr, stack *arg_list, varity_info *ret_varity, char variable_arg_flag);
+	int declare(char*, int, PLATFORM_WORD*, int);
+	int add_compile_func(const char *name, void *addr, int arg_cnt, PLATFORM_WORD *arg, char variable_arg_flag);
 };
 #endif

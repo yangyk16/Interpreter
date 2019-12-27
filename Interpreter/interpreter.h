@@ -325,7 +325,7 @@ class c_interpreter {
 	int label_analysis(node_attribute_t*, int);
 	int sentence_exec(node_attribute_t*, uint, bool);
 	int get_varity_type(node_attribute_t*, int&, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info);
-	int generate_arg_list(const char *str, int count, stack &arg_list_ptr, varity_info &ret_varity);
+	int generate_arg_list(const char *str, int count, int &arg_count, PLATFORM_WORD *&arg);
 	int generate_compile_func(void);
 	int get_token(char *str, node_attribute_t *info);
 	int post_order_expression(node_attribute_t *node_ptr, int count, list_stack&);
