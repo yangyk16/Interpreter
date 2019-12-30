@@ -3996,6 +3996,7 @@ varity_end:
 						vfree(complex_info);
 					} else {
 						ret_info = complex_info;
+						ret_info[0] = 0;
 						varity_type_stack.push(node_count + basic_info_node_count, complex_info);
 					}
 				} else {

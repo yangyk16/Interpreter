@@ -83,8 +83,8 @@ int function_info::dispose(void)
 #if DEBUG_EN
 	//if(this->row_code_ptr)
 	//	vfree(this->row_code_ptr);
-	if(this->local_varity_stack.get_base_addr())
-		vfree(this->local_varity_stack.get_base_addr());
+	//if(this->local_varity_stack.get_base_addr())
+	//	vfree(this->local_varity_stack.get_base_addr());
 #endif
 	//if(this->row_begin_pos)
 	//	vfree(this->row_begin_pos);
@@ -105,7 +105,7 @@ int function_info::size_adapt(void)
 				+ make_align(this->wptr, 4);
 	//vrealloc(this->mid_code_stack.get_base_addr(), this->mid_code_stack.get_count() * sizeof(mid_code));
 #if DEBUG_EN
-	this->data_size += this->row_line * sizeof(mid_code*);
+	this->data_size += this->row_line * sizeof(mid_code*) + this->local_varity_stack.get_count() * sizeof(varity_info);
 	//vrealloc(this->row_code_ptr, this->row_line * sizeof(mid_code*));
 #endif
 	//vrealloc(this->buffer, this->wptr);
@@ -126,6 +126,10 @@ int function_info::size_adapt(void)
 	vfree(this->buffer);
 	this->buffer = function_data;
 	function_data += size;
+	size = this->local_varity_stack.get_count() * sizeof(varity_info);
+	kmemcpy(function_data, this->local_varity_stack.get_base_addr(), size);
+	vfree(this->local_varity_stack.get_base_addr());
+	this->local_varity_stack.set_base(function_data);
 #if DEBUG_EN
 	size = this->row_line * sizeof(mid_code*);
 	kmemcpy(function_data, this->row_code_ptr, size);
@@ -184,6 +188,7 @@ int function::declare(char *name, int arg_count, PLATFORM_WORD *arg, int flag)
 	function_node_ptr->init(name, flag);
 	function_node_ptr->arg = arg;
 	function_node_ptr->arg_count = arg_count;
+	arg[0]++;
 	if(!(flag & FUNC_FLAG_PROTOTYPE))
 		function_node_ptr->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);
 	this->current_node = function_node_ptr;
@@ -206,6 +211,7 @@ int function::add_compile_func(const char *name, void *addr, int arg_cnt, PLATFO
 	function_node_ptr->init(name, addr, variable_arg_flag);
 	function_node_ptr->arg_count = arg_cnt;
 	function_node_ptr->arg = arg;
+	arg[0]++;
 	function_stack_ptr->push();
 	return ERROR_NO;
 }

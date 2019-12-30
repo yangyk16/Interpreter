@@ -2118,8 +2118,8 @@ int c_interpreter::call_opt_handle(c_interpreter *interpreter_ptr)
 	if(opt_handle[instruction_ptr->ret_operator]) {
 		//tick1 = HWREG(0x2040018);
 		ret = opt_handle[instruction_ptr->ret_operator](interpreter_ptr);
-		if(gdb::get_trace_status())
-			kprintf("ret=%08x\n", *interpreter_ptr->cpsr.last_ret_addr);
+		//if(gdb::get_trace_status())
+		//	kprintf("ret=%08x\n", *interpreter_ptr->cpsr.last_ret_addr);
 		//tick2 = HWREG(0x2040018);
 		//opt_time += tick1 - tick2;
 #if DEBUG_EN
