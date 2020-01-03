@@ -70,6 +70,16 @@ void* stack::pop(void)
 	return (void*)&((char*)(this->bottom_addr))[this->top];
 }
 
+void* stack::m_find(void *mem)
+{
+	for(unsigned int i=0; i<this->count; i++) {
+		void *element_mem = (char*)this->bottom_addr + i * this->element_size;
+		if(!kmemcmp(element_mem, mem, this->element_size))
+			return element_mem;
+	}
+	return NULL;
+}
+
 void* stack::find(const char* name)
 {
 	char* element_name;

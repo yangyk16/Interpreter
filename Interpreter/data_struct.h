@@ -74,6 +74,7 @@ public:
 	void push(void);
 	void* pop(void);
 	virtual void* find(const char*);
+	void* m_find(void*);
 	inline void set_base(void* addr) {this->bottom_addr = addr;}
 	inline void set_count(int count) {this->count = count; this->top = count * this->element_size;}
 	//inline void set_length(uint len) {this->length = len;}
