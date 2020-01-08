@@ -21,7 +21,6 @@
 #define COMPLEX_ARRAY	1u
 #define COMPLEX_PTR		2u
 #define COMPLEX_ARG		3u
-#define COMPLEX_COMPLEX	4u
 #define COMPLEX_BASIC	5u
 
 #define COMPLEX_TYPE_BIT	29

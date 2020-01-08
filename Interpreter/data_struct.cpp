@@ -7,6 +7,7 @@ stack::stack()
 {
 	this->count = 0;
 	this->top = 0;
+	this->bottom_addr = 0;
 }
 
 void stack::dispose(void)
@@ -251,17 +252,47 @@ int varity_type_stack_t::del(char arg_count, unsigned long *type_info_addr)
 	return -1;
 }
 
+static int typecmp(int count, PLATFORM_WORD *type1, PLATFORM_WORD *type2);
+static int argcmp(stack *std, stack *src)
+{
+	int count = std->get_count();
+	if(count != src->get_count())
+		return -1;
+	for(int i=0; i<count; i++) {
+		varity_info *stdarg = (varity_info*)std->visit_element_by_index(i);
+		varity_info *srcarg = (varity_info*)src->visit_element_by_index(i);
+		if(stdarg->get_complex_arg_count() != srcarg->get_complex_arg_count())
+			return -1;
+		if(typecmp(stdarg->get_complex_arg_count(), stdarg->get_complex_ptr(), srcarg->get_complex_ptr()))
+			return -1;
+	}
+	return 0;
+}
+
+static int typecmp(int count, PLATFORM_WORD *type1, PLATFORM_WORD *type2)
+{
+	int j;
+	for(j=count; j>=1; j--) {
+		if(type1[j] == type2[j]) {
+			if(GET_COMPLEX_TYPE(type1[j]) == COMPLEX_ARG) {
+				j--;
+				if(argcmp((stack*)type1[j], (stack*)type2[j]))
+					break;
+			}
+		} else
+			break;
+	}
+	if(j == 0)
+		return 0;
+	return 1;
+}
+
 int varity_type_stack_t::find(char arg_count, unsigned long *type_info_addr)
 {
 	int i;
 	for(i=0; i<this->count; i++) {
 		if(this->arg_count[i] >= arg_count) {
-			int j;
-			for(j=1; j<=arg_count; j++) {
-				if(((PLATFORM_WORD*)this->type_info_addr[i])[j] != ((PLATFORM_WORD*)type_info_addr)[j])
-					break;
-			}
-			if(j > arg_count)
+			if(!typecmp(arg_count, this->type_info_addr[i], type_info_addr))
 				return i;
 		}
 	}

@@ -401,6 +401,22 @@ int c_interpreter::symbol_sr_status(int sr_direction)
 	return ERROR_NO;
 }
 
+static int write_varity_stack(void *file_ptr, stack *stack_ptr, bool write_flag)
+{
+	if(write_flag)
+		vfwrite(stack_ptr, sizeof(stack), 1, file_ptr, "variable stack");
+	int arg_count = stack_ptr->get_count();
+	for(int j=0; j<arg_count; j++) {
+		varity_info* arg_varity_ptr = (varity_info*)stack_ptr->visit_element_by_index(j);
+		PLATFORM_WORD *complex_ptr = arg_varity_ptr->get_complex_ptr();
+		unsigned int type_no = varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
+		arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), (PLATFORM_WORD*)type_no);
+		vfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr, "an arg varity");
+		arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
+	}
+	return 0;
+}
+
 int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss_base_ret)
 {
 	void *file_ptr = kfopen(file, "rb");
@@ -409,17 +425,17 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		return ERROR_FILE;
 	}
 	unsigned int function_total_size;
-	int i, j;
-	kfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr);
+	int i, j, type_no;
+	vfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr, "compile info");
 	if(compile_info.sum32 != calc_sum32((int*)&compile_info, sizeof(this->compile_info) - sizeof(int))) {
 		error("Not an ELF file.\n");
 		return ERROR_FILE;
 	}
 	function_info *function_info_ptr = (function_info*)dmalloc(sizeof(function_info), "all infos base");
-	kfread(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
+	vfread(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr, "compile string info");
 	void *str_base = dmalloc(compile_string_info.string_size + compile_string_info.name_size, "string base");
 	//string_info *string_info_ptr = (string_info*)str_base;
-	kfread((char*)str_base, 1, compile_string_info.string_size + compile_string_info.name_size, file_ptr);
+	vfread((char*)str_base, 1, compile_string_info.string_size + compile_string_info.name_size, file_ptr, "string and name");
 	char *str_data_base = (char*)str_base;
 	unsigned short *str_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_string_info.string_count, "string stack map");
 	unsigned short *name_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_string_info.name_count, "name stack map");
@@ -452,28 +468,30 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	vfree(str_base);
 	void *base = dmalloc(this->compile_info.total_size, "load file space");
 	*load_base = base;
-	kfread(&this->compile_function_info, sizeof(compile_function_info_t), 1, file_ptr);
+	vfread(&this->compile_function_info, sizeof(compile_function_info_t), 1, file_ptr, "function info");
 	mid_code *mid_code_ptr = (mid_code*)base;
 	stack *arg_varity_ptr = (stack*)((char*)mid_code_ptr + this->compile_function_info.mid_code_size);
 	varity_info *local_varity_ptr = (varity_info*)((char*)arg_varity_ptr + this->compile_function_info.arg_size);
 	char *source_code_ptr = (char*)local_varity_ptr + this->compile_function_info.local_varity_size;
 	mid_code **row_code_ptr = (mid_code**)((char*)source_code_ptr + make_align(this->compile_function_info.source_code_size, PLATFORM_WORD_LEN));
-	kfread(mid_code_ptr, 1, this->compile_function_info.mid_code_size, file_ptr);
-	kfread(arg_varity_ptr, 1, this->compile_function_info.arg_size, file_ptr);
-	kfread(local_varity_ptr, 1, this->compile_function_info.local_varity_size, file_ptr);
-	kfread(source_code_ptr, 1, this->compile_function_info.source_code_size, file_ptr);
-	kfread(row_code_ptr, 1, this->compile_function_info.code_map_size, file_ptr);
+	vfread(mid_code_ptr, 1, this->compile_function_info.alldata_size, file_ptr, "function all data");
+	//vfread(mid_code_ptr, 1, this->compile_function_info.mid_code_size, file_ptr);
+	//vfread(arg_varity_ptr, 1, this->compile_function_info.arg_size, file_ptr);
+	//vfread(local_varity_ptr, 1, this->compile_function_info.local_varity_size, file_ptr);
+	//vfread(source_code_ptr, 1, this->compile_function_info.source_code_size, file_ptr);
+	//vfread(row_code_ptr, 1, this->compile_function_info.code_map_size, file_ptr);
 	unsigned int function_begin_count = this->function_declare->function_stack_ptr->get_count();
 	unsigned int struct_begin_count = this->struct_declare->struct_stack_ptr->get_count();
 	unsigned int varity_begin_count = this->varity_declare->global_varity_stack->get_count();
 	for(i=0; i<compile_function_info.function_count; i++) {
-		kfread(function_info_ptr, sizeof(function_info), 1, file_ptr);
+		vfread(function_info_ptr, sizeof(function_info), 1, file_ptr, "function info");
 		kmemcpy(&function_info_ptr->local_varity_stack, &c_interpreter::language_elment_space.l_varity_list, sizeof(void*));//copy virtual table
 		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
+		mid_code_ptr = (mid_code*)((char*)mid_code_ptr + function_info_ptr->data_size);
 		if(compile_info.extra_flag) {
-			stack *arg_list = (stack*)function_info_ptr->arg[function_info_ptr->arg_count - 1];
-			arg_list = (stack*)arg_varity_ptr++;
-			arg_list->set_base(arg_varity_ptr);
+			//stack *arg_list = (stack*)function_info_ptr->arg[function_info_ptr->arg_count - 1];
+			//arg_list = (stack*)arg_varity_ptr++;
+			//arg_list->set_base(arg_varity_ptr);
 			function_info_ptr->local_varity_stack.set_base(local_varity_ptr);
 			function_info_ptr->buffer = source_code_ptr;
 			function_info_ptr->row_code_ptr = row_code_ptr;
@@ -487,7 +505,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			}
 			source_code_ptr += function_info_ptr->wptr;
 			row_code_ptr += function_info_ptr->row_line;
-			arg_varity_ptr = (stack*)((varity_info*)arg_varity_ptr + arg_list->get_count());
+			//arg_varity_ptr = (stack*)((varity_info*)arg_varity_ptr + arg_list->get_count());
 			local_varity_ptr += function_info_ptr->local_varity_stack.get_count();
 		}
 		if(compile_info.export_flag == EXPORT_FLAG_LINK || compile_info.extra_flag)
@@ -497,18 +515,18 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		mid_code_ptr += function_info_ptr->mid_code_stack.get_count();
 		this->function_declare->function_stack_ptr->push(function_info_ptr);
 	}
-	function_total_size = this->compile_function_info.mid_code_size + make_align(this->compile_function_info.source_code_size, PLATFORM_WORD_LEN) + this->compile_function_info.arg_size + this->compile_function_info.code_map_size;
+	function_total_size = this->compile_function_info.alldata_size;
 	base = (char*)base + make_align(function_total_size, 4);
 	struct_info *struct_info_ptr = (struct_info*)function_info_ptr;
 	unsigned short *struct_map_table;
 	if(compile_info.extra_flag) {
 		struct_info *struct_dup_ptr;
-		kfread(&this->compile_struct_info, sizeof(compile_struct_info_t), 1, file_ptr);
+		vfread(&this->compile_struct_info, sizeof(compile_struct_info_t), 1, file_ptr, "compile struct info");
 		struct_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_struct_info.struct_count, "struct map");
 		arg_varity_ptr = (stack*)base;
-		kfread(arg_varity_ptr, compile_struct_info.varity_size, 1, file_ptr);
+		vfread(arg_varity_ptr, compile_struct_info.varity_size, 1, file_ptr, "struct varity");
 		for(i=0; i<compile_struct_info.struct_count; i++) {
-			kfread(struct_info_ptr, sizeof(struct_info), 1, file_ptr);
+			vfread(struct_info_ptr, sizeof(struct_info), 1, file_ptr, "struct info");
 			struct_info_ptr->varity_stack_ptr = arg_varity_ptr++;
 			struct_info_ptr->varity_stack_ptr->set_base(arg_varity_ptr);
 			//struct_info_ptr->type_info_ptr[1] = (uint)struct_info_ptr;
@@ -526,12 +544,12 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	}
 	base = (char*)base + compile_struct_info.varity_size;
 	compile_varity_info_t compile_varity_info;
-	kfread(&compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
+	vfread(&compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr, "compile variable info");
 	varity_type_stack_t *varity_type_stack_ptr = (varity_type_stack_t*)function_info_ptr;
 	varity_type_stack_t *varity_type_info_ptr;
 	PLATFORM_WORD *varity_type_ptr;
 	if(compile_info.extra_flag) {
-		kfread(varity_type_stack_ptr, sizeof(varity_type_stack), 1, file_ptr);
+		vfread(varity_type_stack_ptr, sizeof(varity_type_stack), 1, file_ptr, "varity type stack");
 		varity_type_info_ptr = (varity_type_stack_t*)dmalloc(sizeof(varity_type_stack_t) + make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN) + varity_type_stack_ptr->count * sizeof(void*) + compile_varity_info.type_size + sizeof(varity_info), "varity type info");
 		varity_type_ptr = (PLATFORM_WORD*)((char*)varity_type_info_ptr + sizeof(varity_type_stack_t) + make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN) + varity_type_stack_ptr->count * sizeof(void*));
 	} else {
@@ -541,11 +559,25 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	if(compile_info.extra_flag) {
 		varity_type_stack_ptr->arg_count = (char*)(varity_type_info_ptr + 1);
 		varity_type_stack_ptr->type_info_addr = (PLATFORM_WORD**)(varity_type_stack_ptr->arg_count + make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN));
-		kfread(varity_type_stack_ptr->arg_count, make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN), 1, file_ptr);
-		kfread(varity_type_ptr, 1, compile_varity_info.type_size - make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN), file_ptr);
+		vfread(varity_type_stack_ptr->arg_count, make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN), 1, file_ptr, "arg count");
+		vfread(varity_type_ptr, 1, compile_varity_info.type_size - make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN), file_ptr, "arg info");
 		varity_type_stack_ptr->type_info_addr[0] = varity_type_ptr;
-		for(i=1; i<varity_type_stack_ptr->count; i++) {
-			varity_type_stack_ptr->type_info_addr[i] = (PLATFORM_WORD*)((char*)varity_type_stack_ptr->type_info_addr[i - 1] + (varity_type_stack_ptr->arg_count[i - 1] + 1) * PLATFORM_WORD_LEN);
+		for(i=1; i<varity_type_stack_ptr->count; i++)
+			varity_type_stack_ptr->type_info_addr[i] = varity_type_stack_ptr->type_info_addr[i - 1] + varity_type_stack_ptr->arg_count[i - 1] + 1;
+		stack arg_content_stack;
+		arg_content_stack.init(PLATFORM_WORD_LEN, 16);
+		int arg_type_count;
+		vfread(&arg_type_count, sizeof(int), 1, file_ptr, "arg type count");
+		for(i=0; i<arg_type_count; i++) {
+			stack *arg_stack = (stack*)dmalloc(sizeof(stack), "arg stack");
+			vfread(arg_stack, sizeof(stack), 1, file_ptr, "arg stack");
+			varity_info *type_info = (varity_info*)dmalloc(arg_stack->get_count() * sizeof(varity_info), "type info");
+			vfread(type_info, sizeof(varity_info), arg_stack->get_count(), file_ptr, "type info");
+			arg_stack->set_base(type_info);
+			arg_content_stack.push(&arg_stack);
+		}
+		for(i=0; i<varity_type_stack_ptr->count; i++) {
+			//varity_type_stack_ptr->type_info_addr[i] = (PLATFORM_WORD*)((char*)varity_type_stack_ptr->type_info_addr[i - 1] + (varity_type_stack_ptr->arg_count[i - 1] + 1) * PLATFORM_WORD_LEN);
 			for(j=varity_type_stack_ptr->arg_count[i]; j>=1; j--) {
 				if(GET_COMPLEX_TYPE(varity_type_stack_ptr->type_info_addr[i][j]) == COMPLEX_BASIC && GET_COMPLEX_DATA(varity_type_stack_ptr->type_info_addr[i][j]) == STRUCT) {
 					if(i == STRUCT) continue;//type_info[STRUCT][1] = 0,没法重做map
@@ -553,6 +585,16 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 					((struct_info*)varity_type_stack_ptr->type_info_addr[i][j - 1])->type_info_ptr = varity_type_stack_ptr->type_info_addr[i];
 					((struct_info*)varity_type_stack_ptr->type_info_addr[i][j - 1])->type_info_ptr[1] = varity_type_stack_ptr->type_info_addr[i][j - 1];
 					j--;
+				} else if(GET_COMPLEX_TYPE(varity_type_stack_ptr->type_info_addr[i][j]) == COMPLEX_ARG) {
+					int index = varity_type_stack_ptr->type_info_addr[i][j - 1];
+					varity_type_stack_ptr->type_info_addr[i][--j] = PTR_N_VALUE(arg_content_stack.visit_element_by_index(index));
+					//////////Must change///////////
+					stack *vstack = (stack*)varity_type_stack_ptr->type_info_addr[i][j];
+					for(int k=0; k<vstack->get_count(); k++) {
+						varity_info *varity_ptr = (varity_info*)vstack->visit_element_by_index(k);
+						varity_ptr->config_complex_info(varity_ptr->get_complex_arg_count(), varity_type_stack.type_info_addr[(int)varity_ptr->get_complex_ptr()]);
+					}
+					////////////////////////////////
 				}
 			}
 		}
@@ -560,11 +602,11 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	}
 	varity_info *varity_info_ptr = (varity_info*)((char*)varity_type_ptr + compile_varity_info.type_size);
 	for(i=0; i<compile_varity_info.varity_count; i++) {
-		kfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr);
+		vfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr, "varity info");
 		if(compile_info.extra_flag || compile_info.export_flag == EXPORT_FLAG_LINK)
 			varity_info_ptr->set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)varity_info_ptr->get_name()]))->get_name());
 		if(compile_info.extra_flag) {
-			int type_no = varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), (varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()]));
+			type_no = varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), (varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()]));
 			if(type_no >= 0) {
 				varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), (PLATFORM_WORD*)varity_type_stack.type_info_addr[type_no]);
 			} else {
@@ -583,10 +625,23 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	for(i=0; i<compile_function_info.function_count; i++) {
 		function_info *function_info_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 		if(compile_info.extra_flag) {
+			type_no = varity_type_stack.find(function_info_ptr[i + function_begin_count].arg_count, varity_type_stack_ptr->type_info_addr[(int)function_info_ptr[i + function_begin_count].arg]);
+			if(type_no >= 0) {
+				function_info_ptr[i + function_begin_count].arg = varity_type_stack.type_info_addr[type_no];
+			} else {
+				int complex_size = (function_info_ptr[i + function_begin_count].arg_count + 1) * sizeof(void*);
+				PLATFORM_WORD *complex_ptr = (PLATFORM_WORD*)dmalloc(complex_size, "complex info ptr");
+				kmemcpy(complex_ptr, varity_type_stack_ptr->type_info_addr[(int)function_info_ptr[i + function_begin_count].arg], complex_size);
+				function_info_ptr[i + function_begin_count].arg = complex_ptr;
+				varity_type_stack.arg_count[varity_type_stack.count] = function_info_ptr[i + function_begin_count].arg_count;
+				varity_type_stack.type_info_addr[varity_type_stack.count] = complex_ptr;
+				varity_type_stack.push();
+			}
+			//function_info_ptr[i + function_begin_count].arg = varity_type_stack.type_info_addr[(int)function_info_ptr[i + function_begin_count].arg];
 			stack *arg_list = (stack*)function_info_ptr[i + function_begin_count].arg[function_info_ptr[i + function_begin_count].arg_count - 1];
 			varity_info_ptr = (varity_info*)arg_list->get_base_addr();
 			for(j=0; j<arg_list->get_count(); j++) {
-				int type_no = varity_type_stack.find(varity_info_ptr[j].get_complex_arg_count(), varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr[j].get_complex_ptr()]);
+				type_no = varity_type_stack.find(varity_info_ptr[j].get_complex_arg_count(), varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr[j].get_complex_ptr()]);
 				if(type_no >= 0) {
 					varity_info_ptr[j].config_complex_info(varity_info_ptr[j].get_complex_arg_count(), (PLATFORM_WORD*)varity_type_stack.type_info_addr[type_no]);
 				} else {
@@ -602,7 +657,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			varity_info_ptr = (varity_info*)function_info_ptr[i + function_begin_count].local_varity_stack.get_base_addr();
 			for(j=0; j<function_info_ptr[i + function_begin_count].local_varity_stack.get_count(); j++) {
 				varity_info_ptr[j].set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)varity_info_ptr[j].get_name()]))->get_name());
-				int type_no = varity_type_stack.find(varity_info_ptr[j].get_complex_arg_count(), varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr[j].get_complex_ptr()]);
+				type_no = varity_type_stack.find(varity_info_ptr[j].get_complex_arg_count(), varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr[j].get_complex_ptr()]);
 				if(type_no >= 0) {
 					varity_info_ptr[j].config_complex_info(varity_info_ptr[j].get_complex_arg_count(), (PLATFORM_WORD*)varity_type_stack.type_info_addr[type_no]);
 				} else {
@@ -622,7 +677,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			struct_info_ptr = (struct_info*)this->struct_declare->struct_stack_ptr->get_base_addr() + struct_begin_count;
 			varity_info_ptr = (varity_info*)struct_info_ptr[i].varity_stack_ptr->get_base_addr();
 			for(j=0; j<struct_info_ptr[i].varity_stack_ptr->get_count(); j++) {
-				int type_no = varity_type_stack.find(varity_info_ptr[j].get_complex_arg_count(), varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr[j].get_complex_ptr()]);
+				type_no = varity_type_stack.find(varity_info_ptr[j].get_complex_arg_count(), varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr[j].get_complex_ptr()]);
 				if(type_no >= 0) {
 					varity_info_ptr[j].config_complex_info(varity_info_ptr[j].get_complex_arg_count(), (PLATFORM_WORD*)varity_type_stack.type_info_addr[type_no]);
 				} else {
@@ -639,7 +694,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	}
 	vfree(varity_type_info_ptr);
 	base = (void*)make_align((long)base, 4);
-	kfread((char*)base, 1, compile_varity_info.data_size, file_ptr);
+	vfread((char*)base, 1, compile_varity_info.data_size, file_ptr, ".data");
 	void *bss_base = dmalloc(compile_varity_info.bss_size, "bss space");
 	*bss_base_ret = bss_base;
 	varity_info_ptr = (varity_info*)this->varity_declare->global_varity_stack->visit_element_by_index(varity_begin_count);
@@ -840,24 +895,24 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 								+ compile_varity_info.data_size + compile_struct_info.varity_size;
 	debug("total size=%d\n", this->compile_info.total_size);
 	this->compile_info.sum32 = calc_sum32((int*)&this->compile_info, sizeof(this->compile_info) - sizeof(int));
-	kfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr);
-	kfwrite(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr);
-	//kfwrite(string_info_ptr, sizeof(string_info), this->compile_string_info.string_count, file_ptr);
+	vfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr, "compile info");
+	vfwrite(&this->compile_string_info, sizeof(compile_string_info_t), 1, file_ptr, "compile string info");
+	//vfwrite(string_info_ptr, sizeof(string_info), this->compile_string_info.string_count, file_ptr);
 	string_info_ptr = (string_info*)string_stack.get_base_addr();
 	for(i=0; i<this->compile_string_info.string_count; i++)
-		kfwrite(string_info_ptr[i].get_name(), 1, kstrlen(string_info_ptr[i].get_name()) + 1, file_ptr);
+		vfwrite(string_info_ptr[i].get_name(), 1, kstrlen(string_info_ptr[i].get_name()) + 1, file_ptr, "string content");
 	if(compile_info.extra_flag || compile_info.export_flag == EXPORT_FLAG_LINK) {
 		string_info_ptr = (string_info*)name_stack.get_base_addr();
 		for(i=0; i<this->compile_string_info.name_count; i++)
-			kfwrite(string_info_ptr[i].get_name(), 1, kstrlen(string_info_ptr[i].get_name()) + 1, file_ptr);
+			vfwrite(string_info_ptr[i].get_name(), 1, kstrlen(string_info_ptr[i].get_name()) + 1, file_ptr, "name");
 	}
-	kfwrite(&this->compile_function_info, sizeof(compile_function_info), 1, file_ptr);
+	vfwrite(&this->compile_function_info, sizeof(compile_function_info), 1, file_ptr, "compile function info");
 	count = this->function_declare->function_stack_ptr->get_count();
 	for(i=0; i<count; i++) {
 		if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
 			if(!function_ptr[i].compile_func_flag) {
 				PLATFORM_WORD type_no = varity_type_stack.find(function_ptr[i].arg_count, function_ptr[i].arg);
-				function_ptr[i].arg = (PLATFORM_WORD*) type_no;
+				function_ptr[i].arg = (PLATFORM_WORD*)type_no;
 				//////////////////////////////////////////////
 				unsigned int arg_count = function_ptr[i].local_varity_stack.get_count();
 				for(int j=0; j<arg_count; j++) {
@@ -867,7 +922,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 					PLATFORM_WORD *complex_ptr = arg_varity_ptr->get_complex_ptr();
 					unsigned int type_no = varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
 					arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), (PLATFORM_WORD*)type_no);
-					kfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr);
+					vfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr, "local varity");
 					arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
 				}
 				/////////////////////////////////////////////
@@ -878,7 +933,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 					}
 			}
 		}
-		kfwrite(function_ptr[i].mid_code_stack.get_base_addr(), 1, function_ptr[i].data_size, file_ptr);
+		vfwrite(function_ptr[i].mid_code_stack.get_base_addr(), 1, function_ptr[i].data_size, file_ptr, "function all data");
 	}
 	for(i=0; i<count; i++)
 		if(!function_ptr[i].compile_func_flag) {
@@ -886,38 +941,38 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 				function_ptr[i].set_name((char*)((string_info*)name_stack.find(function_ptr[i].get_name()) - (string_info*)name_stack.get_base_addr()));
 			if(!compile_info.extra_flag)
 				function_ptr[i].debug_flag = 0;
-			kfwrite(&function_ptr[i], sizeof(function_info), 1, file_ptr);
+			vfwrite(&function_ptr[i], sizeof(function_info), 1, file_ptr, "function info");
 			if(this->compile_info.export_flag == EXPORT_FLAG_LINK || compile_info.extra_flag)
 				function_ptr[i].set_name(((string_info*)name_stack.visit_element_by_index((int)function_ptr[i].get_name()))->get_name());
 		}
 	if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
-		kfwrite(&this->compile_struct_info, sizeof(compile_struct_info_t), 1, file_ptr);
+		vfwrite(&this->compile_struct_info, sizeof(compile_struct_info_t), 1, file_ptr, "compile struct info");
 		count = this->compile_struct_info.struct_count;
 		for(i=0; i<count; i++) {
 			unsigned int arg_count = struct_ptr[i].varity_stack_ptr->get_count();
-			kfwrite(struct_ptr[i].varity_stack_ptr, sizeof(stack), 1, file_ptr);
+			vfwrite(struct_ptr[i].varity_stack_ptr, sizeof(stack), 1, file_ptr, "struct varity stack");
 			for(int j=0; j<arg_count; j++) {
 				varity_info* arg_varity_ptr = (varity_info*)struct_ptr[i].varity_stack_ptr->visit_element_by_index(j);
 				PLATFORM_WORD *complex_ptr = arg_varity_ptr->get_complex_ptr();
 				unsigned int type_no = varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
 				arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), (PLATFORM_WORD*)type_no);
-				kfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr);
+				vfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr, "struct arg");
 				arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
 			}
 		}
 		for(i=0; i<count; i++) {
 			struct_ptr[i].set_name((char*)((string_info*)name_stack.find(struct_ptr[i].get_name()) - (string_info*)name_stack.get_base_addr()));
-			kfwrite(&struct_ptr[i], sizeof(struct_info), 1, file_ptr);
+			vfwrite(&struct_ptr[i], sizeof(struct_info), 1, file_ptr, "struct info");
 			struct_ptr[i].set_name(((string_info*)name_stack.visit_element_by_index((int)struct_ptr[i].get_name()))->get_name());
 		}
 	}
-	kfwrite(&this->compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr);
+	vfwrite(&this->compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr, "compile variable info");
 	if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
 		int extra_info_no;
 		stack arg_addr_stack;
 		arg_addr_stack.init(PLATFORM_WORD_LEN, 16);
-		kfwrite(&varity_type_stack, sizeof(varity_type_stack), 1, file_ptr);
-		kfwrite(varity_type_stack.arg_count, 1, make_align(varity_type_stack.count, PLATFORM_WORD_LEN), file_ptr);
+		vfwrite(&varity_type_stack, sizeof(varity_type_stack), 1, file_ptr, "varity type stack");
+		vfwrite(varity_type_stack.arg_count, 1, make_align(varity_type_stack.count, PLATFORM_WORD_LEN), file_ptr, "varity type arg count");
 		for(i=0; i<varity_type_stack.count; i++) {
 			for(j=varity_type_stack.arg_count[i]; j>=1; j--) {
 				if(GET_COMPLEX_TYPE(varity_type_stack.type_info_addr[i][j]) == COMPLEX_BASIC && GET_COMPLEX_DATA(varity_type_stack.type_info_addr[i][j]) == STRUCT) {
@@ -928,12 +983,12 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 					if(addr) {
 						varity_type_stack.type_info_addr[i][j - 1] = addr - arg_addr_stack.get_base_addr();
 					} else {
-						varity_type_stack.type_info_addr[i][j - 1] = varity_type_stack.count;
 						arg_addr_stack.push(&varity_type_stack.type_info_addr[i][j - 1]);
+						varity_type_stack.type_info_addr[i][j - 1] = arg_addr_stack.get_count() - 1;
 					}
 				}
 			}
-			kfwrite(varity_type_stack.type_info_addr[i], PLATFORM_WORD_LEN, varity_type_stack.arg_count[i] + 1, file_ptr);
+			vfwrite(varity_type_stack.type_info_addr[i], PLATFORM_WORD_LEN, varity_type_stack.arg_count[i] + 1, file_ptr, "varity type info");
 			for(j=varity_type_stack.arg_count[i]; j>=1; j--) {
 				if(GET_COMPLEX_TYPE(varity_type_stack.type_info_addr[i][j]) == COMPLEX_BASIC && GET_COMPLEX_DATA(varity_type_stack.type_info_addr[i][j]) == STRUCT) {
 					varity_type_stack.type_info_addr[i][j - 1] = (PLATFORM_WORD)this->struct_declare->struct_stack_ptr->visit_element_by_index(varity_type_stack.type_info_addr[i][j - 1]);
@@ -942,8 +997,12 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 				}
 			}			
 		}
-		kfwrite(&arg_addr_stack, sizeof(stack), 1, file_ptr);
-		kfwrite(arg_addr_stack.get_base_addr(), PLATFORM_WORD_LEN, arg_addr_stack.get_count(), file_ptr);
+		int arg_type_count = arg_addr_stack.get_count();
+		vfwrite(&arg_type_count, sizeof(int), 1, file_ptr, "arg type count");
+		for(i=0; i<arg_addr_stack.get_count(); i++)
+			write_varity_stack(file_ptr, (stack*)PTR_N_VALUE(arg_addr_stack.visit_element_by_index(i)), 1);
+		//vfwrite(&arg_addr_stack, sizeof(stack), 1, file_ptr, "arg info stack");
+		//vfwrite(arg_addr_stack.get_base_addr(), PLATFORM_WORD_LEN, arg_addr_stack.get_count(), file_ptr, "arg info");
 		arg_addr_stack.dispose();
 	}
 	count = this->varity_declare->global_varity_stack->get_count();
@@ -972,7 +1031,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 			if(this->compile_info.export_flag == EXPORT_FLAG_LINK)
 				varity_info_ptr[i].config_complex_info(0, (PLATFORM_WORD*)get_align_size(varity_info_ptr[i].get_complex_arg_count(), complex_ptr));
 		}
-		kfwrite(&varity_info_ptr[i], sizeof(varity_info), 1, file_ptr);
+		vfwrite(&varity_info_ptr[i], sizeof(varity_info), 1, file_ptr, "varity info");
 		varity_info_ptr[i].set_content_ptr(varity_space);
 		varity_info_ptr[i].config_complex_info(varity_info_ptr[i].get_complex_arg_count(), complex_ptr);
 	}
@@ -980,7 +1039,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		//varity_size = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
 		varity_size = varity_info_ptr[i].get_size();
 		if(varity_info_ptr[i].get_content_ptr() && kmemchk(varity_info_ptr[i].get_content_ptr(), 0, varity_size))
-			kfwrite(varity_info_ptr[i].get_content_ptr(), 1, varity_size, file_ptr);
+			vfwrite(varity_info_ptr[i].get_content_ptr(), 1, varity_size, file_ptr, "varity data");
 	}
 	kfclose(file_ptr);
 	return ERROR_NO;
@@ -3986,14 +4045,14 @@ varity_end:
 					if(is_varity_declare == STRUCT) {
 						*cur_complex_info_ptr-- = info->type_info_ptr[1];//TODO:或许有更好办法
 					}
-					int type_index = varity_type_stack.find(node_count + basic_info_node_count, complex_info);
+					int type_index = varity_type_stack.find(node_count + arg_count + basic_info_node_count, complex_info);
 					if(type_index >= 0) {
 						ret_info = (PLATFORM_WORD*)varity_type_stack.type_info_addr[type_index];
 						vfree(complex_info);
 					} else {
 						ret_info = complex_info;
 						ret_info[0] = 0;
-						varity_type_stack.push(node_count + basic_info_node_count, complex_info);
+						varity_type_stack.push(node_count + arg_count + basic_info_node_count, complex_info);
 					}
 				} else {
 					if(is_varity_declare == STRUCT)

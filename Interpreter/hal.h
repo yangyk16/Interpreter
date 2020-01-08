@@ -51,5 +51,7 @@ void *kfopen(const char *filename, const char *mode);
 int kfclose(void*);
 unsigned int kfread(void *buffer, unsigned int size, unsigned int count, void *fileptr);
 unsigned int kfwrite(void *buffer, unsigned int size, unsigned int count, void *fileptr);
+unsigned int vfwrite(void* buffer, unsigned int size, unsigned int count, void* fileptr, char* log);
+unsigned int vfread(void* buffer, unsigned int size, unsigned int count, void* fileptr, char* log);
 int hard_fault_check(unsigned int addr);
 #endif
