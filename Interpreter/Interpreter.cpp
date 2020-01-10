@@ -969,8 +969,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 	vfwrite(&this->compile_varity_info, sizeof(compile_varity_info_t), 1, file_ptr, "compile variable info");
 	if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
 		int extra_info_no;
-		stack arg_addr_stack;
-		arg_addr_stack.init(PLATFORM_WORD_LEN, 16);
+		arg_stack_stack *arg_addr_stack = &this->language_elment_space.arg_stack_list;
 		vfwrite(&varity_type_stack, sizeof(varity_type_stack), 1, file_ptr, "varity type stack");
 		vfwrite(varity_type_stack.arg_count, 1, make_align(varity_type_stack.count, PLATFORM_WORD_LEN), file_ptr, "varity type arg count");
 		for(i=0; i<varity_type_stack.count; i++) {
@@ -979,12 +978,12 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 					extra_info_no = (struct_info*)varity_type_stack.type_info_addr[i][j - 1] - (struct_info*)this->struct_declare->struct_stack_ptr->get_base_addr();
 					varity_type_stack.type_info_addr[i][j - 1] = extra_info_no;
 				} else if(GET_COMPLEX_TYPE(varity_type_stack.type_info_addr[i][j]) == COMPLEX_ARG) {
-					PLATFORM_WORD *addr = (PLATFORM_WORD*)arg_addr_stack.m_find(varity_type_stack.type_info_addr[i]);
+					PLATFORM_WORD *addr = (PLATFORM_WORD*)arg_addr_stack->find((stack*)varity_type_stack.type_info_addr[i][j - 1]);
 					if(addr) {
-						varity_type_stack.type_info_addr[i][j - 1] = addr - arg_addr_stack.get_base_addr();
+						varity_type_stack.type_info_addr[i][j - 1] = addr - arg_addr_stack->get_base_addr();
 					} else {
-						arg_addr_stack.push(&varity_type_stack.type_info_addr[i][j - 1]);
-						varity_type_stack.type_info_addr[i][j - 1] = arg_addr_stack.get_count() - 1;
+						/*arg_addr_stack->push(&varity_type_stack.type_info_addr[i][j - 1]);
+						varity_type_stack.type_info_addr[i][j - 1] = arg_addr_stack->get_count() - 1;*/
 					}
 				}
 			}
@@ -993,17 +992,16 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 				if(GET_COMPLEX_TYPE(varity_type_stack.type_info_addr[i][j]) == COMPLEX_BASIC && GET_COMPLEX_DATA(varity_type_stack.type_info_addr[i][j]) == STRUCT) {
 					varity_type_stack.type_info_addr[i][j - 1] = (PLATFORM_WORD)this->struct_declare->struct_stack_ptr->visit_element_by_index(varity_type_stack.type_info_addr[i][j - 1]);
 				} else if(GET_COMPLEX_TYPE(varity_type_stack.type_info_addr[i][j]) == COMPLEX_ARG) {
-					varity_type_stack.type_info_addr[i][j - 1] = PTR_N_VALUE(arg_addr_stack.visit_element_by_index(varity_type_stack.type_info_addr[i][j - 1]));
+					varity_type_stack.type_info_addr[i][j - 1] = PTR_N_VALUE(arg_addr_stack->visit_element_by_index(varity_type_stack.type_info_addr[i][j - 1]));
 				}
 			}			
 		}
-		int arg_type_count = arg_addr_stack.get_count();
+		int arg_type_count = arg_addr_stack->get_count();
 		vfwrite(&arg_type_count, sizeof(int), 1, file_ptr, "arg type count");
-		for(i=0; i<arg_addr_stack.get_count(); i++)
-			write_varity_stack(file_ptr, (stack*)PTR_N_VALUE(arg_addr_stack.visit_element_by_index(i)), 1);
+		for(i=0; i<arg_addr_stack->get_count(); i++)
+			write_varity_stack(file_ptr, (stack*)PTR_N_VALUE(arg_addr_stack->visit_element_by_index(i)), 1);
 		//vfwrite(&arg_addr_stack, sizeof(stack), 1, file_ptr, "arg info stack");
 		//vfwrite(arg_addr_stack.get_base_addr(), PLATFORM_WORD_LEN, arg_addr_stack.get_count(), file_ptr, "arg info");
-		arg_addr_stack.dispose();
 	}
 	count = this->varity_declare->global_varity_stack->get_count();
 	unsigned int varity_space_offset = 0;
@@ -2684,6 +2682,7 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag, int interprete_need, i
 		c_interpreter::language_elment_space.c_struct.init(&c_interpreter::language_elment_space.struct_list);
 		c_interpreter::language_elment_space.macro_list.init(sizeof(macro_info), DEFAULT_MACRO_NODE);
 		c_interpreter::language_elment_space.c_macro.init(&c_interpreter::language_elment_space.macro_list);
+		c_interpreter::language_elment_space.arg_stack_list.init();
 		//c_interpreter::language_elment_space.init_done = 1;
 		string_stack.init(sizeof(string_info), DEFAULT_STRING_NODE);
 		name_stack.init(sizeof(string_info), DEFAULT_NAME_NODE);
@@ -4532,11 +4531,17 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 						i--;
 						goto normal_bracket;
 					}
-					this->token_node_ptr[wptr].node_type = TOKEN_OPERATOR;
 					this->token_node_ptr[wptr].node_type = TOKEN_ARG_LIST;
-					this->token_node_ptr[wptr].value.ptr_value = (char*)arg_stack;
-					if(arg_stack)
+					void *arg_stack_in_stack = this->language_elment_space.arg_stack_list.find(arg_stack);
+					if(arg_stack_in_stack) {
+						clear_arglist(arg_stack);
+						this->token_node_ptr[wptr].value.ptr_value = (char*)arg_stack_in_stack;
+					} else {
 						vrealloc(arg_stack->get_base_addr(), arg_stack->get_count() * sizeof(varity_info));
+						this->token_node_ptr[wptr].value.ptr_value = (char*)arg_stack;
+						this->language_elment_space.arg_stack_list.push(&arg_stack);
+					}
+					
 				}
 				wptr++;
 				continue;

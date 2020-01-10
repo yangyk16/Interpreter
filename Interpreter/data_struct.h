@@ -90,6 +90,12 @@ public:
 	void del_element_to(int count) {while(this->count > count) this->pop();}
 };
 
+class arg_stack_stack: public stack {
+public:
+	void* find(stack*);
+	void init(void);
+};
+
 class indexed_stack: public stack {
 	int current_depth;
 	char index_table[MAX_STACK_INDEX];

@@ -157,6 +157,7 @@ typedef struct language_element_space {
 	struct_define c_struct;
 	stack macro_list;
 	macro c_macro;
+	arg_stack_stack arg_stack_list;
 	int init_done;
 } language_elment_space_t;
 

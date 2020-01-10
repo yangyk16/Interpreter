@@ -3,6 +3,9 @@
 #include "string_lib.h"
 #include "kmalloc.h"
 
+static int typecmp(int count, PLATFORM_WORD *type1, PLATFORM_WORD *type2);
+static int argcmp(stack *std, stack *src);
+
 stack::stack()
 {
 	this->count = 0;
@@ -21,10 +24,7 @@ void stack::init(int esize, int capacity)
 	this->count = 0;
 	this->top = 0;	
 	this->element_size = esize;
-	if(!this->bottom_addr)
-		this->bottom_addr = dmalloc(esize * capacity, "stack base");
-	else
-		this->bottom_addr = vrealloc(this->bottom_addr, esize * capacity);
+	this->bottom_addr = dmalloc(esize * capacity, "stack base");
 	this->length = capacity;
 }
 
@@ -95,6 +95,23 @@ void* stack::find(const char* name)
 void* stack::visit_element_by_index(int index)
 {
 	return (char*)this->bottom_addr + index * this->element_size;
+}
+
+void arg_stack_stack::init(void)
+{
+	stack::init(sizeof(stack*), 16);
+	//stack::init
+}
+
+void* arg_stack_stack::find(stack* stack_ptr)
+{
+	int count = this->get_count();
+	for(int i=0; i<count; i++) {
+		stack *ret = (stack*)*((PLATFORM_WORD*)(this->visit_element_by_index(i)));
+		if(!argcmp(ret, stack_ptr))
+			return ret;
+	}
+	return NULL;
 }
 
 void indexed_stack::init(int esize, int capacity)
@@ -252,7 +269,6 @@ int varity_type_stack_t::del(char arg_count, unsigned long *type_info_addr)
 	return -1;
 }
 
-static int typecmp(int count, PLATFORM_WORD *type1, PLATFORM_WORD *type2);
 static int argcmp(stack *std, stack *src)
 {
 	int count = std->get_count();

@@ -47,7 +47,7 @@
 #define PLATFORM_WORD_LEN		4
 #define MAX_MID_CODE_COUNT		1024
 #define STACK_SIZE				0x1000//128k
-#define TMP_VARITY_STACK_SIZE	(160)//sizeof(varity_info)*MAX_A_VARITY_NODE
+#define TMP_VARITY_STACK_SIZE	(80)//sizeof(varity_info)*MAX_A_VARITY_NODE
 
 #define STACK_OVERFLOW_CHECK		1
 #define ARRAY_BOUND_CHECK			1
