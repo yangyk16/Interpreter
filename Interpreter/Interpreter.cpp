@@ -980,7 +980,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 				} else if(GET_COMPLEX_TYPE(varity_type_stack.type_info_addr[i][j]) == COMPLEX_ARG) {
 					PLATFORM_WORD *addr = (PLATFORM_WORD*)arg_addr_stack->find((stack*)varity_type_stack.type_info_addr[i][j - 1]);
 					if(addr) {
-						varity_type_stack.type_info_addr[i][j - 1] = addr - arg_addr_stack->get_base_addr();
+						varity_type_stack.type_info_addr[i][j - 1] = (PLATFORM_WORD)(addr - (PLATFORM_WORD*)arg_addr_stack->get_base_addr());
 					} else {
 						/*arg_addr_stack->push(&varity_type_stack.type_info_addr[i][j - 1]);
 						varity_type_stack.type_info_addr[i][j - 1] = arg_addr_stack->get_count() - 1;*/
@@ -2772,6 +2772,7 @@ int c_interpreter::dispose(void)
 		for(i=0, count=this->varity_declare->global_varity_stack->get_count(); i<count; i++)
 			((varity_info*)this->varity_declare->global_varity_stack->visit_element_by_index(i))->dispose();
 		varity_type_stack.dispose();
+		c_interpreter::language_elment_space.arg_stack_list.dispose();
 		c_interpreter::language_elment_space.struct_list.dispose();
 		c_interpreter::language_elment_space.function_list.dispose();
 		c_interpreter::language_elment_space.g_varity_list.dispose();
@@ -3051,9 +3052,10 @@ int c_interpreter::generate_arg_list(const char *str, int count, int &arg_count,
 	stack *function_arg_stack = (stack*)dmalloc(sizeof(stack), "arg stack");
 	function_arg_stack->init(sizeof(varity_info), arg_stack, count);
 	varity_info *varity_ptr = (varity_info*)arg_stack;
+	PLATFORM_WORD *arg_stack_ptr;
 	node_attribute_t node;
 	int token_len;
-	int type;
+	int type, no;
 	char ptr_flag = 0, ret_flag = 0;
 	while(len > 0) {
 		token_len = get_token((char*)str, &node);
@@ -3072,6 +3074,7 @@ int c_interpreter::generate_arg_list(const char *str, int count, int &arg_count,
 					PLATFORM_WORD *type_stack = (PLATFORM_WORD*)dmalloc((4 + ptr_flag) * sizeof(PLATFORM_WORD), "compile function type");
 					type_stack[3 + ptr_flag] = SET_COMPLEX_TYPE(COMPLEX_ARG);
 					type_stack[2 + ptr_flag] = (PLATFORM_WORD)function_arg_stack;
+					arg_stack_ptr = &type_stack[2 + ptr_flag];
 					if(ptr_flag)
 						type_stack[2] = SET_COMPLEX_TYPE(COMPLEX_PTR);
 					type_stack[1] = SET_COMPLEX_TYPE(COMPLEX_BASIC) | type;
@@ -3084,7 +3087,15 @@ int c_interpreter::generate_arg_list(const char *str, int count, int &arg_count,
 		str += token_len;
 		len -= token_len;
 	}
-	int no = varity_type_stack.find(arg_count, arg);
+	PLATFORM_WORD *stack_ret = (PLATFORM_WORD*)c_interpreter::language_elment_space.arg_stack_list.find(function_arg_stack);
+	if(stack_ret) {
+		no = stack_ret - (PLATFORM_WORD*)c_interpreter::language_elment_space.arg_stack_list.get_base_addr();
+		*arg_stack_ptr = *stack_ret;
+		clear_arglist(function_arg_stack);
+	} else {
+		c_interpreter::language_elment_space.arg_stack_list.push(&function_arg_stack);
+	}
+	no = varity_type_stack.find(arg_count, arg);
 	if(no < 0) {
 		arg[0] = 1;
 		varity_type_stack.arg_count[varity_type_stack.count] = arg_count;
@@ -3092,8 +3103,8 @@ int c_interpreter::generate_arg_list(const char *str, int count, int &arg_count,
 		varity_type_stack.push();
 	} else {
 		vfree(arg);
-		vfree(function_arg_stack);
-		vfree(arg_stack);
+		//vfree(function_arg_stack);//function arg stack freed because arg stack also the same
+		//vfree(arg_stack);
 		arg = varity_type_stack.type_info_addr[no];
 		arg[0]++;
 	}
@@ -4828,7 +4839,7 @@ void clear_arglist(stack *arg_stack_ptr)
 	for(int n=0; n<arg_stack_ptr->get_count(); n++) {
 		varity_info *varity_ptr = (varity_info*)arg_stack_ptr->pop();
 		dec_varity_ref(varity_ptr, 1);
-		vfree(varity_ptr->get_name());
+		//vfree(varity_ptr->get_name());
 	}
 	vfree(arg_stack_ptr->get_base_addr());
 	vfree(arg_stack_ptr);

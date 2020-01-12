@@ -94,6 +94,7 @@ class arg_stack_stack: public stack {
 public:
 	void* find(stack*);
 	void init(void);
+	void dispose(void);
 };
 
 class indexed_stack: public stack {

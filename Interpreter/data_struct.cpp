@@ -103,13 +103,23 @@ void arg_stack_stack::init(void)
 	//stack::init
 }
 
+void arg_stack_stack::dispose(void)
+{
+	for(int i=0; i<this->count; i++) {
+		stack *arg_stack = (stack*)*(PLATFORM_WORD*)(this->visit_element_by_index(i));
+		arg_stack->dispose();
+		vfree(arg_stack);
+	}
+	vfree(this->bottom_addr);
+}
+
 void* arg_stack_stack::find(stack* stack_ptr)
 {
 	int count = this->get_count();
 	for(int i=0; i<count; i++) {
 		stack *ret = (stack*)*((PLATFORM_WORD*)(this->visit_element_by_index(i)));
 		if(!argcmp(ret, stack_ptr))
-			return ret;
+			return this->visit_element_by_index(i);
 	}
 	return NULL;
 }
@@ -343,10 +353,8 @@ void varity_type_stack_t::dispose(void)
 
 int varity_type_stack_t::init(void)
 {
-	if(!this->arg_count)
-		this->arg_count = (char*)dmalloc(MAX_VARITY_TYPE_COUNT, "varity type arg count base");
-	if(!this->type_info_addr)
-		this->type_info_addr = (PLATFORM_WORD**)dmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN, "type info addr");
+	this->arg_count = (char*)dmalloc(MAX_VARITY_TYPE_COUNT, "varity type arg count base");
+	this->type_info_addr = (PLATFORM_WORD**)dmalloc(MAX_VARITY_TYPE_COUNT * PLATFORM_WORD_LEN, "type info addr");
 	return 0;
 }
 
