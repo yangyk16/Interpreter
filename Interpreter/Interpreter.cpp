@@ -437,6 +437,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	//string_info *string_info_ptr = (string_info*)str_base;
 	vfread((char*)str_base, 1, compile_string_info.string_size + compile_string_info.name_size, file_ptr, "string and name");
 	char *str_data_base = (char*)str_base;
+	varity_info *varity_ptr;
 	unsigned short *str_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_string_info.string_count, "string stack map");
 	unsigned short *name_map_table = (unsigned short*)dmalloc(sizeof(short) * compile_string_info.name_count, "name stack map");
 	for(i=0; i<compile_string_info.string_count; i++) {
@@ -483,15 +484,14 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	unsigned int function_begin_count = this->function_declare->function_stack_ptr->get_count();
 	unsigned int struct_begin_count = this->struct_declare->struct_stack_ptr->get_count();
 	unsigned int varity_begin_count = this->varity_declare->global_varity_stack->get_count();
+	unsigned int variable_type_begin_count = varity_type_stack.count;
+	unsigned int arg_type_begin_count = this->language_elment_space.arg_stack_list.get_count();
 	for(i=0; i<compile_function_info.function_count; i++) {
 		vfread(function_info_ptr, sizeof(function_info), 1, file_ptr, "function info");
 		kmemcpy(&function_info_ptr->local_varity_stack, &c_interpreter::language_elment_space.l_varity_list, sizeof(void*));//copy virtual table
 		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
 		mid_code_ptr = (mid_code*)((char*)mid_code_ptr + function_info_ptr->data_size);
 		if(compile_info.extra_flag) {
-			//stack *arg_list = (stack*)function_info_ptr->arg[function_info_ptr->arg_count - 1];
-			//arg_list = (stack*)arg_varity_ptr++;
-			//arg_list->set_base(arg_varity_ptr);
 			function_info_ptr->local_varity_stack.set_base(local_varity_ptr);
 			function_info_ptr->buffer = source_code_ptr;
 			function_info_ptr->row_code_ptr = row_code_ptr;
@@ -505,7 +505,6 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			}
 			source_code_ptr += function_info_ptr->wptr;
 			row_code_ptr += function_info_ptr->row_line;
-			//arg_varity_ptr = (stack*)((varity_info*)arg_varity_ptr + arg_list->get_count());
 			local_varity_ptr += function_info_ptr->local_varity_stack.get_count();
 		}
 		if(compile_info.export_flag == EXPORT_FLAG_LINK || compile_info.extra_flag)
@@ -529,7 +528,6 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			vfread(struct_info_ptr, sizeof(struct_info), 1, file_ptr, "struct info");
 			struct_info_ptr->varity_stack_ptr = arg_varity_ptr++;
 			struct_info_ptr->varity_stack_ptr->set_base(arg_varity_ptr);
-			//struct_info_ptr->type_info_ptr[1] = (uint)struct_info_ptr;
 			struct_info_ptr->set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)struct_info_ptr ->get_name()]))->get_name());
 			struct_dup_ptr = this->struct_declare->find(struct_info_ptr->get_name());
 			if(struct_dup_ptr) {//TODO:struct重复定义时检查结构，定义不一致时直接报错
@@ -556,6 +554,8 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		varity_type_info_ptr = (varity_type_stack_t*)dmalloc(sizeof(varity_info), "varity type info");
 		varity_type_ptr = (PLATFORM_WORD*)varity_type_info_ptr;
 	}
+	stack arg_content_stack;
+	unsigned short *arg_map_table;
 	if(compile_info.extra_flag) {
 		varity_type_stack_ptr->arg_count = (char*)(varity_type_info_ptr + 1);
 		varity_type_stack_ptr->type_info_addr = (PLATFORM_WORD**)(varity_type_stack_ptr->arg_count + make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN));
@@ -564,10 +564,10 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		varity_type_stack_ptr->type_info_addr[0] = varity_type_ptr;
 		for(i=1; i<varity_type_stack_ptr->count; i++)
 			varity_type_stack_ptr->type_info_addr[i] = varity_type_stack_ptr->type_info_addr[i - 1] + varity_type_stack_ptr->arg_count[i - 1] + 1;
-		stack arg_content_stack;
 		arg_content_stack.init(PLATFORM_WORD_LEN, 16);
 		int arg_type_count;
 		vfread(&arg_type_count, sizeof(int), 1, file_ptr, "arg type count");
+		arg_map_table = (unsigned short*)dmalloc(sizeof(short) * arg_type_count, "arg map table");
 		for(i=0; i<arg_type_count; i++) {
 			stack *arg_stack = (stack*)dmalloc(sizeof(stack), "arg stack");
 			vfread(arg_stack, sizeof(stack), 1, file_ptr, "arg stack");
@@ -577,7 +577,6 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			arg_content_stack.push(&arg_stack);
 		}
 		for(i=0; i<varity_type_stack_ptr->count; i++) {
-			//varity_type_stack_ptr->type_info_addr[i] = (PLATFORM_WORD*)((char*)varity_type_stack_ptr->type_info_addr[i - 1] + (varity_type_stack_ptr->arg_count[i - 1] + 1) * PLATFORM_WORD_LEN);
 			for(j=varity_type_stack_ptr->arg_count[i]; j>=1; j--) {
 				if(GET_COMPLEX_TYPE(varity_type_stack_ptr->type_info_addr[i][j]) == COMPLEX_BASIC && GET_COMPLEX_DATA(varity_type_stack_ptr->type_info_addr[i][j]) == STRUCT) {
 					if(i == STRUCT) continue;//type_info[STRUCT][1] = 0,没法重做map
@@ -588,17 +587,26 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 				} else if(GET_COMPLEX_TYPE(varity_type_stack_ptr->type_info_addr[i][j]) == COMPLEX_ARG) {
 					int index = varity_type_stack_ptr->type_info_addr[i][j - 1];
 					varity_type_stack_ptr->type_info_addr[i][--j] = PTR_N_VALUE(arg_content_stack.visit_element_by_index(index));
-					//////////Must change///////////
-					stack *vstack = (stack*)varity_type_stack_ptr->type_info_addr[i][j];
-					for(int k=0; k<vstack->get_count(); k++) {
-						varity_info *varity_ptr = (varity_info*)vstack->visit_element_by_index(k);
-						varity_ptr->config_complex_info(varity_ptr->get_complex_arg_count(), varity_type_stack.type_info_addr[(int)varity_ptr->get_complex_ptr()]);
-					}
-					////////////////////////////////
 				}
 			}
 		}
 		kmemcpy(varity_type_info_ptr, varity_type_stack_ptr, sizeof(varity_type_stack_t));
+		for(i=0; i<arg_type_count; i++) {
+			stack *vstack = (stack*)PTR_N_VALUE(arg_content_stack.visit_element_by_index(i));
+			for(int k=0; k<vstack->get_count(); k++) {
+				varity_ptr = (varity_info*)vstack->visit_element_by_index(k);
+				varity_ptr->config_complex_info(varity_ptr->get_complex_arg_count(), varity_type_stack_ptr->type_info_addr[(int)varity_ptr->get_complex_ptr()]);
+			}
+			void *stack_addr_ptr = this->language_elment_space.arg_stack_list.find(vstack);
+			if(stack_addr_ptr) {//arg stack remap
+				//vfree(vstack->get_base_addr());
+				//vfree(vstack);
+				arg_map_table[i] = (PLATFORM_WORD*)stack_addr_ptr - (PLATFORM_WORD*)this->language_elment_space.arg_stack_list.get_base_addr();
+			} else {
+				arg_map_table[i] = this->language_elment_space.arg_stack_list.get_count();
+				this->language_elment_space.arg_stack_list.push(&vstack);
+			}
+		}
 	}
 	varity_info *varity_info_ptr = (varity_info*)((char*)varity_type_ptr + compile_varity_info.type_size);
 	for(i=0; i<compile_varity_info.varity_count; i++) {
@@ -607,7 +615,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			varity_info_ptr->set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)varity_info_ptr->get_name()]))->get_name());
 		if(compile_info.extra_flag) {
 			type_no = varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), (varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()]));
-			if(type_no >= 0) {
+			if(type_no >= 0) {//variable type remap
 				varity_info_ptr->config_complex_info(varity_info_ptr->get_complex_arg_count(), (PLATFORM_WORD*)varity_type_stack.type_info_addr[type_no]);
 			} else {
 				int complex_size = (varity_info_ptr->get_complex_arg_count() + 1) * sizeof(void*);
@@ -641,7 +649,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			stack *arg_list = (stack*)function_info_ptr[i + function_begin_count].arg[function_info_ptr[i + function_begin_count].arg_count - 1];
 			varity_info_ptr = (varity_info*)arg_list->get_base_addr();
 			for(j=0; j<arg_list->get_count(); j++) {
-				type_no = varity_type_stack.find(varity_info_ptr[j].get_complex_arg_count(), varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr[j].get_complex_ptr()]);
+				type_no = varity_type_stack.find(varity_info_ptr[j].get_complex_arg_count(), varity_info_ptr[j].get_complex_ptr());
 				if(type_no >= 0) {
 					varity_info_ptr[j].config_complex_info(varity_info_ptr[j].get_complex_arg_count(), (PLATFORM_WORD*)varity_type_stack.type_info_addr[type_no]);
 				} else {
@@ -689,6 +697,26 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 					varity_type_stack.type_info_addr[varity_type_stack.count] = complex_ptr;
 					varity_type_stack.push();
 				}
+			}
+		}
+	}
+	for(i=variable_type_begin_count; i<varity_type_stack.count; i++) {
+		for(j=varity_type_stack.arg_count[i]; j>=1; j--) {
+			if(GET_COMPLEX_TYPE(varity_type_stack.type_info_addr[i][j]) == COMPLEX_ARG) {
+				varity_type_stack.type_info_addr[i][j - 1] = PTR_N_VALUE(this->language_elment_space.arg_stack_list.find((stack*)varity_type_stack.type_info_addr[i][j - 1]));
+			}
+		}
+	}
+	for(i=0; i<arg_content_stack.get_count(); i++) {
+		stack *vstack = (stack*)PTR_N_VALUE(arg_content_stack.visit_element_by_index(i));
+		if(arg_map_table[i] < arg_type_begin_count) {
+			vfree(vstack->get_base_addr());
+			vfree(vstack);
+		} else {
+			varity_ptr = (varity_info*)vstack->get_base_addr();
+			for(j=0; j<vstack->get_count(); j++) {
+				type_no = varity_type_stack.find(varity_ptr[j].get_complex_arg_count(), varity_ptr[j].get_complex_ptr());
+				varity_ptr->config_complex_info(varity_ptr[j].get_complex_arg_count(), varity_type_stack.type_info_addr[type_no]);
 			}
 		}
 	}
@@ -982,6 +1010,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 					if(addr) {
 						varity_type_stack.type_info_addr[i][j - 1] = (PLATFORM_WORD)(addr - (PLATFORM_WORD*)arg_addr_stack->get_base_addr());
 					} else {
+						fatal("fatal error: variable type not exist\n");
 						/*arg_addr_stack->push(&varity_type_stack.type_info_addr[i][j - 1]);
 						varity_type_stack.type_info_addr[i][j - 1] = arg_addr_stack->get_count() - 1;*/
 					}
