@@ -101,8 +101,7 @@ int function_info::dispose(void)
 int function_info::size_adapt(void)
 {
 	unsigned int size;
-	this->data_size = this->mid_code_stack.get_count() * sizeof(mid_code) + this->row_line * sizeof(unsigned int)
-				+ make_align(this->wptr, 4);
+	this->data_size = this->mid_code_stack.get_count() * sizeof(mid_code) + make_align(this->wptr, 4);
 	//vrealloc(this->mid_code_stack.get_base_addr(), this->mid_code_stack.get_count() * sizeof(mid_code));
 #if DEBUG_EN
 	this->data_size += this->row_line * sizeof(mid_code*) + this->local_varity_stack.get_count() * sizeof(varity_info);
@@ -110,33 +109,33 @@ int function_info::size_adapt(void)
 #endif
 	//vrealloc(this->buffer, this->wptr);
 	//vrealloc(this->row_begin_pos, this->row_line * sizeof(unsigned int));
-	char *function_data = (char*)dmalloc(this->data_size, "all function data");
+	char *function_data = (char*)dmalloc(this->data_size + this->row_line * sizeof(unsigned int), "all function data");
 	size = this->mid_code_stack.get_count() * sizeof(mid_code);
 	kmemcpy(function_data, this->mid_code_stack.get_base_addr(), size);
 	vfree(this->mid_code_stack.get_base_addr());
 	this->mid_code_stack.set_base(function_data);
 	function_data += size;
-	size = this->row_line * sizeof(unsigned int);
-	kmemcpy(function_data, this->row_begin_pos, size);
-	vfree(this->row_begin_pos);
-	this->row_begin_pos = (unsigned int*)function_data;
-	function_data += size;
 	size = make_align(this->wptr, 4);
 	kmemcpy(function_data, this->buffer, size);
 	vfree(this->buffer);
 	this->buffer = function_data;
+#if DEBUG_EN
 	function_data += size;
 	size = this->local_varity_stack.get_count() * sizeof(varity_info);
 	kmemcpy(function_data, this->local_varity_stack.get_base_addr(), size);
 	vfree(this->local_varity_stack.get_base_addr());
 	this->local_varity_stack.set_base(function_data);
-#if DEBUG_EN
+	function_data += size;
 	size = this->row_line * sizeof(mid_code*);
 	kmemcpy(function_data, this->row_code_ptr, size);
 	vfree(this->row_code_ptr);
 	this->row_code_ptr = (mid_code**)function_data;
-	function_data += size;
 #endif
+	function_data += size;
+	size = this->row_line * sizeof(unsigned int);
+	kmemcpy(function_data, this->row_begin_pos, size);
+	vfree(this->row_begin_pos);
+	this->row_begin_pos = (unsigned int*)function_data;
 	return ERROR_NO;
 }
 

@@ -472,9 +472,9 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 	vfread(&this->compile_function_info, sizeof(compile_function_info_t), 1, file_ptr, "function info");
 	mid_code *mid_code_ptr = (mid_code*)base;
 	stack *arg_varity_ptr = (stack*)((char*)mid_code_ptr + this->compile_function_info.mid_code_size);
-	varity_info *local_varity_ptr = (varity_info*)((char*)arg_varity_ptr + this->compile_function_info.arg_size);
-	char *source_code_ptr = (char*)local_varity_ptr + this->compile_function_info.local_varity_size;
-	mid_code **row_code_ptr = (mid_code**)((char*)source_code_ptr + make_align(this->compile_function_info.source_code_size, PLATFORM_WORD_LEN));
+//	varity_info *local_varity_ptr = (varity_info*)((char*)arg_varity_ptr + this->compile_function_info.arg_size);
+//	char *source_code_ptr = (char*)local_varity_ptr + this->compile_function_info.local_varity_size;
+//	mid_code **row_code_ptr = (mid_code**)((char*)source_code_ptr + make_align(this->compile_function_info.source_code_size, PLATFORM_WORD_LEN));
 	vfread(mid_code_ptr, 1, this->compile_function_info.alldata_size, file_ptr, "function all data");
 	//vfread(mid_code_ptr, 1, this->compile_function_info.mid_code_size, file_ptr);
 	//vfread(arg_varity_ptr, 1, this->compile_function_info.arg_size, file_ptr);
@@ -490,23 +490,20 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		vfread(function_info_ptr, sizeof(function_info), 1, file_ptr, "function info");
 		kmemcpy(&function_info_ptr->local_varity_stack, &c_interpreter::language_elment_space.l_varity_list, sizeof(void*));//copy virtual table
 		function_info_ptr->mid_code_stack.set_base(mid_code_ptr);
-		mid_code_ptr = (mid_code*)((char*)mid_code_ptr + function_info_ptr->data_size);
 		if(compile_info.extra_flag) {
-			function_info_ptr->local_varity_stack.set_base(local_varity_ptr);
-			function_info_ptr->buffer = source_code_ptr;
-			function_info_ptr->row_code_ptr = row_code_ptr;
-			function_info_ptr->row_begin_pos = (unsigned int*)dmalloc(sizeof(char*) * function_info_ptr->row_line, "");
+			function_info_ptr->buffer = (char*)(mid_code_ptr + function_info_ptr->mid_code_stack.get_count());
+			function_info_ptr->local_varity_stack.set_base(function_info_ptr->buffer + make_align(function_info_ptr->wptr, 4));
+			function_info_ptr->row_code_ptr = (mid_code**)((char*)function_info_ptr->local_varity_stack.get_base_addr() + function_info_ptr->local_varity_stack.get_count() * sizeof(varity_info));
+			function_info_ptr->row_begin_pos = (unsigned int*)function_info_ptr->row_code_ptr + function_info_ptr->row_line;
 			for(j=0; j<function_info_ptr->row_line; j++) {
 				function_info_ptr->row_code_ptr[j] = mid_code_ptr + (int)function_info_ptr->row_code_ptr[j];
 				if(j == 0)
 					function_info_ptr->row_begin_pos[j] = 0;
 				else
-					function_info_ptr->row_begin_pos[j] = function_info_ptr->row_begin_pos[j - 1] + kstrlen(source_code_ptr + function_info_ptr->row_begin_pos[j - 1]) + 1;
+					function_info_ptr->row_begin_pos[j] = function_info_ptr->row_begin_pos[j - 1] + kstrlen(function_info_ptr->buffer + function_info_ptr->row_begin_pos[j - 1]) + 1;
 			}
-			source_code_ptr += function_info_ptr->wptr;
-			row_code_ptr += function_info_ptr->row_line;
-			local_varity_ptr += function_info_ptr->local_varity_stack.get_count();
 		}
+		mid_code_ptr = (mid_code*)((char*)mid_code_ptr + function_info_ptr->data_size);
 		if(compile_info.export_flag == EXPORT_FLAG_LINK || compile_info.extra_flag)
 			function_info_ptr->set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)function_info_ptr ->get_name()]))->get_name());
 		else
@@ -795,9 +792,12 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			}
 		}
 	}
+	arg_content_stack.dispose();
 	vfree(function_info_ptr);
 	vfree(str_map_table);
 	vfree(name_map_table);
+	vfree(arg_map_table);
+	vfree(struct_map_table);
 	kfclose(file_ptr);
 	return ERROR_NO;
 }
@@ -830,7 +830,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 			this->compile_function_info.function_count++;
 		}
 	}
-	debug("source=%d,arg=%d,lvariable=%d,code map=%d\n", this->compile_function_info.alldata_size, this->compile_function_info.arg_size, this->compile_function_info.local_varity_size, this->compile_function_info.code_map_size);
+	debug("function all data size=%d\n", this->compile_function_info.alldata_size);
 	count = string_stack.get_count();
 	this->compile_string_info.string_count = count;
 	string_info *string_info_ptr = (string_info*)string_stack.get_base_addr();

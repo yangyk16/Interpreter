@@ -70,7 +70,7 @@ void *vmalloc(unsigned int, const char*);
 void *vmalloc(unsigned int);
 #endif
 
-#define memdebug	
+#define memdebug	debug
 #define refdebug	
-#define filedebug	debug
+#define filedebug	
 #endif
