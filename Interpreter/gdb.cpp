@@ -167,21 +167,22 @@ int gdb::breakpoint(int argc, char **argv, c_interpreter *cptr)
 	if(!fptr)
 		gdbout("Function not found.\n");
 	else {
-		if(!fptr->row_code_ptr[line]) {
+		mid_code *mid_code_base = (mid_code*)fptr->mid_code_stack.get_base_addr();
+		if(line < 0 || line > fptr->row_line) {
 			gdbout("Line not exist.\n");
 			return ERROR_NO;
 		}
-		if(fptr->row_code_ptr[line]->break_flag & BREAKPOINT_REAL) {
+		if((mid_code_base + fptr->row_code_ptr[line])->break_flag & BREAKPOINT_REAL) {
 			gdbout("Breakpoint duplicated.\n");
 			return ERROR_NO;
 		}
-		gdbout("Breakpoint set @ 0x%X\n", fptr->row_code_ptr[line]);
-		fptr->row_code_ptr[line]->break_flag |= BREAKPOINT_REAL;
+		gdbout("Breakpoint set @ 0x%X\n", mid_code_base + fptr->row_code_ptr[line]);
+		(mid_code_base + fptr->row_code_ptr[line])->break_flag |= BREAKPOINT_REAL;
 		bp_info_t *bp_info_ptr = (bp_info_t*)dmalloc(sizeof(bp_info_t), "breakpoint info");
 		node *bpnode_ptr = (node*)dmalloc(sizeof(node), "breakpoint node");
 		bpnode_ptr->value = bp_info_ptr;
 		bp_info_ptr->no = ++bp_info_ptr->total_no;
-		bp_info_ptr->bp_addr = fptr->row_code_ptr[line];
+		bp_info_ptr->bp_addr = mid_code_base + fptr->row_code_ptr[line];
 		bp_stack.push(bpnode_ptr);
 		vfree(bpnode_ptr);
 	}
@@ -376,7 +377,7 @@ int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction
 				switch(gdbret) {
 				case OK_GDB_STEPOVER://n
 					if(fptr && line != fptr->row_line - 1) {
-						bp_todo = fptr->row_code_ptr[line + 1] - 1;
+						bp_todo = (mid_code*)fptr->mid_code_stack.get_base_addr() + fptr->row_code_ptr[line + 1] - 1;
 					} else {
 						if(fptr)
 							bp_todo = (mid_code*)fptr->mid_code_stack.get_current_ptr() - 1;

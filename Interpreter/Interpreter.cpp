@@ -482,10 +482,10 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		if(compile_info.extra_flag) {
 			function_info_ptr->buffer = (char*)(mid_code_ptr + function_info_ptr->mid_code_stack.get_count());
 			function_info_ptr->local_varity_stack.set_base(function_info_ptr->buffer + make_align(function_info_ptr->wptr, 4));
-			function_info_ptr->row_code_ptr = (mid_code**)((char*)function_info_ptr->local_varity_stack.get_base_addr() + function_info_ptr->local_varity_stack.get_count() * sizeof(varity_info));
+			function_info_ptr->row_code_ptr = (int*)((char*)function_info_ptr->local_varity_stack.get_base_addr() + function_info_ptr->local_varity_stack.get_count() * sizeof(varity_info));
 			function_info_ptr->row_begin_pos = (unsigned int*)function_info_ptr->row_code_ptr + function_info_ptr->row_line;
 			for(j=0; j<function_info_ptr->row_line; j++) {
-				function_info_ptr->row_code_ptr[j] = mid_code_ptr + (int)function_info_ptr->row_code_ptr[j];
+				//function_info_ptr->row_code_ptr[j] = mid_code_ptr + (int)function_info_ptr->row_code_ptr[j];
 				if(j == 0)
 					function_info_ptr->row_begin_pos[j] = 0;
 				else
@@ -941,11 +941,11 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 					arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
 				}
 				/////////////////////////////////////////////
-				if(function_ptr[i].row_code_ptr)
+				/*if(function_ptr[i].row_code_ptr)
 					for(j=0; j<function_ptr[i].row_line; j++) {
 						int offset = function_ptr[i].row_code_ptr[j] - (mid_code*)function_ptr[i].mid_code_stack.get_base_addr();
 						function_ptr[i].row_code_ptr[j] = (mid_code*)offset;
-					}
+					}*/
 			}
 		}
 		vfwrite(function_ptr[i].mid_code_stack.get_base_addr(), 1, function_ptr[i].data_size, file_ptr, "function all data");
@@ -2111,7 +2111,7 @@ int c_interpreter::find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fpt
 				if(fptr->debug_flag) {
 					if(line_ptr) {
 						for(int j=fptr->row_line-1; j>=0; j--) {
-							if(fptr->row_code_ptr[j] <= mid_code_ptr) {
+							if(func_pc + fptr->row_code_ptr[j] <= mid_code_ptr) {
 								*line_ptr = j;
 								break;
 							}
@@ -3145,7 +3145,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 			return OK_FUNC_INPUTING;
 		function_info *current_function_ptr = this->function_declare->get_current_node();
 #if DEBUG_EN
-		current_function_ptr->row_code_ptr[current_function_ptr->row_line] = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+		current_function_ptr->row_code_ptr[current_function_ptr->row_line] = this->cur_mid_code_stack_ptr->get_count();
 #endif
 		this->function_declare->save_sentence(this->interprete_need_ptr->sentence_buf, kstrlen(this->interprete_need_ptr->sentence_buf));
 		if(this->function_flag_set.function_begin_flag) {

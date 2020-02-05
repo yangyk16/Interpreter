@@ -26,7 +26,7 @@ public:
 	int arg_count;
 	PLATFORM_WORD *arg;
 #if DEBUG_EN
-	mid_code **row_code_ptr;
+	int *row_code_ptr;
 	indexed_stack local_varity_stack;
 #endif
 	int init(char*, int);

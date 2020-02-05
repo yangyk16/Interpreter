@@ -27,7 +27,7 @@ int function_info::init(char* name, int flag)
 		this->buffer = (char*)dmalloc(MAX_FUNCTION_LEN, "function code buffer");
 		this->row_begin_pos = (unsigned int*)dmalloc(MAX_FUNCTION_LINE * sizeof(char*), "function row ptr");
 #if DEBUG_EN
-		this->row_code_ptr = (mid_code**)dmalloc(MAX_FUNCTION_LINE * sizeof(mid_code*), "function row map mid code");
+		this->row_code_ptr = (int*)dmalloc(MAX_FUNCTION_LINE * sizeof(int), "function row map mid code");
 #endif
 	}
 	this->compile_func_flag = flag;
@@ -126,10 +126,10 @@ int function_info::size_adapt(void)
 	vfree(this->local_varity_stack.get_base_addr());
 	this->local_varity_stack.set_base(function_data);
 	function_data += size;
-	size = this->row_line * sizeof(mid_code*);
+	size = this->row_line * sizeof(int);
 	kmemcpy(function_data, this->row_code_ptr, size);
 	vfree(this->row_code_ptr);
-	this->row_code_ptr = (mid_code**)function_data;
+	this->row_code_ptr = (int*)function_data;
 #endif
 	function_data += size;
 	size = this->row_line * sizeof(unsigned int);
