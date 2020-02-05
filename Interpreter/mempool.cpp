@@ -1,19 +1,35 @@
 #include "config.h"
 #include "cstdlib.h"
 
-#define ALIGN_BYTE 16
+#define MEMCHK_EN	1
+#define ALIGN_BYTE	16
 #define NULL 0
+#define MEM_MAGIC	0x5A
 typedef unsigned int uint;
+typedef unsigned short ushort;
+typedef unsigned char uchar;
 typedef struct head_head_s{
 	uint size;
 	head_head_s* next;
 	head_head_s* last;
-	uint isused;
+	uchar isused;
+#if MEMCHK_EN
+	uchar magic;
+	ushort crc16;
+#endif
 }head_t;
 
 static int heap[HEAPSIZE / sizeof(int)];
 char* heapbase = (char*)heap;
 
+#if MEMCHK_EN
+int head_check(head_t* head_ptr)
+{
+	if(head_ptr->magic != MEM_MAGIC)
+		return -1;
+	return 0;
+}
+#endif
 static inline uint align_size(uint size)
 {
 	return size + (size % ALIGN_BYTE == 0 ? 0 : (ALIGN_BYTE - size % ALIGN_BYTE));
@@ -30,22 +46,35 @@ static void print_mempool(void)
 static int heap_self_check(void)
 {
 	head_t *head_ptr;
-	for (head_ptr = ((head_t*)heapbase)->next; head_ptr; head_ptr = head_ptr->next)
-		if (head_ptr->last->next != head_ptr || head_ptr->next && head_ptr->next->last != head_ptr) {
+	for(head_ptr = ((head_t*)heapbase)->next; head_ptr; head_ptr = head_ptr->next) {
+		if(head_ptr->last->next != head_ptr || head_ptr->next && head_ptr->next->last != head_ptr) {
 			fatal("heap wrong.\n");
 			return 1;
 		}
+		head_t *next_head = head_ptr->next ? head_ptr->next : (head_t*)(&heap + 1);
+		if((char*)next_head - (char*)head_ptr != head_ptr->size + sizeof(head_t)) {
+			fatal("heap wrong.\n");
+			return 1;
+		}
+#if MEMCHK_EN
+		if(head_check(head_ptr)) {
+			fatal("heap wrong.\n");
+			return 1;
+		}
+#endif
+	}
 	return 0;
-	memdebug("mempool print finish.\n");
 }
 
 extern "C" void heap_debug(void)
 {
 	head_t *begin = (head_t*)heapbase;
-	heap_self_check();
-	while(begin) {
-		kprintf("%08x,isused=%d,size=%d\n", begin + 1, begin->isused, begin->size);
-		begin = begin->next;
+	if(heap_self_check() || 1) {
+		while (begin) {
+			kprintf("%08x,isused=%d,size=%d\n", begin + 1, begin->isused, begin->size);
+			begin = begin->next;
+		}
+		memdebug("mempool print finish.\n");
 	}
 }
 
@@ -69,10 +98,16 @@ extern "C" void* kmalloc(uint size) {
 		new_next_ptr->size = (uint)next_head_ptr - (uint)new_next_ptr - sizeof(head_t);
 		new_next_ptr->last = head_ptr;
 		new_next_ptr->next = head_ptr->next;
+#if MEMCHK_EN
+		new_next_ptr->magic = MEM_MAGIC;
+#endif
 		new_next_ptr->isused = 0;
 		new_next_ptr->next && (new_next_ptr->next->last = new_next_ptr);
 		head_ptr->next = new_next_ptr;
 		head_ptr->size = tsize;
+#if MEMCHK_EN
+		head_ptr->magic = MEM_MAGIC;
+#endif
 	}
 	
 	head_ptr->isused = 1;
@@ -86,6 +121,12 @@ extern "C" int kfree(void *ptr) {
 		return -1;
 	}
 	head_t *headptr = (head_t*)ptr - 1;
+#if MEMCHK_EN
+	if (head_check(headptr)) {
+		fatal("Fatal error:not valid heap mem\n");
+		return -2;
+	}
+#endif
 	if(headptr->isused == 0) {
 		fatal("Fatal error:free memory freed\n");
 		return -1;
@@ -112,16 +153,27 @@ extern "C" void* krealloc(void *ptr, uint size)
 	head_t *headptr = (head_t*)ptr - 1;
 	head_t *next_headptr = headptr->next;
 	head_t *new_next_ptr;
-	if(headptr->isused == 0)
+#if MEMCHK_EN
+	if(head_check(headptr)) {
+		fatal("Fatal error:not valid heap mem\n");
 		return 0;
+	}
+#endif
+	if(headptr->isused == 0) {
+		fatal("Fatal error:realloc freed memory");
+		return 0;
+	}
 	if(size < headptr->size) {
 		if(next_headptr && !next_headptr->isused) {
 			new_next_ptr = (head_t*)((uint)headptr + sizeof(head_t) + align_size(size));
-			new_next_ptr->size = next_headptr->size + (uint)next_headptr - (uint)headptr;
+#if MEMCHK_EN
+			new_next_ptr->magic = MEM_MAGIC;
+#endif
+			new_next_ptr->isused = 0;//TODO: 改成和202行同样顺序，严格倒序
+			new_next_ptr->size = next_headptr->size + (uint)headptr->next - (uint)new_next_ptr;
 			new_next_ptr->next = next_headptr->next;
 			new_next_ptr->next && (new_next_ptr->next->last = new_next_ptr);
 			new_next_ptr->last = headptr;
-			new_next_ptr->isused = 0;
 			headptr->next = new_next_ptr;
 			headptr->size = align_size(size);
 		} else {
@@ -145,6 +197,9 @@ extern "C" void* krealloc(void *ptr, uint size)
 			if(next_headptr->isused == 0 && next_headptr->size + sizeof(head_t) >= size - headptr->size) {//剩余空间放下
 				new_next_ptr = (head_t*)((uint)headptr + sizeof(head_t) + align_size(size));
 				if((uint)next_headptr->next - (uint)new_next_ptr > sizeof(head_t)) {//放得下header
+#if MEMCHK_EN
+					new_next_ptr->magic = MEM_MAGIC;
+#endif					
 					new_next_ptr->isused = 0;//操作顺序严格按结构体定义顺序倒序
 					new_next_ptr->last = headptr;
 					new_next_ptr->next = next_headptr->next;
@@ -179,6 +234,9 @@ extern "C" void heapinit(void) {
 	head->isused = 0;
 	head->last = 0;
 	head->next = 0;
+#if MEMCHK_EN
+	head->magic = MEM_MAGIC;
+#endif
 }
 
 void* dmalloc(unsigned int size, const char *info)

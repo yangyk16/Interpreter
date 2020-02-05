@@ -210,7 +210,7 @@ public:
 
 typedef struct compile_info_s {
 	unsigned int total_size;
-	unsigned int string_size;
+	unsigned int unstored_size;
 	unsigned short export_flag;
 	unsigned short extra_flag;
 	unsigned int sum32;
@@ -218,14 +218,8 @@ typedef struct compile_info_s {
 
 typedef struct compile_function_info_s {
 	unsigned int function_count;
-	unsigned int mid_code_size;
-	unsigned int arg_size;
-	unsigned int local_varity_size;
-	unsigned int source_code_size;
-	unsigned int function_flag;
-	unsigned int code_map_size;
-	//unsigned int row_map_size;
 	unsigned int alldata_size;
+	unsigned int rowline_size;
 } compile_function_info_t;
 
 typedef struct compile_varity_info_s {
@@ -239,7 +233,6 @@ typedef struct compile_varity_info_s {
 
 typedef struct compile_struct_info_s {
 	unsigned int struct_count;
-	unsigned int struct_size;
 	unsigned int varity_size;
 } compile_struct_info_t;
 

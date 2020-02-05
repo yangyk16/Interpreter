@@ -359,9 +359,6 @@ int c_interpreter::run_main(int stop, void *load_base, void *bss_base)
 	if(stop)
 		pc->break_flag |= BREAKPOINT_STEP;
 	ret = this->exec_mid_code(pc, stack_ptr->get_count());
-	vfree(load_base);
-	vfree(bss_base);
-	//TODO:清理所有导入符号
 	return ret;
 }
 
@@ -467,20 +464,12 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		}
 	}
 	vfree(str_base);
-	void *base = dmalloc(this->compile_info.total_size, "load file space");
+	void *base = dmalloc(this->compile_info.total_size + this->compile_info.unstored_size, "load file space");
 	*load_base = base;
 	vfread(&this->compile_function_info, sizeof(compile_function_info_t), 1, file_ptr, "function info");
 	mid_code *mid_code_ptr = (mid_code*)base;
-	stack *arg_varity_ptr = (stack*)((char*)mid_code_ptr + this->compile_function_info.mid_code_size);
-//	varity_info *local_varity_ptr = (varity_info*)((char*)arg_varity_ptr + this->compile_function_info.arg_size);
-//	char *source_code_ptr = (char*)local_varity_ptr + this->compile_function_info.local_varity_size;
-//	mid_code **row_code_ptr = (mid_code**)((char*)source_code_ptr + make_align(this->compile_function_info.source_code_size, PLATFORM_WORD_LEN));
+	stack *arg_varity_ptr;
 	vfread(mid_code_ptr, 1, this->compile_function_info.alldata_size, file_ptr, "function all data");
-	//vfread(mid_code_ptr, 1, this->compile_function_info.mid_code_size, file_ptr);
-	//vfread(arg_varity_ptr, 1, this->compile_function_info.arg_size, file_ptr);
-	//vfread(local_varity_ptr, 1, this->compile_function_info.local_varity_size, file_ptr);
-	//vfread(source_code_ptr, 1, this->compile_function_info.source_code_size, file_ptr);
-	//vfread(row_code_ptr, 1, this->compile_function_info.code_map_size, file_ptr);
 	unsigned int function_begin_count = this->function_declare->function_stack_ptr->get_count();
 	unsigned int struct_begin_count = this->struct_declare->struct_stack_ptr->get_count();
 	unsigned int varity_begin_count = this->varity_declare->global_varity_stack->get_count();
@@ -511,10 +500,10 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		mid_code_ptr += function_info_ptr->mid_code_stack.get_count();
 		this->function_declare->function_stack_ptr->push(function_info_ptr);
 	}
-	function_total_size = this->compile_function_info.alldata_size;
-	base = (char*)base + make_align(function_total_size, 4);
+	function_total_size = make_align(this->compile_function_info.alldata_size, 4) + this->compile_function_info.rowline_size;
+	base = (char*)base + function_total_size;
 	struct_info *struct_info_ptr = (struct_info*)function_info_ptr;
-	unsigned short *struct_map_table;
+	unsigned short *struct_map_table = 0;
 	if(compile_info.extra_flag) {
 		struct_info *struct_dup_ptr;
 		vfread(&this->compile_struct_info, sizeof(compile_struct_info_t), 1, file_ptr, "compile struct info");
@@ -552,7 +541,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		varity_type_ptr = (PLATFORM_WORD*)varity_type_info_ptr;
 	}
 	stack arg_content_stack;
-	unsigned short *arg_map_table;
+	unsigned short *arg_map_table = 0;
 	if(compile_info.extra_flag) {
 		varity_type_stack_ptr->arg_count = (char*)(varity_type_info_ptr + 1);
 		varity_type_stack_ptr->type_info_addr = (PLATFORM_WORD**)(varity_type_stack_ptr->arg_count + make_align(varity_type_stack_ptr->count, PLATFORM_WORD_LEN));
@@ -792,12 +781,15 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			}
 		}
 	}
-	arg_content_stack.dispose();
+	if(compile_info.extra_flag)
+		arg_content_stack.dispose();
 	vfree(function_info_ptr);
 	vfree(str_map_table);
 	vfree(name_map_table);
-	vfree(arg_map_table);
-	vfree(struct_map_table);
+	if(arg_map_table)
+		vfree(arg_map_table);
+	if(struct_map_table)
+		vfree(struct_map_table);
 	kfclose(file_ptr);
 	return ERROR_NO;
 }
@@ -819,14 +811,8 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr();
 	for(this->compile_function_info.function_count=0,i=0; i<count; i++) {
 		if(function_ptr[i].compile_func_flag == 0) {
-			if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
-				this->compile_function_info.source_code_size += function_ptr[i].wptr;
-				this->compile_function_info.arg_size += ((stack*)(function_ptr[i].arg[function_ptr[i].arg_count - 1]))->get_count() * sizeof(varity_info) + sizeof(stack);
-				this->compile_function_info.local_varity_size += function_ptr[i].local_varity_stack.get_count() * sizeof(varity_info);
-				this->compile_function_info.code_map_size += function_ptr[i].row_line * sizeof(mid_code*);
-			}
-			this->compile_function_info.mid_code_size += function_ptr[i].mid_code_stack.get_count() * sizeof(mid_code);
-			this->compile_function_info.alldata_size +=function_ptr[i].data_size;
+			this->compile_function_info.alldata_size += function_ptr[i].data_size;
+			this->compile_function_info.rowline_size += function_ptr[i].row_line * sizeof(unsigned int);
 			this->compile_function_info.function_count++;
 		}
 	}
@@ -921,6 +907,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 	debug("type count=%d,size=%d\n", varity_type_stack.count, compile_varity_info.type_size);
 	this->compile_info.total_size = compile_function_info.alldata_size
 								+ compile_varity_info.data_size + compile_struct_info.varity_size;
+	this->compile_info.unstored_size = compile_function_info.rowline_size;
 	debug("total size=%d\n", this->compile_info.total_size);
 	this->compile_info.sum32 = calc_sum32((int*)&this->compile_info, sizeof(this->compile_info) - sizeof(int));
 	vfwrite(&this->compile_info, sizeof(compile_info), 1, file_ptr, "compile info");

@@ -143,6 +143,7 @@ extern "C" int db(int argc, char **argv)
 		return ret;
 	ret = myinterpreter.run_main(STOP_FLAG_STOP, load_base, bss_base);
 	myinterpreter.dispose();
+	irq_interpreter.dispose();
 	return ret;
 }
 
