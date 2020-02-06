@@ -64,7 +64,9 @@ protected:
 	uint size;//TODO: remove size
 	PLATFORM_WORD* comlex_info_ptr;
 	void*	content_ptr;
-	int complex_arg_count;
+	short complex_arg_count;
+	char mem_blk_flag;
+	char reserve;
 public:
 	inline uint get_size(void){return this->size;}
 	int get_type(void);
@@ -82,6 +84,7 @@ public:
 	int  get_complex_arg_count(void) {return this->complex_arg_count;}
 	void set_complex_arg_count(int n) {this->complex_arg_count = n;}
 	void set_size(uint size) {this->size = size;}
+	void set_blk_flag(char flag) {this->mem_blk_flag = flag;}
 	void set_content_ptr(void* addr){this->content_ptr = addr;}
 	void set_type(int type);
 	void set_name(char *name_ptr) {this->name = name_ptr;}

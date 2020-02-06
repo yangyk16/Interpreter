@@ -92,7 +92,7 @@ int function_info::dispose(void)
 		destroy_varity_stack(this->arg_list);
 	}*/
 	void *code_addr = this->mid_code_stack.get_base_addr();
-	if(code_addr) {
+	if(code_addr && this->mem_blk_flag) {
 		vfree(code_addr);
 	}
 	return 0;
@@ -187,6 +187,7 @@ int function::declare(char *name, int arg_count, PLATFORM_WORD *arg, int flag)
 	function_node_ptr->init(name, flag);
 	function_node_ptr->arg = arg;
 	function_node_ptr->arg_count = arg_count;
+	function_node_ptr->mem_blk_flag = 1;
 	arg[0]++;
 	if(!(flag & FUNC_FLAG_PROTOTYPE))
 		function_node_ptr->mid_code_stack.init(sizeof(mid_code), MAX_MID_CODE_COUNT);

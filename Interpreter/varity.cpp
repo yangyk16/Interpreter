@@ -91,17 +91,12 @@ void varity_info::init_varity(char *name, uint size, int arg_count, PLATFORM_WOR
 	if(name && *name) {
 		string_ptr = (string_info*)name_stack.find(name);
 		varity_ptr->name = string_ptr->get_name();
-		//int name_len = kstrlen(name);
-		//varity_ptr->name = (char*)dmalloc(name_len + 1, "");
-		//kstrcpy(varity_ptr->name, name);
 	}
 	varity_ptr->size = size;
 	varity_ptr->content_ptr = 0;
-	//if(type != COMPLEX) {
-		varity_ptr->comlex_info_ptr = complex_ptr;
-		varity_ptr->complex_arg_count = arg_count;
-		inc_varity_ref(varity_ptr);
-	//}
+	varity_ptr->comlex_info_ptr = complex_ptr;
+	varity_ptr->complex_arg_count = arg_count;
+	inc_varity_ref(varity_ptr);
 }
 
 void varity_info::set_type(int type)
@@ -133,6 +128,7 @@ int varity_info::apply_space(void)
 	}
 	if(this->size) {
 		this->content_ptr = dmalloc(this->size, "varity store space");
+		this->mem_blk_flag = 1;
 		if(this->content_ptr)
 			return 0;
 		else
@@ -144,7 +140,7 @@ int varity_info::apply_space(void)
 void varity_info::dispose(void)
 {
 	this->size = 0;
-	if(this->content_ptr) {
+	if(this->content_ptr && this->mem_blk_flag) {
 		vfree(this->content_ptr);
 	}
 	this->content_ptr = 0;

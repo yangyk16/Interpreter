@@ -16,6 +16,7 @@ public:
 	char variable_para_flag;
 	char compile_func_flag;
 	char debug_flag;
+	char mem_blk_flag;
 	void *func_addr;
 	stack mid_code_stack;
 	int row_line;
@@ -23,7 +24,7 @@ public:
 	unsigned int data_size;
 	int stack_frame_size;
 	//stack* arg_list;
-	int arg_count;
+	short arg_count;
 	PLATFORM_WORD *arg;
 #if DEBUG_EN
 	int *row_code_ptr;
