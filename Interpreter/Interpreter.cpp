@@ -846,23 +846,10 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 	debug("struct count=%d, struct size=%d\n", this->compile_struct_info.struct_count, this->compile_struct_info.varity_size);
 	count = this->varity_declare->global_varity_stack->get_count();
 	varity_info *varity_info_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr();
-	unsigned int varity_size, varity_align_size;
+	unsigned int varity_size, varity_size1, varity_size2, varity_align_size, varity_align_size1, varity_align_size2;
 	for(i=0, j=count-1;;) {
 		while(varity_info_ptr[i].get_content_ptr()) {
-			if(varity_info_ptr[i].get_complex_arg_count()) {
-				varity_size = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
-				varity_align_size = get_align_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
-			} else {
-				varity_size = varity_info_ptr[i].get_size();//TODO:两个分支都用get_size
-				varity_align_size = (unsigned int)varity_info_ptr[i].get_complex_ptr();
-			}
 			this->compile_varity_info.varity_count++;
-			if(kmemchk(varity_info_ptr[i].get_content_ptr(), 0, varity_size)) {
-				this->compile_varity_info.init_varity_count++;
-				this->compile_varity_info.data_size = make_align(compile_varity_info.data_size, varity_align_size) + varity_size;
-			} else {
-				this->compile_varity_info.bss_size = make_align(compile_varity_info.bss_size, varity_align_size) + varity_size;
-			}
 			if(++i >= j)
 				break;
 		}
@@ -879,33 +866,49 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		} else if(i > j)
 			break;
 	}
-	for(i=0, j=compile_varity_info.varity_count-1;;) {
-		for(;i<compile_varity_info.varity_count;) {
-			//varity_size = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
-			varity_size = varity_info_ptr[i].get_size();
-			if(kmemchk(varity_info_ptr[i].get_content_ptr(), 0, varity_size))
+	for(i=0, j=compile_varity_info.varity_count-1;;i++, j--) {
+		do {
+			if(varity_info_ptr[i].get_complex_arg_count()) {
+				varity_size1 = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
+				varity_align_size1 = get_align_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
+			} else {
+				varity_size1 = varity_info_ptr[i].get_size();//TODO:两个分支都用get_size
+				varity_align_size1 = (unsigned int)varity_info_ptr[i].get_complex_ptr();
+			}
+			if(kmemchk(varity_info_ptr[i].get_content_ptr(), 0, varity_size1)) {
+				this->compile_varity_info.init_varity_count++;
+				this->compile_varity_info.data_size = make_align(compile_varity_info.data_size, varity_align_size1) + varity_size1;
 				i++;
-			else
+			} else
 				break;
-		}
-		for(;j>=0;) {
-			//varity_size = get_varity_size(0, varity_info_ptr[j].get_complex_ptr(), varity_info_ptr[j].get_complex_arg_count());
-			varity_size = varity_info_ptr[j].get_size();
-			if(!kmemchk(varity_info_ptr[j].get_content_ptr(), 0, varity_size))
+		} while(i < j);
+		do {
+			if(varity_info_ptr[j].get_complex_arg_count()) {
+				varity_size2 = get_varity_size(0, varity_info_ptr[j].get_complex_ptr(), varity_info_ptr[j].get_complex_arg_count());
+				varity_align_size2 = get_align_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[j].get_complex_ptr());
+			} else {
+				varity_size2 = varity_info_ptr[j].get_size();//TODO:两个分支都用get_size
+				varity_align_size2 = (unsigned int)varity_info_ptr[j].get_complex_ptr();
+			}
+			if(!kmemchk(varity_info_ptr[j].get_content_ptr(), 0, varity_size2)) {
+				this->compile_varity_info.bss_size = make_align(compile_varity_info.bss_size, varity_align_size2) + varity_size2;
 				j--;
-			else
+			} else
 				break;
-		}
+		} while(i < j);
 		if(i < j) {
 			varity_info tmp;
 			kmemcpy(&tmp, varity_info_ptr + i, sizeof(varity_info));
 			kmemcpy(varity_info_ptr + i, varity_info_ptr + j, sizeof(varity_info));
 			kmemcpy(varity_info_ptr + j, &tmp, sizeof(varity_info));
 			kmemset(&tmp, 0, sizeof(varity_info));//if tmp.content, ~tmp will free memory.
+			this->compile_varity_info.bss_size = make_align(compile_varity_info.bss_size, varity_align_size1) + varity_size1;
+			this->compile_varity_info.data_size = make_align(compile_varity_info.data_size, varity_align_size2) + varity_size2;
+			this->compile_varity_info.init_varity_count++;
 		} else if(i > j)
 			break;
 	}
-	debug("variable count=%d, data size=%d, bss size=%d\n", count, this->compile_varity_info.data_size, this->compile_varity_info.bss_size);
+	debug("variable count=%d, inited count=%d, data size=%d, bss size=%d\n", count, this->compile_varity_info.init_varity_count, this->compile_varity_info.data_size, this->compile_varity_info.bss_size);
 	this->compile_varity_info.type_size = 0;
 	if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
 		compile_varity_info.type_size = make_align(varity_type_stack.count, PLATFORM_WORD_LEN);
@@ -1029,8 +1032,8 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		//vfwrite(&arg_addr_stack, sizeof(stack), 1, file_ptr, "arg info stack");
 		//vfwrite(arg_addr_stack.get_base_addr(), PLATFORM_WORD_LEN, arg_addr_stack.get_count(), file_ptr, "arg info");
 	}
-	count = this->varity_declare->global_varity_stack->get_count();
-	unsigned int varity_space_offset = 0;
+	count = this->compile_varity_info.varity_count;
+	unsigned int data_space_offset = 0, bss_space_offset = 0;
 	for(i=0; i<count; i++) {
 		void *varity_space;
 		if(!(varity_space = varity_info_ptr[i].get_content_ptr()))
@@ -1044,9 +1047,15 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 			varity_size = varity_info_ptr[i].get_size();
 			varity_align_size = (unsigned int)varity_info_ptr[i].get_complex_ptr();
 		}
-		varity_space_offset = make_align(varity_space_offset, varity_align_size);
-		varity_info_ptr[i].set_content_ptr((void*)varity_space_offset);
-		varity_space_offset += varity_size;
+		if(i < this->compile_varity_info.init_varity_count) {
+			data_space_offset = make_align(data_space_offset, varity_align_size);
+			varity_info_ptr[i].set_content_ptr((void*)data_space_offset);
+			data_space_offset += varity_size;
+		} else {
+			bss_space_offset = make_align(bss_space_offset, varity_align_size);
+			varity_info_ptr[i].set_content_ptr((void*)bss_space_offset);
+			bss_space_offset += varity_size;
+		}
 		PLATFORM_WORD *complex_ptr = varity_info_ptr[i].get_complex_ptr();
 		if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
 			unsigned int type_no = varity_type_stack.find(varity_info_ptr[i].get_complex_arg_count(), complex_ptr);
@@ -1059,11 +1068,16 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		varity_info_ptr[i].set_content_ptr(varity_space);
 		varity_info_ptr[i].config_complex_info(varity_info_ptr[i].get_complex_arg_count(), complex_ptr);
 	}
-	for(i=0; i<count; i++) {
-		//varity_size = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
+	for(i=0, data_space_offset=0, varity_align_size=1; i<this->compile_varity_info.init_varity_count; i++) {
+		long long tmp = make_align(data_space_offset, varity_align_size);
+		int gap_space = tmp - data_space_offset;
+		data_space_offset = tmp;
+		tmp = 0;
 		varity_size = varity_info_ptr[i].get_size();
-		if(varity_info_ptr[i].get_content_ptr() && kmemchk(varity_info_ptr[i].get_content_ptr(), 0, varity_size))
-			vfwrite(varity_info_ptr[i].get_content_ptr(), 1, varity_size, file_ptr, "varity data");
+		varity_align_size = get_align_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[j].get_complex_ptr());
+		data_space_offset += varity_size;
+		vfwrite(&tmp, 1, gap_space, file_ptr, ".data align space");
+		vfwrite(varity_info_ptr[i].get_content_ptr(), 1, varity_size, file_ptr, "varity data");
 	}
 	kfclose(file_ptr);
 	return ERROR_NO;
