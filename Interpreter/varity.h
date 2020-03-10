@@ -61,12 +61,12 @@
 
 class varity_info:public element {
 protected:
-	uint size;//TODO: remove size
+	uint size;
 	PLATFORM_WORD* comlex_info_ptr;
 	void*	content_ptr;
 	short complex_arg_count;
 	char mem_blk_flag;
-	char reserve;
+	char align_size;
 public:
 	inline uint get_size(void){return this->size;}
 	int get_type(void);
@@ -81,7 +81,8 @@ public:
 	int get_first_order_sub_struct_size(void);
 	void *get_content_ptr(void){return content_ptr;}
 	PLATFORM_WORD *&get_complex_ptr(void){return this->comlex_info_ptr;}
-	int  get_complex_arg_count(void) {return this->complex_arg_count;}
+	int get_complex_arg_count(void) {return this->complex_arg_count;}
+	int get_align_size(void) {return this->align_size;}
 	void set_complex_arg_count(int n) {this->complex_arg_count = n;}
 	void set_size(uint size) {this->size = size;}
 	void set_blk_flag(char flag) {this->mem_blk_flag = flag;}

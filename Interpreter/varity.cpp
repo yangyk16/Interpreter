@@ -96,6 +96,7 @@ void varity_info::init_varity(char *name, uint size, int arg_count, PLATFORM_WOR
 	varity_ptr->content_ptr = 0;
 	varity_ptr->comlex_info_ptr = complex_ptr;
 	varity_ptr->complex_arg_count = arg_count;
+	varity_ptr->align_size = ::get_align_size(arg_count, complex_ptr);
 	inc_varity_ref(varity_ptr);
 }
 

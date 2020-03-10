@@ -846,7 +846,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 	debug("struct count=%d, struct size=%d\n", this->compile_struct_info.struct_count, this->compile_struct_info.varity_size);
 	count = this->varity_declare->global_varity_stack->get_count();
 	varity_info *varity_info_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr();
-	unsigned int varity_size, varity_size1, varity_size2, varity_align_size, varity_align_size1, varity_align_size2;
+	unsigned int varity_size, varity_align_size;
 	for(i=0, j=count-1;;) {
 		while(varity_info_ptr[i].get_content_ptr()) {
 			this->compile_varity_info.varity_count++;
@@ -866,47 +866,40 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		} else if(i > j)
 			break;
 	}
-	for(i=0, j=compile_varity_info.varity_count-1;;i++, j--) {
-		do {
-			if(varity_info_ptr[i].get_complex_arg_count()) {
-				varity_size1 = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
-				varity_align_size1 = get_align_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
-			} else {
-				varity_size1 = varity_info_ptr[i].get_size();//TODO:两个分支都用get_size
-				varity_align_size1 = (unsigned int)varity_info_ptr[i].get_complex_ptr();
-			}
-			if(kmemchk(varity_info_ptr[i].get_content_ptr(), 0, varity_size1)) {
-				this->compile_varity_info.init_varity_count++;
-				this->compile_varity_info.data_size = make_align(compile_varity_info.data_size, varity_align_size1) + varity_size1;
-				i++;
-			} else
-				break;
-		} while(i < j);
-		do {
-			if(varity_info_ptr[j].get_complex_arg_count()) {
-				varity_size2 = get_varity_size(0, varity_info_ptr[j].get_complex_ptr(), varity_info_ptr[j].get_complex_arg_count());
-				varity_align_size2 = get_align_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[j].get_complex_ptr());
-			} else {
-				varity_size2 = varity_info_ptr[j].get_size();//TODO:两个分支都用get_size
-				varity_align_size2 = (unsigned int)varity_info_ptr[j].get_complex_ptr();
-			}
-			if(!kmemchk(varity_info_ptr[j].get_content_ptr(), 0, varity_size2)) {
-				this->compile_varity_info.bss_size = make_align(compile_varity_info.bss_size, varity_align_size2) + varity_size2;
-				j--;
-			} else
-				break;
-		} while(i < j);
-		if(i < j) {
+	int *varity_sort_table = (int*)vmalloc(sizeof(int) * compile_varity_info.varity_count, "varity sort table");
+	for(i=0; i<compile_varity_info.varity_count; i++) {
+		if(varity_info_ptr[i].get_complex_arg_count()) {
+			varity_size = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
+			varity_align_size = varity_info_ptr[i].get_align_size();
+		} else {
+			varity_size = varity_info_ptr[i].get_size();//TODO:两个分支都用get_size
+			varity_align_size = varity_info_ptr[i].get_align_size();
+		}
+		if(kmemchk(varity_info_ptr[i].get_content_ptr(), 0, varity_size)) {
+			this->compile_varity_info.data_size = make_align(compile_varity_info.data_size, varity_align_size) + varity_size;
+			varity_sort_table[this->compile_varity_info.init_varity_count++] = i;
+		}
+	}
+	for(i=0, j=0; i<compile_varity_info.init_varity_count; i++, j++) {
+		if(varity_sort_table[i] != j) {
 			varity_info tmp;
-			kmemcpy(&tmp, varity_info_ptr + i, sizeof(varity_info));
-			kmemcpy(varity_info_ptr + i, varity_info_ptr + j, sizeof(varity_info));
+			kmemcpy(&tmp, varity_info_ptr + varity_sort_table[i], sizeof(varity_info));
+			kmemcpy(varity_info_ptr + varity_sort_table[i], varity_info_ptr + j, sizeof(varity_info));
 			kmemcpy(varity_info_ptr + j, &tmp, sizeof(varity_info));
 			kmemset(&tmp, 0, sizeof(varity_info));//if tmp.content, ~tmp will free memory.
-			this->compile_varity_info.bss_size = make_align(compile_varity_info.bss_size, varity_align_size1) + varity_size1;
-			this->compile_varity_info.data_size = make_align(compile_varity_info.data_size, varity_align_size2) + varity_size2;
-			this->compile_varity_info.init_varity_count++;
-		} else if(i > j)
-			break;
+		}
+	}
+	vfree(varity_sort_table);
+	for(i=compile_varity_info.init_varity_count; i<compile_varity_info.varity_count; i++) {
+		if (varity_info_ptr[i].get_complex_arg_count()) {
+			varity_size = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
+			varity_align_size = varity_info_ptr[i].get_align_size();
+		}
+		else {
+			varity_size = varity_info_ptr[i].get_size();//TODO:两个分支都用get_size
+			varity_align_size = varity_info_ptr[i].get_align_size();
+		}
+		this->compile_varity_info.bss_size = make_align(compile_varity_info.bss_size, varity_align_size) + varity_size;
 	}
 	debug("variable count=%d, inited count=%d, data size=%d, bss size=%d\n", count, this->compile_varity_info.init_varity_count, this->compile_varity_info.data_size, this->compile_varity_info.bss_size);
 	this->compile_varity_info.type_size = 0;
@@ -1042,10 +1035,10 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		varity_info_ptr[i].set_name((char*)name_no);
 		if(varity_info_ptr[i].get_complex_arg_count()) {
 			varity_size = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
-			varity_align_size = get_element_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[i].get_complex_ptr());
+			varity_align_size = varity_info_ptr[i].get_align_size();
 		} else {
 			varity_size = varity_info_ptr[i].get_size();
-			varity_align_size = (unsigned int)varity_info_ptr[i].get_complex_ptr();
+			varity_align_size = varity_info_ptr[i].get_align_size();
 		}
 		if(i < this->compile_varity_info.init_varity_count) {
 			data_space_offset = make_align(data_space_offset, varity_align_size);
@@ -1056,6 +1049,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 			varity_info_ptr[i].set_content_ptr((void*)bss_space_offset);
 			bss_space_offset += varity_size;
 		}
+		int complex_arg_count = varity_info_ptr[i].get_complex_arg_count();
 		PLATFORM_WORD *complex_ptr = varity_info_ptr[i].get_complex_ptr();
 		if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
 			unsigned int type_no = varity_type_stack.find(varity_info_ptr[i].get_complex_arg_count(), complex_ptr);
@@ -1066,15 +1060,15 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		}
 		vfwrite(&varity_info_ptr[i], sizeof(varity_info), 1, file_ptr, "varity info");
 		varity_info_ptr[i].set_content_ptr(varity_space);
-		varity_info_ptr[i].config_complex_info(varity_info_ptr[i].get_complex_arg_count(), complex_ptr);
+		varity_info_ptr[i].config_complex_info(complex_arg_count, complex_ptr);
 	}
 	for(i=0, data_space_offset=0, varity_align_size=1; i<this->compile_varity_info.init_varity_count; i++) {
+		varity_align_size = varity_info_ptr[i].get_align_size();
 		long long tmp = make_align(data_space_offset, varity_align_size);
 		int gap_space = tmp - data_space_offset;
 		data_space_offset = tmp;
 		tmp = 0;
 		varity_size = varity_info_ptr[i].get_size();
-		varity_align_size = get_align_size(varity_info_ptr[i].get_complex_arg_count(), varity_info_ptr[j].get_complex_ptr());
 		data_space_offset += varity_size;
 		vfwrite(&tmp, 1, gap_space, file_ptr, ".data align space");
 		vfwrite(varity_info_ptr[i].get_content_ptr(), 1, varity_size, file_ptr, "varity data");
@@ -4508,13 +4502,13 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 				PLATFORM_WORD *varity_complex_ptr;
 				int complex_node_count;
 				int void_flag = 0;
+				struct_info* struct_info_ptr;
+				varity_info* arg_node_ptr;
 				token_in_bracket = find_token_with_bracket_level(node_ptr + i + 1, count - i - 1, &rbracket_node, 0);
 				i++;
 				for(; token_in_bracket > 0;) {
 					int type;
 					int v_count = token_in_bracket;		
-					struct_info *struct_info_ptr;
-					varity_info* arg_node_ptr;
 					type = basic_type_check(node_ptr + i, v_count, struct_info_ptr);
 					if(type < 0) {
 						if(type_flag) {
