@@ -5,7 +5,7 @@
 
 extern "C" int cc(int argc, char **argv)
 {
-	int ret;
+	int ret = 0;
 	char ch; 
 	int run_flag = 0;
 	int link_flag = LINK_ADDR;
@@ -46,8 +46,9 @@ extern "C" int cc(int argc, char **argv)
 		irq_interpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 0, stack_size);
 		ret = myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
 		if(ret)
-			return ret;
+			goto run_exit;
 		ret = myinterpreter.run_main(STOP_FLAG_RUN, load_base, bss_base);
+	run_exit:
 		myinterpreter.dispose();
 		irq_interpreter.dispose();
 		return ret;
@@ -60,7 +61,7 @@ extern "C" int cc(int argc, char **argv)
 				myinterpreter.init(&fileio, RTL_FLAG_IMMEDIATELY, 1, stack_size);
 				ret = fileio.init(argv[optind], "r");
 				if(ret)
-					return ret;
+					goto interpreter_exit;
 			}
 			if(log_file_name) {
 				lfileio.init(log_file_name, "w");
@@ -68,6 +69,7 @@ extern "C" int cc(int argc, char **argv)
 			}
 			irq_interpreter.init(&stdio, 1, 0, stack_size);
 			myinterpreter.run_interpreter();
+		interpreter_exit:
 			myinterpreter.dispose();
 			irq_interpreter.dispose();
 			break;
@@ -82,7 +84,10 @@ extern "C" int cc(int argc, char **argv)
 				}
 				myinterpreter.init(&fileio, RTL_FLAG_DELAY, 1, stack_size);
 				tip("compiling %s...\n", argv[optind + i]);
-				myinterpreter.run_interpreter();
+				ret = myinterpreter.run_interpreter();
+				if(ret) {
+					goto compile_exit;
+				}
 				int len = kstrlen(argv[optind + i]);
 				argv[optind + i][len - 1] = 'o';
 				ret = myinterpreter.tlink(LINK_STRNO);
@@ -94,6 +99,7 @@ extern "C" int cc(int argc, char **argv)
 				//compile(argv[optind + i], EXPORT_FLAG_LINK);
 				myinterpreter.write_ofile(argv[optind + i], EXPORT_FLAG_LINK, extra_flag);
 				tip("%s made success!\n", argv[optind + i]);
+			compile_exit:
 				myinterpreter.dispose();
 			}
 			break;
@@ -111,20 +117,20 @@ extern "C" int cc(int argc, char **argv)
 			}
 			tip("linking...\n");
 			ret = myinterpreter.tlink(LINK_NUMBER);
-			if(ret)
-				return ret;
+			if(ret) {
+				goto link_exit;
+			}
 			if(!output_file_name)
 				output_file_name = "a.elf";
 			tip("link finish, writing to disk...\n");
 			myinterpreter.write_ofile(output_file_name, EXPORT_FLAG_EXEC, extra_flag);
 			tip("%s made success!\n", output_file_name);
-			link_exit:
+		link_exit:
 			myinterpreter.dispose();
-
 			break;
 		}
 	}
-	return 0;
+	return ret;
 }
 
 extern "C" int db(int argc, char **argv)
@@ -140,8 +146,9 @@ extern "C" int db(int argc, char **argv)
 	irq_interpreter.init(&stdio, RTL_FLAG_IMMEDIATELY, 0, stack_size);
 	ret = myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
 	if(ret)
-		return ret;
+		goto exit;
 	ret = myinterpreter.run_main(STOP_FLAG_STOP, load_base, bss_base);
+exit:
 	myinterpreter.dispose();
 	irq_interpreter.dispose();
 	return ret;
