@@ -33,6 +33,7 @@ public:
 	int init(char*, int);
 	int init(const char *name, void* addr, char variable_arg_flag);
 	int dispose(void);
+	int abort(void);
 	int save_sentence(char* ,uint);
 #if DEBUG_EN
 	int copy_local_varity_stack(indexed_stack *lvsp);
@@ -49,7 +50,7 @@ public:
 	void init(stack*);
 	function_info* find(const char* name) {return (function_info*)this->function_stack_ptr->find(name);}
 	function_info* get_current_node(void) {return this->current_node;}
-	void current_node_abort(void);
+	void declare_abort(void) {this->current_node->abort();}
 	int save_sentence(char* ,uint);
 	int destroy_sentence(void);
 	int declare(char*, int, PLATFORM_WORD*, int);

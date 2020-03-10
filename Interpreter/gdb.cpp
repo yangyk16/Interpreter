@@ -184,7 +184,7 @@ int gdb::breakpoint(int argc, char **argv, c_interpreter *cptr)
 		bp_info_ptr->no = ++bp_info_ptr->total_no;
 		bp_info_ptr->bp_addr = mid_code_base + fptr->row_code_ptr[line];
 		bp_stack.push(bpnode_ptr);
-		vfree(bpnode_ptr);
+		//vfree(bpnode_ptr);
 	}
 	return ERROR_NO;
 }
@@ -196,7 +196,7 @@ int del_breakpoint(int argc, char **argv, c_interpreter *cptr)
 	int no = katoi(argv[1]);
 	node *nptr;
 	int i;
-	for(nptr=bp_stack.get_head()->right, i=0; i<=bp_stack.get_count(); i++, nptr=nptr->right) {
+	for(nptr=bp_stack.get_head()->right, i=0; i<bp_stack.get_count(); i++, nptr=nptr->right) {
 		if(((bp_info_t*)nptr->value)->no == no) {
 			gdbout("Delete breakpoint %d @ 0x%x.\n", no, (mid_code*)((bp_info_t*)nptr->value)->bp_addr);
 			bp_stack.del(nptr);

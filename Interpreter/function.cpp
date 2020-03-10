@@ -76,6 +76,21 @@ int function_info::copy_local_varity_stack(indexed_stack *lvsp)
 }
 #endif
 
+int function_info::abort(void)
+{
+	if(this->buffer)
+	vfree(this->buffer);
+#if DEBUG_EN
+	if(this->row_code_ptr)
+		vfree(this->row_code_ptr);
+	if(this->local_varity_stack.get_base_addr())
+		vfree(this->local_varity_stack.get_base_addr());
+#endif
+	if(this->row_begin_pos)
+		vfree(this->row_begin_pos);
+	return 0;
+}
+
 int function_info::dispose(void)
 {
 	//if(this->buffer)

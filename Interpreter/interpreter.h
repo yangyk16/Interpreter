@@ -313,6 +313,7 @@ class c_interpreter {
 	
 	int save_sentence(char*, uint);
 	int function_analysis(node_attribute_t*, int);
+	int function_reset(void);
 	int struct_analysis(node_attribute_t*, uint);
 	int struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
 	int non_seq_struct_analysis(node_attribute_t*, uint);

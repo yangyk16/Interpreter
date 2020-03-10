@@ -262,6 +262,11 @@ void print_varity(int format, int complex_count, PLATFORM_WORD *complex_ptr, voi
 			if(!format) ksprintf(format_str, "%%d");
 			gdbout(format_str, INT_VALUE(content_ptr));
 			break;
+		case U_INT:
+		case U_LONG:
+			if (!format) ksprintf(format_str, "%%lu");
+			gdbout(format_str, INT_VALUE(content_ptr));
+			break;
 		case PTR:
 			if(!format) ksprintf(format_str, "0x%%08X");
 			gdbout(format_str, PTR_VALUE(content_ptr));

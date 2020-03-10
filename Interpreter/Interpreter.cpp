@@ -866,7 +866,7 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		} else if(i > j)
 			break;
 	}
-	int *varity_sort_table = (int*)vmalloc(sizeof(int) * compile_varity_info.varity_count, "varity sort table");
+	int *varity_sort_table = (int*)dmalloc(sizeof(int) * compile_varity_info.varity_count, "varity sort table");
 	for(i=0; i<compile_varity_info.varity_count; i++) {
 		if(varity_info_ptr[i].get_complex_arg_count()) {
 			varity_size = get_varity_size(0, varity_info_ptr[i].get_complex_ptr(), varity_info_ptr[i].get_complex_arg_count());
@@ -2682,6 +2682,9 @@ int c_interpreter::run_interpreter(void)
 				continue;
 			else {
 				error("line %d error.\n", this->tty_used->line);
+				if(this->function_flag_set.function_flag) {
+					this->function_declare->declare_abort();
+				}
 				break;
 			}
 		if(this->tty_log) {
@@ -3197,7 +3200,8 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 						}
 						if(i == this->interprete_need_ptr->sentence_analysis_data_struct.label_count) {
 							error("No label called \"%s\"\n", (char*)&mid_code_ptr->ret_addr);
-							current_function_ptr->dispose();
+							this->function_declare->declare_abort();
+							this->function_reset();
 							//vfree(current_function_ptr->arg_list->get_base_addr());
 							//vfree(current_function_ptr->arg_list);
 							this->varity_declare->destroy_local_varity();
@@ -3208,14 +3212,10 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 #if DEBUG_EN
 				current_function_ptr->copy_local_varity_stack(this->varity_declare->local_varity_stack);
 #endif
-				this->function_flag_set.function_flag = 0;
-				this->cur_mid_code_stack_ptr = &this->interprete_need_ptr->mid_code_stack;
+				this->function_reset();
 				current_function_ptr->stack_frame_size = this->varity_declare->local_varity_stack->offset;
 				current_function_ptr->size_adapt();
-				this->exec_flag = EXEC_FLAG_TRUE;
-				this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 				this->varity_declare->destroy_local_varity();
-				this->interprete_need_ptr->sentence_analysis_data_struct.label_count = 0;
 				if(this->real_time_link)
 					this->ulink(&current_function_ptr->mid_code_stack, LINK_ADDR);
 				//this->ulink(&current_function_ptr->mid_code_stack);
@@ -3288,6 +3288,16 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 	return OK_FUNC_NOFUNC;
 }
 #undef ARG_RETURN
+
+int c_interpreter::function_reset(void)
+{
+	this->function_flag_set.function_flag = 0;
+	this->cur_mid_code_stack_ptr = &this->interprete_need_ptr->mid_code_stack;
+	this->exec_flag = EXEC_FLAG_TRUE;
+	this->varity_global_flag = VARITY_SCOPE_GLOBAL;
+	this->interprete_need_ptr->sentence_analysis_data_struct.label_count = 0;
+	return 0;
+}
 
 int c_interpreter::label_analysis(node_attribute_t *node_ptr, int count)
 {
