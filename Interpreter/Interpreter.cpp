@@ -2732,6 +2732,7 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag, int interprete_need, i
 			tmp_varity_name[i][2] = link_varity_name[i][2] = 0;
 		}
 	}
+	kmemset(&this->function_flag_set, 0, sizeof(this->function_flag_set));
 	this->varity_declare = &c_interpreter::language_elment_space.c_varity;
 	this->nonseq_info = &c_interpreter::language_elment_space.nonseq_info_s;
 	this->function_declare = &c_interpreter::language_elment_space.c_function;
@@ -4798,6 +4799,22 @@ void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 		gdbout("\n");
 		//gdbout("opt=%d,radd=%x,rtype=%d,ropd=%d,aadd=%x,atype=%d,aopd=%d,badd=%x,byte=%d,bopd=%d\n",ptr->ret_operator,ptr->ret_addr,ptr->ret_varity_type,ptr->ret_operand_type,ptr->opda_addr,ptr->opda_varity_type,ptr->opda_operand_type,ptr->opdb_addr,ptr->opdb_varity_type,ptr->opdb_operand_type);
 	}
+}
+
+int c_interpreter::tip_wrong(int pos, char* str)
+{
+	int tiplen, i;
+	if(this->tty_used != &stdio) {
+		error("%s\n", this->interprete_need_ptr->sentence_buf);
+		tiplen = 0;
+	} else
+		tiplen = 4;
+	for(i=0; i<tiplen; i++)
+		error(" ");
+	for(i=0; i<pos; i++)
+		error(this->interprete_need_ptr->sentence_buf[i] == '\t' ? "\t" : " ");
+	error("^\n");
+	return 0;
 }
 
 int c_interpreter::open_ref(char *file)

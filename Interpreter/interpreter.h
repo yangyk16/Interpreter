@@ -346,6 +346,7 @@ class c_interpreter {
 	int generate_token_list(char *str, uint len);
 	int token_convert(node_attribute_t *node_ptr, int &count);
 	void print_code(mid_code *ptr, int n, int echo);
+	int tip_wrong(int pos, char* str = 0);
 	int basic_type_check(node_attribute_t*, int &count, struct_info *&struct_info_ptr);
 	bool gdb_check(void);
 	int find_fptr_by_code(mid_code *mid_code_ptr, function_info *&fptr, int *line_ptr = 0);

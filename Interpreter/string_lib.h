@@ -24,7 +24,6 @@ char* cmd_up(int no);
 char* cmd_down(int no);
 int cmd_dispose(int no);
 unsigned int calc_sum32(int *p, int len);
-int tip_wrong(int pos, char *str = 0);
 #ifdef __cplusplus
 extern "C" {
 #endif

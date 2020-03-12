@@ -131,8 +131,11 @@ void indexed_stack::init(int esize, int capacity)
 		this->bottom_addr = dmalloc(esize * capacity, "indexed stack base");
 	else
 		this->bottom_addr = vrealloc(this->bottom_addr, esize * capacity);
+	this->count = 0;
 	this->length = capacity;
 	this->current_depth = 0;
+	this->top = 0;
+	//TODO: this->stack::init(esize, capacity);
 	kmemset(this->bottom_addr, 0, this->length * this->element_size);
 }
 
