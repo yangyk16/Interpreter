@@ -295,7 +295,7 @@ unsigned int vfread(void* buffer, unsigned int size, unsigned int nmemb, void* f
 	static int total_read = 0;
 	total_read += size * nmemb;
 	filedebug("read %d byte,total %d, %s\n", size * nmemb, total_read, log);
-	return kfread(buffer, size, nmemb, (FILE*)fileptr);
+	return kfread(buffer, size, nmemb, fileptr);
 }
 
 unsigned int vfwrite(void* buffer, unsigned int size, unsigned int count, void* fileptr, char* log)
@@ -361,7 +361,7 @@ void irq_reg(int irq_no, void *func_ptr, void *data)
 int hard_fault_check(unsigned int addr)
 {
 #if TTY_TYPE == 1
-	if(addr < 0x200000 || addr >= 0x14000000 && addr < 0xFFFF0000 || (addr > 0x37FFFF && addr < 0x2000000) || (addr > 0x2400000 && addr <= 0x10000000)) {
+	if(addr < 0x200000 || addr >= 0x18000000 && addr < 0xFFFF0000 || (addr > 0x47FFFF && addr < 0x2000000) || (addr > 0x2400000 && addr <= 0x10000000)) {
 		return ERROR_HARD_FAULT;
 	}
 #else

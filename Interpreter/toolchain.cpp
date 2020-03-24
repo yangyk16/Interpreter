@@ -76,6 +76,7 @@ extern "C" int cc(int argc, char **argv)
 		case LINK_STRNO:
 		{
 			int file_count = argc - optind;
+			int len;
 			for(int i=0; i<file_count; i++) {
 				ret = fileio.init(argv[optind + i], "r");
 				if(ret) {
@@ -88,7 +89,7 @@ extern "C" int cc(int argc, char **argv)
 				if(ret) {
 					goto compile_exit;
 				}
-				int len = kstrlen(argv[optind + i]);
+				len = kstrlen(argv[optind + i]);
 				argv[optind + i][len - 1] = 'o';
 				ret = myinterpreter.tlink(LINK_STRNO);
 				if(ret) {

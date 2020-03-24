@@ -4812,7 +4812,7 @@ int c_interpreter::tip_wrong(int pos, char* str)
 	for(i=0; i<tiplen; i++)
 		error(" ");
 	for(i=0; i<pos; i++)
-		error(this->interprete_need_ptr->sentence_buf[i] == '\t' ? "\t" : " ");
+		error("%c", this->interprete_need_ptr->sentence_buf[i]);
 	error("^\n");
 	return 0;
 }
