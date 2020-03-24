@@ -64,10 +64,10 @@
 
 #if INTERPRETER_DEBUG
 #define dmalloc(size, info) vmalloc(size, info)
-void *vmalloc(unsigned int, const char*);
+//void *vmalloc(unsigned int, const char*);
 #else
 #define dmalloc(size, info) vmalloc(size)
-void *vmalloc(unsigned int);
+//void *vmalloc(unsigned int);
 #endif
 
 #define memdebug	

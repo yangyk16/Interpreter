@@ -2651,9 +2651,6 @@ int c_interpreter::run_interpreter(void)
 			len = tty_used->readline(interprete_need_ptr->sentence_buf, '`', c_interpreter::code_complete_callback);
 			this->tty_used->line++;
 			if(len == -1) {
-				if(this->tty_used == &fileio) {
-					this->tty_used->dispose();
-				}
 				break;
 			}
 		}

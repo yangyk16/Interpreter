@@ -58,7 +58,7 @@ int kisalnum(int ch);
 #ifdef __cplusplus
 }
 #endif
-void *dmalloc(unsigned int size, char *info);
+void *dmalloc(unsigned int size, const char *info);
 void vfree(void*);
 void* vrealloc(void* addr, unsigned int size);
 
