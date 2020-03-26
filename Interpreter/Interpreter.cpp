@@ -1268,7 +1268,7 @@ int c_interpreter::operator_post_handle(stack *code_stack_ptr, node *opt_node_pt
 			inc_varity_ref(rvarity_ptr);
 			instruction_ptr->data = get_varity_size(0, complex_info_ptr, complex_arg_count - 1);
 			instruction_ptr->ret_addr = varity_number * 8;
-			instruction_ptr->ret_operand_type = OPERAND_LINK_VARITY;
+			instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 			instruction_ptr->ret_operator = opt;
 			//instruction_ptr->ret_varity_type = INT;
 #if ARRAY_BOUND_CHECK
@@ -1551,7 +1551,7 @@ assign_general:
 		instruction_ptr->ret_addr = varity_number * 8;
 		instruction_ptr->ret_varity_type = rvarity_ptr->get_type();
 		instruction_ptr->ret_operator = opt;
-		instruction_ptr->ret_operand_type = OPERAND_LINK_VARITY;
+		instruction_ptr->ret_operand_type = OPERAND_T_VARITY;
 		((node_attribute_t*)opt_node_ptr->value)->node_type = TOKEN_NAME;
 		((node_attribute_t*)opt_node_ptr->value)->value.ptr_value = link_varity_name[varity_number];
 		break;

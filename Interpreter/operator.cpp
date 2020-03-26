@@ -103,7 +103,7 @@ func16 func16_ptr;
 		ret_addr = (int*)(t_varity_sp - instruction_ptr->ret_addr - 8); \
 		break; \
 	case OPERAND_LINK_VARITY: \
-		ret_addr = (int*)(t_varity_sp - instruction_ptr->ret_addr - 8); \
+		ret_addr = (int*)PTR_VALUE(t_varity_sp - instruction_ptr->ret_addr - 8); \
 		break; \
 	default: \
 		ret_addr = (int*)instruction_ptr->ret_addr; \
