@@ -212,7 +212,7 @@ extern "C" void* krealloc(void *ptr, uint size)
 					headptr->next->last = headptr;
 					headptr->size = (uint)headptr->next - (uint)headptr - sizeof(head_t);
 				}
-				return headptr;
+				return (void*)(headptr + 1);
 			} else {//开新的搬走数据;TODO:判断加上上一个空块大小是否够，够的话直接搬
 				void *new_ptr = kmalloc(size);
 				if(new_ptr) {

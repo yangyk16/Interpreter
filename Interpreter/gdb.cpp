@@ -212,7 +212,7 @@ int del_breakpoint(int argc, char **argv, c_interpreter *cptr)
 
 int info_ask(int argc, char **argv, c_interpreter *cptr)
 {
-	if(!kstrcmp(argv[1], "break")) {
+	if(!kstrcmp(argv[1], "breakpoint")) {
 		int i;
 		node *nptr;
 		for(nptr=bp_stack.get_head()->right, i=0; i<bp_stack.get_count(); i++, nptr=nptr->right) {

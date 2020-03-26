@@ -3124,7 +3124,7 @@ int c_interpreter::generate_arg_list(const char *str, int count, int &arg_count,
 	}
 	PLATFORM_WORD *stack_ret = (PLATFORM_WORD*)c_interpreter::language_elment_space.arg_stack_list.find(function_arg_stack);
 	if(stack_ret) {
-		no = stack_ret - (PLATFORM_WORD*)c_interpreter::language_elment_space.arg_stack_list.get_base_addr();
+		no = stack_ret - (PLATFORM_WORD*)c_interpreter::language_elment_space.arg_stack_list.get_base_addr();//TODO: 此处no没用？
 		*arg_stack_ptr = *stack_ret;
 		clear_arglist(function_arg_stack);
 	} else {
@@ -4220,7 +4220,9 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 					exp_len = find_token_with_bracket_level(node_ptr, count + 1, &node, 0);
 				}
 				if(new_varity_ptr->get_type() != ARRAY) {
-					generate_mid_code(node_ptr, exp_len, false);
+					ret = generate_mid_code(node_ptr, exp_len, false);
+					if (ret)
+						return ret;
 					mid_code *code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 					kmemcpy(&code_ptr->opdb_addr, &(code_ptr - 1)->opda_addr, sizeof(code_ptr->opda_addr) + sizeof(code_ptr->opda_operand_type) + sizeof(code_ptr->double_space1) + sizeof(code_ptr->opda_varity_type));
 					if(this->varity_global_flag == VARITY_SCOPE_LOCAL) {
@@ -4263,7 +4265,8 @@ int c_interpreter::sentence_exec(node_attribute_t* node_ptr, uint count, bool ne
 	if(!key_word_ret) {
 		ret = this->generate_mid_code(node_ptr, count, false);
 		if(ret) return ret;
-	}
+	} else
+		return key_word_ret;
 	if(this->exec_flag) {
 		int mid_code_count = this->cur_mid_code_stack_ptr->get_count();
 		ret = this->ulink(this->cur_mid_code_stack_ptr, LINK_ADDR);
@@ -4588,7 +4591,7 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 					void *arg_stack_in_stack = this->language_elment_space.arg_stack_list.find(arg_stack);
 					if(arg_stack_in_stack) {
 						clear_arglist(arg_stack);
-						this->token_node_ptr[wptr].value.ptr_value = (char*)arg_stack_in_stack;
+						this->token_node_ptr[wptr].value.ptr_value = (char*)*(PLATFORM_WORD*)arg_stack_in_stack;
 					} else {
 						vrealloc(arg_stack->get_base_addr(), arg_stack->get_count() * sizeof(varity_info));
 						this->token_node_ptr[wptr].value.ptr_value = (char*)arg_stack;

@@ -395,14 +395,15 @@ char* strfifo::get_real_wptr(uint count, int &remain)
 
 char* strfifo::get_new_block(uint count)
 {
-	if(this->length >= count)
+	if(this->length > count)//TODO:可能不存在该分支，考虑去掉
 		return (char*)this->bottom_addr;
 	else {
-		void *block_base = this->bottom_addr;
+		str_list *block_base = (str_list*)this->bottom_addr;
 		int block_count = count / this->length;
 		for(int i=0; i<block_count-1; i++)
-			block_base = ((str_list*)block_base)->next;
-		return ((str_list*)block_base)->next = (char*)dmalloc(this->length + sizeof(str_list), "string fifo new block");
+			block_base = block_base->next;
+		block_base->next = (str_list*)dmalloc(this->length + sizeof(str_list), "string fifo new block");
+		return (char*)(block_base->next + 1);
 	}
 }
 
@@ -414,6 +415,9 @@ char* strfifo::write(const char *str)
 	this->count += len;
 	if(remain >= len) {
 		kmemcpy(wptr, str, len);
+		if(remain == len) {
+			get_new_block(this->count);
+		}
 	} else {
 		this->count += remain;
 		wptr = this->get_new_block(this->count);

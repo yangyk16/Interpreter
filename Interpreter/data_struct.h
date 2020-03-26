@@ -31,7 +31,7 @@ public:
 };
 
 typedef struct str_list {
-	char *next;
+	struct str_list *next;
 	//char *last;
 } str_list;
 

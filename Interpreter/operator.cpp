@@ -1836,7 +1836,7 @@ int c_interpreter::opt_index_handle(c_interpreter *interpreter_ptr)
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
 #if ARRAY_BOUND_CHECK
-	int element_count = (instruction_ptr->data & (0xFF << 24)) >> 8 | instruction_ptr->opdb_varity_type << 8 | instruction_ptr->ret_varity_type;
+	int element_count = (instruction_ptr->data & (0xFF << 24)) >> 8 | instruction_ptr->opdb_varity_type << 8 | instruction_ptr->ret_varity_type;//TODO:长度128可出错
 	if(INT_VALUE(opdb_addr) >= element_count) {
 		error("Array bound.\n");
 		return ERROR_ARRAY_BOUND;
