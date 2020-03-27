@@ -9,10 +9,14 @@
 
 class struct_info: public element {
 public:
-	uint struct_size;
+	uint struct_size;//bit31:mem_blk_flag
 	stack *varity_stack_ptr;
 	PLATFORM_WORD *type_info_ptr;
 	int init(char*, stack*);
+	uint get_size(void) {return this->struct_size & ~(1 << 31);}
+	int get_flag(void) {return (this->struct_size & 1 << 31) != 0;}
+	void set_flag(int flag) {this->struct_size & ~(1 << 31) | (flag << 31);}
+	void set_size(uint size) {this->struct_size & (1 << 31) | size;}
 	int dispose(void);
 };
 

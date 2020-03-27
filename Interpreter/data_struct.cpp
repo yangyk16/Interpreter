@@ -428,8 +428,12 @@ char* strfifo::write(const char *str)
 
 void strfifo::dispose(void)
 {
-	if(this->bottom_addr)
-		vfree(this->bottom_addr);
+	int i;
+	str_list *block_base;
+	int block_count = this->count / this->length + 1;
+	for(i=0, block_base=(str_list*)this->bottom_addr; i<block_count; i++, block_base=block_base->next) {
+		vfree(block_base);
+	}
 	this->bottom_addr = 0;
 }
 

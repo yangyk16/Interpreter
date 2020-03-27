@@ -355,7 +355,7 @@ int get_varity_size(int basic_type, PLATFORM_WORD *complex_info, int complex_arg
 	if(basic_type <= VOID && basic_type >= CHAR)
 		return sizeof_type[basic_type];
 	else if(basic_type == STRUCT)
-		return ((struct_info*)complex_info[1])->struct_size;
+		return ((struct_info*)complex_info[1])->get_size();
 	else if(basic_type == PTR)
 		return PLATFORM_WORD_LEN;
 	for(int i=1; i<n+1; i++) {
@@ -364,7 +364,7 @@ int get_varity_size(int basic_type, PLATFORM_WORD *complex_info, int complex_arg
 			if(GET_COMPLEX_DATA(complex_info[i]) != STRUCT)
 				varity_size = sizeof_type[complex_info[i] & COMPLEX_DATA_BIT_MASK];
 			else
-				varity_size = ((struct_info*)complex_info[i - 1])->struct_size;//TODO:为严谨性应先避免struct信息地址正好命中case中的情况，改用自顶向下的递归可实现
+				varity_size = ((struct_info*)complex_info[i - 1])->get_size();//TODO:为严谨性应先避免struct信息地址正好命中case中的情况，改用自顶向下的递归可实现
 			break;
 		case COMPLEX_PTR:
 			varity_size = PLATFORM_WORD_LEN;

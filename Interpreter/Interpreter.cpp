@@ -515,6 +515,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		for(i=0; i<compile_struct_info.struct_count; i++) {
 			vfread(struct_info_ptr, sizeof(struct_info), 1, file_ptr, "struct info");
 			struct_info_ptr->varity_stack_ptr = arg_varity_ptr++;
+			struct_info_ptr->set_flag(0);
 			struct_info_ptr->varity_stack_ptr->set_base(arg_varity_ptr);
 			struct_info_ptr->set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)struct_info_ptr ->get_name()]))->get_name());
 			struct_dup_ptr = this->struct_declare->find(struct_info_ptr->get_name());
@@ -1528,7 +1529,7 @@ assign_general:
 		if(GET_COMPLEX_TYPE(((uint*)bvarity_ptr->get_complex_ptr())[complex_arg_count + 1]) == COMPLEX_PTR) {
 			rvarity_ptr->config_complex_info(complex_arg_count + 1, old_complex_info);
 		} else {
-			PLATFORM_WORD* new_complex_info = (PLATFORM_WORD*)dmalloc((complex_arg_count + 2) * sizeof(PLATFORM_WORD_LEN), "new varity type args");
+			PLATFORM_WORD* new_complex_info = (PLATFORM_WORD*)dmalloc((complex_arg_count + 2) * sizeof(PLATFORM_WORD_LEN), "new varity type args");//TODO: find in type stack
 			kmemcpy(new_complex_info + 1, old_complex_info + 1, complex_arg_count * sizeof(PLATFORM_WORD_LEN));
 			new_complex_info[complex_arg_count + 1] = COMPLEX_PTR << COMPLEX_TYPE_BIT;
 			rvarity_ptr->config_complex_info(complex_arg_count + 1, new_complex_info);
@@ -3467,6 +3468,8 @@ int c_interpreter::ctl_analysis(node_attribute_t *node_ptr, int count)
 
 int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool need_semicolon)//TODO:所有uint len统统改int，否则传个-1进来
 {
+	int value_flag = 1;
+	node_attribute_t *root_node_ptr;
 	if(count == 0 || node_ptr->node_type == TOKEN_OTHER)return ERROR_NO;
 	int ret = ERROR_NO;
 	ret = this->ctl_analysis(node_ptr, count);
@@ -3503,7 +3506,10 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 		warning("No token found.\n");
 		return 0;//TODO:找个合适的返回值
 	}
-
+	root_node_ptr = (node_attribute_t*)root->value;
+	if(root_node_ptr->node_type == TOKEN_OPERATOR && (root_node_ptr->data == OPT_MEMBER || root_node_ptr->data == OPT_REFERENCE || root_node_ptr->data == OPT_INDEX || root_node_ptr->data == OPT_PTR_CONTENT)) {
+		value_flag = 0;
+	}
 	if(expression_stack.get_count() == 0) {
 		ret = generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
 		if(ret)
@@ -3525,6 +3531,7 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 		int current_code_count = this->cur_mid_code_stack_ptr->get_count();
 		ret = this->tree_to_code(root, this->cur_mid_code_stack_ptr);//构造中间代码
 		if(ret) {
+			this->interprete_need_ptr->sentence_analysis_data_struct.short_depth = 0;
 			while(this->interprete_need_ptr->mid_varity_stack.get_count()) {
 				varity_info *tmp_varity_ptr = (varity_info*)this->interprete_need_ptr->mid_varity_stack.pop();
 				if(tmp_varity_ptr->get_complex_arg_count())
@@ -3553,7 +3560,7 @@ int c_interpreter::generate_mid_code(node_attribute_t *node_ptr, int count, bool
 		dec_varity_ref((varity_info*)this->interprete_need_ptr->mid_varity_stack.get_base_addr(), true);
 		this->interprete_need_ptr->mid_varity_stack.pop();
 	}
-	if(((node_attribute_t*)root->value)->node_type == TOKEN_NAME && ((node_attribute_t*)root->value)->value.ptr_value[0] == LINK_VARITY_PREFIX) {
+	if(!value_flag) {
 		generate_expression_value(this->cur_mid_code_stack_ptr, (node_attribute_t*)root->value);
 		return ERROR_NO;
 	}
@@ -3918,7 +3925,7 @@ int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 			stack *varity_stack_ptr = this->struct_declare->current_node->varity_stack_ptr;
 			if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == R_BIG_BRACKET) {
 				struct_info_set.declare_flag = 0;
-				this->struct_declare->current_node->struct_size = make_align(this->struct_info_set.current_offset, PLATFORM_WORD_LEN);
+				this->struct_declare->current_node->set_size(make_align(this->struct_info_set.current_offset, PLATFORM_WORD_LEN));
 				vrealloc(varity_stack_ptr->get_base_addr(), varity_stack_ptr->get_count() * sizeof(varity_info));
 				return OK_STRUCT_FINISH;
 			} else {

@@ -17,6 +17,7 @@ int struct_info::init(char* name, stack* varity_list)
 	//this->name = (char*)dmalloc(name_len + 1, "");
 	//kstrcpy(this->name, name);
 	this->varity_stack_ptr = varity_list;
+	this->set_flag(1);
 	kmemcpy(type, basic_type_info[STRUCT], PLATFORM_WORD_LEN * 4);
 	type[1] = (PLATFORM_WORD)this;
 	varity_type_stack.push(3, type);
@@ -28,8 +29,10 @@ int struct_info::dispose(void)
 {
 	//destroy_varity_stack(this->varity_stack_ptr);
 	if(this->varity_stack_ptr) {
-		vfree(this->varity_stack_ptr->visit_element_by_index(0));//TODO:检查是否释放所有成员
-		vfree(this->varity_stack_ptr);
+		if(this->get_flag()) {
+			vfree(this->varity_stack_ptr->visit_element_by_index(0));//TODO:检查是否释放所有成员
+			vfree(this->varity_stack_ptr);
+		}
 	}
 	return 0;
 }
