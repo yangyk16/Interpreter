@@ -350,7 +350,7 @@ int c_interpreter::run_thread(function_info*)
 	return ERROR_NO;
 }
 
-int c_interpreter::run_main(int stop, void *load_base, void *bss_base)
+int c_interpreter::run_main(int stop, int argc, char **argv)
 {
 	int ret;
 	function_info *function_ptr = (function_info*)this->function_declare->function_stack_ptr->get_base_addr() + this->cstdlib_func_count;
@@ -358,6 +358,8 @@ int c_interpreter::run_main(int stop, void *load_base, void *bss_base)
 	mid_code *pc = (mid_code*)stack_ptr->get_base_addr();
 	if(stop)
 		pc->break_flag |= BREAKPOINT_STEP;
+	INT_VALUE(this->stack_pointer) = argc;
+	PTR_VALUE(this->stack_pointer + 4) = (void*)argv;
 	ret = this->exec_mid_code(pc, stack_ptr->get_count());
 	return ret;
 }
@@ -644,7 +646,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 				} else {
 					int complex_size = (varity_info_ptr[j].get_complex_arg_count() + 1) * sizeof(void*);
 					PLATFORM_WORD *complex_ptr = (PLATFORM_WORD*)dmalloc(complex_size, "complex info ptr");
-					kmemcpy(complex_ptr, varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr[j].get_complex_ptr()], complex_size);
+					kmemcpy(complex_ptr, varity_info_ptr[j].get_complex_ptr(), complex_size);
 					varity_info_ptr[j].config_complex_info(varity_info_ptr[j].get_complex_arg_count(), complex_ptr);
 					varity_type_stack.arg_count[varity_type_stack.count] = varity_info_ptr[j].get_complex_arg_count();
 					varity_type_stack.type_info_addr[varity_type_stack.count] = complex_ptr;

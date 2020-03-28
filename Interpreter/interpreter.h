@@ -424,7 +424,7 @@ public:
 	int init(terminal*, int, int, int);
 	int dispose(void);
 	int run_interpreter(void);
-	int run_main(int, void*, void*);
+	int run_main(int, int, char**);
 	int run_thread(function_info*);
 };
 #endif

@@ -47,7 +47,7 @@ extern "C" int cc(int argc, char **argv)
 		ret = myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
 		if(ret)
 			goto run_exit;
-		ret = myinterpreter.run_main(STOP_FLAG_RUN, load_base, bss_base);
+		ret = myinterpreter.run_main(STOP_FLAG_RUN, 0, 0);
 	run_exit:
 		myinterpreter.dispose();
 		irq_interpreter.dispose();
@@ -148,7 +148,7 @@ extern "C" int db(int argc, char **argv)
 	ret = myinterpreter.load_ofile(argv[optind], 0, &load_base, &bss_base);
 	if(ret)
 		goto exit;
-	ret = myinterpreter.run_main(STOP_FLAG_STOP, load_base, bss_base);
+	ret = myinterpreter.run_main(STOP_FLAG_STOP, argc - 1, argv + 1);
 exit:
 	myinterpreter.dispose();
 	irq_interpreter.dispose();
