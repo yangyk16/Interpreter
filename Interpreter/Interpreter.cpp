@@ -4749,10 +4749,14 @@ void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 			else {
 				switch(ptr->ret_operator) {
 				case OPT_CALL_FUNC:
+				{
 					function_info *function_ptr = (function_info*)ptr->opda_addr;
 					gdbout("CALL %s", function_ptr->get_name());
 					break;
-					
+				}
+				case OPT_INDEX:
+					gdbout("+%d*", ptr->data);
+					break;
 				}
 			}
 			if(ptr->opdb_operand_type == OPERAND_T_VARITY) {
@@ -4760,14 +4764,15 @@ void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 			} else if(ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
 				gdbout("#%d", ptr->opdb_addr / 8);
 			} else if(ptr->opdb_operand_type == OPERAND_G_VARITY) {
-				for(uint j=0; j<this->language_elment_space.g_varity_list.get_count(); j++) {
+				int j;
+				for(j=0; j<this->language_elment_space.g_varity_list.get_count(); j++) {
 					if(varity_base[j].get_content_ptr() == (void*)ptr->opdb_addr) {
 						gdbout("%s", varity_base[j].get_name());
 						break;
 					}
 				}
-				if(i == this->language_elment_space.g_varity_list.get_count() && ptr->opdb_varity_type == ARRAY) {
-					gdbout("0x%x", ptr->opdb_addr);
+				if(j == this->language_elment_space.g_varity_list.get_count() && ptr->opdb_varity_type == ARRAY) {
+					gdbout("0x%x(string)", ptr->opdb_addr);
 				}
 			} else if(ptr->opdb_operand_type == OPERAND_L_VARITY) {
 				gdbout("*(SP+%d)", ptr->opdb_addr);
