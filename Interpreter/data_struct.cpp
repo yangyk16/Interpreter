@@ -86,7 +86,7 @@ void* stack::find(const char* name)
 	char* element_name;
 	for(uint i=0; i<this->count; i++) {
 		element_name = ((element*)((char*)this->bottom_addr + i * this->element_size))->get_name();
-		if(!kstrcmp(element_name, name))
+		if(element_name && !kstrcmp(element_name, name))
 			return (char*)this->bottom_addr + i * this->element_size;
 	}
 	return NULL;

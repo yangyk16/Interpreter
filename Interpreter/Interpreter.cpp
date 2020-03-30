@@ -604,6 +604,8 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		vfread(varity_info_ptr, sizeof(varity_info), 1, file_ptr, "varity info");
 		if(compile_info.extra_flag || compile_info.export_flag == EXPORT_FLAG_LINK)
 			varity_info_ptr->set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)varity_info_ptr->get_name()]))->get_name());
+		else
+			varity_info_ptr->set_name(NULL);
 		if(compile_info.extra_flag) {
 			type_no = varity_type_stack.find(varity_info_ptr->get_complex_arg_count(), (varity_type_stack_ptr->type_info_addr[(int)varity_info_ptr->get_complex_ptr()]));
 			if(type_no >= 0) {//variable type remap
@@ -4707,9 +4709,13 @@ void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 		} else if(ptr->ret_operand_type == OPERAND_LINK_VARITY) {
 			gdbout("#%d=", ptr->ret_addr / 8);
 		} else if(ptr->ret_operand_type == OPERAND_G_VARITY) {
-			for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
-				if(varity_base[i].get_content_ptr() == (void*)ptr->ret_addr) {
-					gdbout("%s=", varity_base[i].get_name());
+			int j;
+			for(j=0; j<this->language_elment_space.g_varity_list.get_count(); j++) {
+				if(varity_base[j].get_content_ptr() == (void*)ptr->ret_addr) {
+					if(varity_base[j].get_name())
+						gdbout("%s=", varity_base[j].get_name());
+					else
+						gdbout("*0x%X(G)=", varity_base[j].get_content_ptr());
 					break;
 				}
 			}
@@ -4724,7 +4730,10 @@ void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 			} else if(ptr->opda_operand_type == OPERAND_G_VARITY) {
 				for(uint i=0; i<this->language_elment_space.g_varity_list.get_count(); i++) {
 					if(varity_base[i].get_content_ptr() == (void*)ptr->opda_addr) {
-						gdbout("%s", varity_base[i].get_name());
+						if(varity_base[i].get_name())
+							gdbout("%s", varity_base[i].get_name());
+						else
+							gdbout("*0x%X(G)", varity_base[i].get_content_ptr());
 						break;
 					}
 				}
