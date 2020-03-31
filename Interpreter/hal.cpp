@@ -42,9 +42,10 @@ int tty::t_getc(char *ch)
 #elif TTY_TYPE == 1
 #include "../testcase/ff.h"
 #include "uart.h"
+extern "C" char uart_getc(void);
 int uart::t_getc(char* ch)
 {
-	*ch = uart_getchar_Polling_n(0, 0);
+	*ch = uart_getc();//uart_getchar_Polling_n(0, 0);
 	return 1;
 };
 

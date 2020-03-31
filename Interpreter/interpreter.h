@@ -271,6 +271,7 @@ int user_eval(char *str);
 extern "C" void global_init(void);
 extern "C" void global_dispose(void);
 extern "C" void run_interpreter(void);
+extern "C" void stop_running(void);
 void clear_arglist(stack *arg_stack_ptr);
 void irq_reg(int irq_no, void *func_ptr, void *data);
 int refscript(char *file);

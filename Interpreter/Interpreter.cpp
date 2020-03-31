@@ -3721,7 +3721,9 @@ int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 		if(this->exec_flag) {
 			this->ulink(this->cur_mid_code_stack_ptr, LINK_ADDR);
 			this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count(), INTERPRETER_DEBUG);
-			this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
+			ret1 = this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
+			if(ret1)
+				return ret1;
 			this->cur_mid_code_stack_ptr->empty();
 		}
 		nonseq_info->reset();
@@ -4916,6 +4918,11 @@ extern "C" void global_dispose(void)
 	cmd_dispose(0);
 	cmd_dispose(1);
 	heap_debug();
+}
+
+extern "C" void stop_running(void)
+{
+	myinterpreter.set_break_flag(1);
 }
 
 void clear_arglist(stack *arg_stack_ptr)
