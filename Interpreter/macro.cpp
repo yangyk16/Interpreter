@@ -5,11 +5,12 @@ int macro::declare(char* name, char** parameter, char* instead_str)
 	macro_info* macro_node_ptr;
 	if(macro_node_ptr = (macro_info*)this->macro_stack_ptr->find(name)) {
 		warning("declare macro \"%s\" error: macro name duplicated\n", name);
+		macro_node_ptr->init(name, parameter, instead_str);
 	} else {
-		macro_node_ptr = (macro_info*)macro_stack_ptr->get_current_ptr();
-		macro_stack_ptr->push();
+		macro_info macro_node;
+		macro_node.init(name, parameter, instead_str);
+		macro_stack_ptr->push(&macro_node);
 	}
-	macro_node_ptr->init(name, parameter, instead_str);
 	return 0;
 }
 

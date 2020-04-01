@@ -56,6 +56,10 @@ void stack::push(void* eptr)
 
 void stack::push(void)
 {
+	if(this->is_full()) {
+		this->length *= 2;
+		this->bottom_addr = vrealloc(this->bottom_addr, this->element_size * this->length);
+	}
 	this->top += this->element_size;
 	this->count++;
 }
