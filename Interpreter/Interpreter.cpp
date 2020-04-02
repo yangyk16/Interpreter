@@ -3227,6 +3227,8 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 		}
 		return OK_FUNC_INPUTING;
 	}
+	if(!count)
+		return OK_FUNC_NOFUNC;
 	int basic_count = count;
 	struct_info *struct_info_ptr;
 	ret_function_define = basic_type_check(node_ptr, basic_count, struct_info_ptr);
