@@ -2851,23 +2851,7 @@ int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, register
 {
 	int ret = 0;
 	int depth_bak = this->nonseq_info->non_seq_struct_depth;
-	while(this->nonseq_info->non_seq_struct_depth > 0 
-		&& ((GET_BRACE_DATA(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1]) == nonseq_info->brace_depth + 1 && GET_BRACE_FLAG(nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1]))
-		|| (GET_BRACE_DATA(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1]) == nonseq_info->brace_depth && !GET_BRACE_FLAG(nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1])))) {
-		if(!try_flag) {
-			this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1] = 0;
-			this->varity_declare->local_varity_stack->dedeep();
-		}
-		if(nonseq_info->non_seq_struct_depth > 0 && nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] == NONSEQ_KEY_IF && !(struct_end_flag & 2)) {
-			if(!try_flag)
-				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] = NONSEQ_KEY_WAIT_ELSE;
-			--nonseq_info->non_seq_struct_depth;
-			break;
-		}
-		--nonseq_info->non_seq_struct_depth;
-		if(nonseq_info->non_seq_struct_depth >= 0 && !try_flag)
-			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = 0;
-	}
+	get_nonseq_to_depth(struct_end_flag, try_flag);
 	if(struct_end_flag & 1) {
 		nonseq_info->row_info_node[nonseq_info->row_num].non_seq_info = 1;
 		nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
@@ -2891,12 +2875,39 @@ int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, register
 	return ret;
 }
 
+int c_interpreter::get_nonseq_to_depth(int struct_end_flag, bool try_flag)
+{
+	int ret, depth_bak = nonseq_info->non_seq_struct_depth;
+	while(this->nonseq_info->non_seq_struct_depth > 0 
+		&& ((GET_BRACE_DATA(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1]) == nonseq_info->brace_depth + 1 && GET_BRACE_FLAG(nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1]))
+		|| (GET_BRACE_DATA(this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1]) == nonseq_info->brace_depth && !GET_BRACE_FLAG(nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1])))) {
+		if(!try_flag) {
+			this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1] = 0;
+			this->varity_declare->local_varity_stack->dedeep();
+		}
+		if(nonseq_info->non_seq_struct_depth > 0 && nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] == NONSEQ_KEY_IF && !(struct_end_flag & 2)) {
+			if(!try_flag)
+				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] = NONSEQ_KEY_WAIT_ELSE;
+			--nonseq_info->non_seq_struct_depth;
+			break;
+		}
+		--nonseq_info->non_seq_struct_depth;
+		if(nonseq_info->non_seq_struct_depth >= 0 && !try_flag)
+			nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = 0;
+	}
+	ret = nonseq_info->non_seq_struct_depth;
+	if(try_flag)
+		nonseq_info->non_seq_struct_depth = depth_bak;
+	return ret;
+}
+
 int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint count)
 {
 	static bool exec_flag_bak;
 	int struct_end_flag = 0;
 	int ret = ERROR_NO;
  	int current_brace_level = 0;
+	int to_depth;
 	if(count == 0 && nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE)
 		return ret;
 #if DEBUG_EN
@@ -2915,6 +2926,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 				return ERROR_NONSEQ_GRAMMER;
 			} else if(count == 0) {
 				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_IF;
+				nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth = nonseq_info->non_seq_struct_depth;
 				struct_end_flag = 2;
 			} else { //nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE
 				nonseq_mid_gen_mid_code(node_ptr, count);//这句不会出错，不加返回值判断了
@@ -2927,7 +2939,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_IF;
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 1;
-				nonseq_end_gen_mid_code(nonseq_info->row_num - 1, 0, 0);
+				nonseq_end_gen_mid_code(nonseq_info->row_num - 1, 0, 0, struct_end_flag);
 				ret = struct_end(struct_end_flag, exec_flag_bak, 0);
 				struct_end_flag = 0;
 			} else if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE) {
@@ -2948,6 +2960,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 
 	if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == L_BIG_BRACKET) {
 		if(nonseq_info->non_seq_struct_depth) {
+			nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth = nonseq_info->non_seq_struct_depth;
 			nonseq_info->brace_depth++;
 			if(nonseq_info->last_non_seq_check_ret) {
 				this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1] = SET_BRACE(1, nonseq_info->brace_depth);
@@ -2986,6 +2999,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 			error("there is no { to match\n");
 			return ERROR_NONSEQ_GRAMMER;
 		}
+	} else {
 	}
 
 	if(nonseq_info->non_seq_check_ret) {
@@ -3041,7 +3055,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 struct_end_check:
 	if(struct_end_flag) {
 		ret = struct_end(struct_end_flag, exec_flag_bak, 1);
-		nonseq_end_gen_mid_code(nonseq_info->row_num, node_ptr, count);
+		nonseq_end_gen_mid_code(nonseq_info->row_num, node_ptr, count, struct_end_flag);
 		ret = struct_end(struct_end_flag, exec_flag_bak, 0);
 	}
 	if(count && (nonseq_info->non_seq_struct_depth || nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth)) {// && (nonseq_info->non_seq_check_ret || nonseq_info->non_seq_struct_depth)) {
@@ -3161,7 +3175,7 @@ int c_interpreter::generate_arg_list(const char *str, int count, int &arg_count,
 	this->exec_flag = EXEC_FLAG_TRUE; \
 	this->varity_global_flag = VARITY_SCOPE_GLOBAL; \
 	return x
-int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
+int c_interpreter::function_analysis(node_attribute_t* node_ptr, int &count)
 {//TODO:非调试使能删除函数源代码
 	int ret_function_define;
 	if(this->function_flag_set.function_flag) {
@@ -3221,7 +3235,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int count)
 				this->varity_declare->destroy_local_varity();
 				if(this->real_time_link)
 					this->ulink(&current_function_ptr->mid_code_stack, LINK_ADDR);
-				//this->ulink(&current_function_ptr->mid_code_stack);
+				count = 0;//only use to finish nonseq struct unfinished. can't be deleted!!
 				return OK_FUNC_FINISH;
 			}
 		}
@@ -3705,7 +3719,7 @@ int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 	if(ret1 != OK_STRUCT_NOSTRUCT)
 		return ERROR_NO;
 	ret1 = function_analysis(node_ptr, count);
-	if(ret1 < 0 || ret1 == OK_FUNC_FINISH)
+	if(ret1 < 0)
 		return ret1;
 	ret2 = non_seq_struct_analysis(node_ptr, count);
 	if(ret2 == OK_NONSEQ_FINISH || ret2 == OK_NONSEQ_INPUTING || ret2 == OK_NONSEQ_DEFINE) {
@@ -3728,6 +3742,10 @@ int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 				return ret1;
 			this->cur_mid_code_stack_ptr->empty();
 		}
+		/////////////////
+		//for(int k=0; k<nonseq_info->row_num; k++)
+		//	debug("%d ", nonseq_info->row_info_node[k].non_seq_depth);
+		/////////////////
 		nonseq_info->reset();
 		return ret2;//avoid continue to exec single sentence.
 	}
@@ -3758,19 +3776,27 @@ int c_interpreter::nonseq_mid_gen_mid_code(node_attribute_t* node_ptr, int count
 	return ERROR_NO;
 }
 
-int c_interpreter::nonseq_end_gen_mid_code(int row_num, node_attribute_t* node_ptr, int count)
+int c_interpreter::nonseq_end_gen_mid_code(int row_num, node_attribute_t* node_ptr, int count, int struct_end_flag)
 {
 	int i;
+	int depth_flag = 0;
 	int cur_depth = nonseq_info->row_info_node[row_num].non_seq_depth;
-	if(count == 0)return ERROR_NO;
+	//if(count == 0)return ERROR_NO;
 	mid_code *mid_code_ptr;
-	if(node_ptr[0].node_type != TOKEN_KEYWORD_NONSEQ && !(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == L_BIG_BRACKET)) {
+	int to_depth = this->get_nonseq_to_depth(struct_end_flag, true);
+	if(count && node_ptr[0].node_type != TOKEN_KEYWORD_NONSEQ && !(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == L_BIG_BRACKET)) {
 		if(!nonseq_info->row_info_node[nonseq_info->row_num].finish_flag) {
 			nonseq_info->row_info_node[nonseq_info->row_num].finish_flag = 1;
 		}
 	}
 	for(i=row_num; i>=0; i--) {
-		if(nonseq_info->row_info_node[i].non_seq_depth >= cur_depth 
+		if(nonseq_info->row_info_node[i].non_seq_depth == to_depth + 1 && nonseq_info->row_info_node[i].nonseq_type)
+			depth_flag = 1;
+		else if(nonseq_info->row_info_node[i].non_seq_depth == to_depth && nonseq_info->row_info_node[i].nonseq_type)
+			break;
+		if(nonseq_info->row_info_node[i].non_seq_depth > to_depth + 1 && depth_flag)
+			break;
+		if(nonseq_info->row_info_node[i].non_seq_depth <= cur_depth 
 			&& (nonseq_info->row_info_node[i].non_seq_info == 0 || nonseq_info->row_info_node[i].non_seq_info == 2) 
 			&& !nonseq_info->row_info_node[i].finish_flag) {
 			switch(nonseq_info->row_info_node[i].nonseq_type) {

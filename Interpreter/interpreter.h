@@ -313,9 +313,10 @@ class c_interpreter {
 	static compile_struct_info_t compile_struct_info;
 	
 	int save_sentence(char*, uint);
-	int function_analysis(node_attribute_t*, int);
+	int function_analysis(node_attribute_t*, int&);
 	int function_reset(void);
 	int struct_analysis(node_attribute_t*, uint);
+	int get_nonseq_to_depth(int, bool);
 	int struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
 	int non_seq_struct_analysis(node_attribute_t*, uint);
 	//int non_seq_struct_analysis2(node_attribute_t*, uint);
@@ -338,7 +339,7 @@ class c_interpreter {
 	
 	int nonseq_start_gen_mid_code(node_attribute_t*, int, int non_seq_type);
 	int nonseq_mid_gen_mid_code(node_attribute_t*, int);
-	int nonseq_end_gen_mid_code(int row_num, node_attribute_t*, int);
+	int nonseq_end_gen_mid_code(int row_num, node_attribute_t*, int, int);
 	int tree_to_code(node *tree, stack *code_stack);
 	int operator_pre_handle(stack *code_stack_ptr, node *opt_node_ptr);
 	int operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr);

@@ -320,7 +320,6 @@ int varity::destroy_local_varity_cur_depth(void)
 		this->local_varity_stack->pop();
 		if(varity_ptr) {
 			dec_varity_ref(varity_ptr, true);
-			vfree(varity_ptr->get_name());
 		} else {
 			error("data struct error,varity.cpp: %d\n", __LINE__);
 			return 1;
