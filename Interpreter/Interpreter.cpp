@@ -1498,7 +1498,10 @@ assign_general:
 		rvarity_ptr->config_complex_info(bvarity_ptr->get_complex_arg_count(), bvarity_ptr->get_complex_ptr());
 		this->interprete_need_ptr->mid_varity_stack.push();
 		inc_varity_ref(rvarity_ptr);
-		instruction_ptr->ret_addr = instruction_ptr->opda_addr = varity_number * 8;
+		if(instruction_ptr->opdb_operand_type == OPERAND_LINK_VARITY)
+			instruction_ptr->ret_addr = instruction_ptr->opda_addr = (MAX_A_VARITY_NODE - 1) * 8;
+		else
+			instruction_ptr->ret_addr = instruction_ptr->opda_addr = varity_number * 8;
 		instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = OPERAND_T_VARITY;
 		instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = instruction_ptr->opdb_varity_type;
 		instruction_ptr->ret_operator = OPT_ASSIGN;
@@ -1518,6 +1521,16 @@ assign_general:
 		(instruction_ptr + 1)->opdb_varity_type = INT;
 		if(instruction_ptr->opda_varity_type >= PTR) {
 			(instruction_ptr + 1)->data = bvarity_ptr->get_first_order_sub_struct_size();
+		}
+
+		if(instruction_ptr->opdb_operand_type == OPERAND_LINK_VARITY) {
+			code_stack_ptr->push();
+			instruction_ptr += 2;
+			instruction_ptr->ret_addr = instruction_ptr->opda_addr = varity_number * 8;
+			instruction_ptr->opdb_addr = (MAX_A_VARITY_NODE - 1) * 8;
+			instruction_ptr->ret_operand_type = instruction_ptr->opda_operand_type = instruction_ptr->opdb_operand_type = OPERAND_T_VARITY;
+			instruction_ptr->ret_varity_type = instruction_ptr->opda_varity_type = instruction_ptr->opdb_varity_type = bvarity_ptr->get_type();
+			instruction_ptr->ret_operator = OPT_ASSIGN;
 		}
 		break;
 	case OPT_ADDRESS_OF://TODO:取址时先验证扩展位是否为0再扩展，否则覆盖其他变量类型。
@@ -3766,7 +3779,7 @@ int c_interpreter::nonseq_mid_gen_mid_code(node_attribute_t* node_ptr, int count
 	this->cur_mid_code_stack_ptr->push();
 	nonseq_info->row_info_node[nonseq_info->row_num].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 	for(int i=nonseq_info->row_num-1; i>=0; i--) {
-		if(nonseq_info->row_info_node[i].non_seq_depth == cur_depth	&& nonseq_info->row_info_node[i].non_seq_info == 0) {
+		if(nonseq_info->row_info_node[i].non_seq_depth == cur_depth	&& nonseq_info->row_info_node[i].non_seq_info == 0 && nonseq_info->row_info_node[i].nonseq_type == NONSEQ_KEY_IF) {
 			mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 			mid_code_ptr->opda_addr++;
 			nonseq_info->row_info_node[i].finish_flag = 1;
@@ -3841,6 +3854,13 @@ int c_interpreter::nonseq_end_gen_mid_code(int row_num, node_attribute_t* node_p
 				mid_code_ptr->ret_operator = CTL_BRANCH;
 				mid_code_ptr->opda_addr = ((mid_code*)cur_mid_code_stack_ptr->get_base_addr() + nonseq_info->row_info_node[i].post_info_b) - mid_code_ptr;
 				this->cur_mid_code_stack_ptr->push();
+				mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+				for(mid_code *j=(mid_code*)cur_mid_code_stack_ptr->get_base_addr()+nonseq_info->row_info_node[i].post_info_b+nonseq_info->row_info_node[i].post_info_a; j<mid_code_ptr; j++) {
+					if(j->ret_operator == CTL_BREAK && j->opda_addr == 0)
+						j->opda_addr = mid_code_ptr - j;
+					if(j->ret_operator == CTL_CONTINUE && j->opda_addr == 0)
+						j->opda_addr = (mid_code*)cur_mid_code_stack_ptr->get_base_addr() + nonseq_info->row_info_node[i].post_info_b - j;
+				}
 				mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + nonseq_info->row_info_node[i].post_info_a + (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 				mid_code_ptr->opda_addr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - mid_code_ptr;
 				nonseq_info->row_info_node[i].finish_flag = 1;
