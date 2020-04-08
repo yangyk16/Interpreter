@@ -2879,6 +2879,27 @@ int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, register
 				nonseq_info->non_seq_exec = 1;
 				this->exec_flag = exec_flag_bak;
 				this->varity_global_flag = exec_flag_bak;
+
+				if(this->cur_mid_code_stack_ptr == &this->interprete_need_ptr->mid_code_stack) {
+					this->varity_global_flag = VARITY_SCOPE_GLOBAL;
+					//this->nonseq_info->stack_frame_size = this->varity_declare->local_varity_stack->offset;
+					this->varity_declare->destroy_local_varity_cur_depth();
+				}
+				debug("exec non seq struct\n");
+				nonseq_info->non_seq_exec = 0;
+				if(this->exec_flag) {
+					this->ulink(this->cur_mid_code_stack_ptr, LINK_ADDR);
+					this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count(), INTERPRETER_DEBUG);
+					ret = this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
+					if(ret)
+						return ret;
+					this->cur_mid_code_stack_ptr->empty();
+				}
+				/////////////////
+				//for(int k=0; k<nonseq_info->row_num; k++)
+				//	debug("%d ", nonseq_info->row_info_node[k].non_seq_depth);
+				/////////////////
+				nonseq_info->reset();
 			}
 			ret = OK_NONSEQ_FINISH;
 		}
@@ -3735,35 +3756,10 @@ int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 	if(ret1 < 0)
 		return ret1;
 	ret2 = non_seq_struct_analysis(node_ptr, count);
-	if(ret2 == OK_NONSEQ_FINISH || ret2 == OK_NONSEQ_INPUTING || ret2 == OK_NONSEQ_DEFINE) {
-		if(this->cur_mid_code_stack_ptr == &this->interprete_need_ptr->mid_code_stack && ret2 == OK_NONSEQ_FINISH) {
-			this->varity_global_flag = VARITY_SCOPE_GLOBAL;
-			//this->nonseq_info->stack_frame_size = this->varity_declare->local_varity_stack->offset;
-			this->varity_declare->destroy_local_varity_cur_depth();
-		}
-	} else if(ret2 < 0)
+	if(ret2 < 0 || ret2 == OK_NONSEQ_FINISH)
 		return ret2;
 	
-	if(nonseq_info->non_seq_exec) {
-		debug("exec non seq struct\n");
-		nonseq_info->non_seq_exec = 0;
-		if(this->exec_flag) {
-			this->ulink(this->cur_mid_code_stack_ptr, LINK_ADDR);
-			this->print_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count(), INTERPRETER_DEBUG);
-			ret1 = this->exec_mid_code((mid_code*)this->cur_mid_code_stack_ptr->get_base_addr(), this->cur_mid_code_stack_ptr->get_count());
-			if(ret1)
-				return ret1;
-			this->cur_mid_code_stack_ptr->empty();
-		}
-		/////////////////
-		//for(int k=0; k<nonseq_info->row_num; k++)
-		//	debug("%d ", nonseq_info->row_info_node[k].non_seq_depth);
-		/////////////////
-		nonseq_info->reset();
-		return ret2;//avoid continue to exec single sentence.
-	}
 	if(!nonseq_info->non_seq_struct_depth && ret2 != OK_NONSEQ_INPUTING && ret1 != OK_FUNC_DEFINE || ret1 == OK_FUNC_INPUTING && ret2 != OK_NONSEQ_INPUTING && !nonseq_info->non_seq_struct_depth) {
-	//if(str[0] != '}') {
 		ret1 = sentence_exec(node_ptr, count, true);
 		return ret1;
 	}

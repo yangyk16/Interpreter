@@ -1307,9 +1307,9 @@ int c_interpreter::opt_bit_revert_handle(c_interpreter *interpreter_ptr)
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
-	mid_type = INT;
+	mid_type = instruction_ptr->opdb_varity_type;
 	UNARY_OPT_EXEC(~);
-	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
+	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, ret_addr);
 	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
 	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
@@ -1355,9 +1355,9 @@ int c_interpreter::opt_not_handle(c_interpreter *interpreter_ptr)
 	char *&sp = interpreter_ptr->stack_pointer, *&t_varity_sp = interpreter_ptr->tmp_varity_stack_pointer;
 	GET_OPDB_ADDR();
 	GET_RET_ADDR();
-	mid_type = INT;
+	mid_type = instruction_ptr->opdb_varity_type;
 	UNARY_OPT_EXEC(!);
-	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, mid_type, ret_addr, ret_addr);
+	ASSIGN_OPT_EXEC(=, instruction_ptr->ret_varity_type, INT, ret_addr, ret_addr);
 	interpreter_ptr->cpsr.last_ret_addr = (PLATFORM_WORD*)ret_addr;
 	interpreter_ptr->cpsr.last_type = instruction_ptr->ret_varity_type;
 	return ERROR_NO;
