@@ -2462,8 +2462,11 @@ int c_interpreter::pre_treat(char *str, uint len)
 		token_len = get_token(str + rptr, &raw_token_ptr[i]);
 		if(token_len < 0)
 			return token_len;
-		raw_token_ptr[i].pos += rptr;
 		if(raw_token_ptr[i].node_type != TOKEN_NONEXIST) {
+			if(!i) {
+				token_len += this->interprete_need_ptr->indentation.auto_indent(str, raw_token_ptr[i].pos, len);
+			}
+			raw_token_ptr[i].pos += rptr;
 			if(raw_token_ptr[i].node_type == TOKEN_OPERATOR) {
 				switch(raw_token_ptr[i].data) {
 				case OPT_L_SMALL_BRACKET: case OPT_L_MID_BRACKET:
@@ -2863,12 +2866,15 @@ int c_interpreter::save_sentence(char* str, uint len)
 int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, register bool try_flag)
 {
 	int ret = 0;
+	int to_depth;
 	int depth_bak = this->nonseq_info->non_seq_struct_depth;
-	get_nonseq_to_depth(struct_end_flag, try_flag);
+	to_depth = get_nonseq_to_depth(struct_end_flag, try_flag);
 	if(struct_end_flag & 1) {
 		nonseq_info->row_info_node[nonseq_info->row_num].non_seq_info = 1;
 		nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth = nonseq_info->non_seq_struct_depth + 1;
 	}
+	if(!try_flag)
+		this->interprete_need_ptr->indentation.change_indent(to_depth - depth_bak, INDENT_REASON_NOTCARE);
 	if(nonseq_info->non_seq_struct_depth == 0) {
 		if(nonseq_info->non_seq_type_stack[0] == NONSEQ_KEY_WAIT_ELSE) {
 			ret = OK_NONSEQ_INPUTING;
@@ -2879,7 +2885,6 @@ int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, register
 				nonseq_info->non_seq_exec = 1;
 				this->exec_flag = exec_flag_bak;
 				this->varity_global_flag = exec_flag_bak;
-
 				if(this->cur_mid_code_stack_ptr == &this->interprete_need_ptr->mid_code_stack) {
 					this->varity_global_flag = VARITY_SCOPE_GLOBAL;
 					//this->nonseq_info->stack_frame_size = this->varity_declare->local_varity_stack->offset;
@@ -2998,8 +3003,10 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 			nonseq_info->brace_depth++;
 			if(nonseq_info->last_non_seq_check_ret) {
 				this->nonseq_info->nonseq_begin_bracket_stack[this->nonseq_info->non_seq_struct_depth - 1] = SET_BRACE(1, nonseq_info->brace_depth);
+				this->interprete_need_ptr->indentation.change_indent(0, INDENT_REASON_BRACKET);
 			} else {
 				this->varity_declare->local_varity_stack->endeep();
+				this->interprete_need_ptr->indentation.change_indent(1, INDENT_REASON_BRACKET);
 			}
 		} else if(nonseq_info->row_num == 0) {
 			nonseq_info->brace_depth++;
@@ -3044,6 +3051,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 			}
 			this->exec_flag = EXEC_FLAG_FALSE;
 		}
+		this->interprete_need_ptr->indentation.change_indent(1, INDENT_REASON_NONSEQ);
 		this->varity_declare->local_varity_stack->endeep();
 		ret = nonseq_start_gen_mid_code(node_ptr, count, nonseq_info->non_seq_check_ret);
 		if(ret) {
@@ -3227,6 +3235,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int &count)
 			}
 			this->function_flag_set.function_begin_flag = 0;
 			node_ptr[0].data = L_BIG_BRACKET_F;
+			this->interprete_need_ptr->indentation.change_indent(1, INDENT_REASON_BRACKET);
 		}
 		if(node_ptr[0].node_type == TOKEN_OTHER && (node_ptr[0].data == L_BIG_BRACKET || node_ptr[0].data == L_BIG_BRACKET_F)) {
 			this->function_flag_set.brace_depth++;
@@ -3270,6 +3279,7 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int &count)
 				if(this->real_time_link)
 					this->ulink(&current_function_ptr->mid_code_stack, LINK_ADDR);
 				count = 0;//only use to finish nonseq struct unfinished. can't be deleted!!
+				this->interprete_need_ptr->indentation.change_indent(-1, INDENT_REASON_NOTCARE);
 				return OK_FUNC_FINISH;
 			}
 		}
@@ -4336,7 +4346,7 @@ int c_interpreter::sentence_exec(node_attribute_t* node_ptr, uint count, bool ne
 	return ERROR_NO;
 }
 
-int c_interpreter::get_token(char *str, node_attribute_t *info)
+int get_token(char *str, node_attribute_t *info)
 {
 	int i = 0, real_token_pos, float_flag = 0;
 	char *symbol_ptr = token_fifo.get_wptr() + (char*)token_fifo.get_base_addr();
@@ -4881,7 +4891,7 @@ int c_interpreter::tip_wrong(int pos, char* str)
 	for(i=0; i<tiplen; i++)
 		error(" ");
 	for(i=0; i<pos; i++)
-		error("%c", this->interprete_need_ptr->sentence_buf[i]);
+		error("%c", this->interprete_need_ptr->sentence_buf[i] == '\t' ? '\t' : ' ');
 	error("^\n");
 	return 0;
 }

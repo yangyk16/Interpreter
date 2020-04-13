@@ -11,6 +11,7 @@
 #include "operator.h"
 #include "macro.h"
 #include "data_struct.h"
+#include "text.h"
 
 #define EXPORT_FLAG_EXEC		1//code+varity+data+string
 #define EXPORT_FLAG_LINK		2//name+varity+code+data+string
@@ -252,6 +253,7 @@ typedef struct interprete_need_s {
 	round_queue non_seq_code_fifo;
 	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
 	int str_count_bak;
+	indentation indentation;
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;//TODO:ÒÆµ½interprete need
 } interprete_need_t;
 
@@ -268,6 +270,7 @@ typedef struct mid_ret_s {
 } mid_ret_t;
 
 int user_eval(char *str);
+int get_token(char* str, node_attribute_t* info);
 extern "C" void global_init(void);
 extern "C" void global_dispose(void);
 extern "C" void run_interpreter(void);
@@ -326,7 +329,6 @@ class c_interpreter {
 	int get_varity_type(node_attribute_t*, int&, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info);
 	int generate_arg_list(const char *str, int count, int &arg_count, PLATFORM_WORD *&arg);
 	int generate_compile_func(void);
-	int get_token(char *str, node_attribute_t *info);
 	int post_order_expression(node_attribute_t *node_ptr, int count, list_stack&);
 	int generate_mid_code(node_attribute_t*, int count, bool need_semicolon);
 	int get_expression_type(char *str, varity_info *&ret);
