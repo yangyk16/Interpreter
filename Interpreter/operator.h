@@ -91,9 +91,10 @@
 #define CTL_BRANCH				80
 #define CTL_BRANCH_TRUE			81
 #define CTL_BRANCH_FALSE		82
-#define CTL_RETURN				84
-#define CTL_BREAK				85
-#define CTL_CONTINUE			86
+#define CTL_RETURN				83
+#define CTL_BREAK				84
+#define CTL_CONTINUE			85
+#define CTL_SWITCH_BEGIN		86
 #define CTL_GOTO				87
 #define CTL_BXLR				88
 #define CTL_SP_ADD				89

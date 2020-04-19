@@ -48,6 +48,7 @@
 #define MAX_MID_CODE_COUNT		1024
 #define STACK_SIZE				0x1000//128k
 #define TMP_VARITY_STACK_SIZE	(80)//sizeof(varity_info)*MAX_A_VARITY_NODE
+#define MAX_INDENTATION			8
 
 #define STACK_OVERFLOW_CHECK		1
 #define ARRAY_BOUND_CHECK			1

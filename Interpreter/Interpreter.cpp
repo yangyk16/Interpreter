@@ -17,7 +17,7 @@ preprocess_info_t c_interpreter::preprocess_info;
 int c_interpreter::cstdlib_func_count;
 round_queue token_fifo;
 
-char non_seq_key[][7] = {"", "if", "switch", "else", "for", "while", "do"};
+char non_seq_key[][8] = {"", "if", "switch", "else", "for", "while", "do", "case", "default"};
 char ctl_key[][9] = {"break", "continue", "goto", "return"};
 const char non_seq_key_len[] = {0, 2, 6, 4, 3, 5, 2};
 char opt_str[43][4] = {"<<=",">>=","->","++","--","<<",">>",">=","<=","==","!=","&&","||","/=","*=","%=","+=","-=","&=","^=","|=","[","]","(",")",".","-","~","*","&","!","/","%","+",">","<","^","|","?",":","=",",",";"};
@@ -2950,9 +2950,9 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 	if(count == 0 && nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] != NONSEQ_KEY_WAIT_ELSE)
 		return ret;
 #if DEBUG_EN
-	nonseq_info->row_info_node[nonseq_info->row_num].row_code_ptr = (mid_code*)this->interprete_need_ptr->mid_code_stack.get_current_ptr();
+	nonseq_info->row_info_node[nonseq_info->row_num].row_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 #endif
-	nonseq_info->last_non_seq_check_ret = nonseq_info->non_seq_check_ret;
+	nonseq_info->last_non_seq_check_ret = nonseq_info->non_seq_check_ret == NONSEQ_KEY_CASE || nonseq_info->non_seq_check_ret == NONSEQ_KEY_DEFAULT ? 0 : nonseq_info->non_seq_check_ret;
 	nonseq_info->non_seq_check_ret = node_ptr[0].node_type == TOKEN_KEYWORD_NONSEQ ? node_ptr[0].value.int_value : 0;
 	current_brace_level = nonseq_info->brace_depth;
 	if(nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] == NONSEQ_KEY_WAIT_ELSE) {
@@ -2972,7 +2972,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 3;
 			}
 		} else {
-			if(nonseq_info->non_seq_check_ret != NONSEQ_KEY_ELSE && count != 0) {//TODO:类型于函数中的if，对函数中的if处理可照此执行
+			if(nonseq_info->non_seq_check_ret != NONSEQ_KEY_ELSE && count != 0) {
 				if_end:
 				struct_end_flag = 2;
 				nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth] = NONSEQ_KEY_IF;
@@ -2981,6 +2981,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 				nonseq_end_gen_mid_code(nonseq_info->row_num - 1, 0, 0, struct_end_flag);
 				ret = struct_end(struct_end_flag, exec_flag_bak, 0);
 				struct_end_flag = 0;
+				nonseq_info->non_seq_check_ret = node_ptr[0].node_type == TOKEN_KEYWORD_NONSEQ ? node_ptr[0].value.int_value : 0;//check ret has been reseted 2 lines ago.
 			} else if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_ELSE) {
 				nonseq_mid_gen_mid_code(node_ptr, count);
 				nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_info = 3;
@@ -3044,6 +3045,15 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 	}
 
 	if(nonseq_info->non_seq_check_ret) {
+		if(nonseq_info->non_seq_check_ret == NONSEQ_KEY_CASE || nonseq_info->non_seq_check_ret == NONSEQ_KEY_DEFAULT) {
+			nonseq_info->row_info_node[nonseq_info->row_num].nonseq_type = nonseq_info->non_seq_check_ret;
+			nonseq_info->row_info_node[nonseq_info->row_num].non_seq_depth = nonseq_info->non_seq_struct_depth;
+			ret = nonseq_mid_gen_mid_code(node_ptr, count);
+			if(ret)
+				return ret;
+			else
+				goto struct_end_check;
+		}
 		if(nonseq_info->row_num == 0) {
 			exec_flag_bak = this->exec_flag;
 			if(exec_flag_bak == true) {
@@ -3087,7 +3097,7 @@ int c_interpreter::non_seq_struct_analysis(node_attribute_t* node_ptr, uint coun
 				return eret;
 			}
 		}
-		if(nonseq_info->last_non_seq_check_ret && nonseq_info->non_seq_struct_depth) {// && nonseq_info->brace_depth == 0
+		if((nonseq_info->last_non_seq_check_ret || nonseq_info->row_info_node[nonseq_info->row_num].nonseq_type == NONSEQ_KEY_CASE || nonseq_info->non_seq_check_ret == NONSEQ_KEY_DEFAULT) && nonseq_info->non_seq_struct_depth) {// && nonseq_info->brace_depth == 0
 			if(nonseq_info->last_non_seq_check_ret != NONSEQ_KEY_DO)
 				struct_end_flag = 1;
 			else
@@ -3491,7 +3501,7 @@ int c_interpreter::ctl_analysis(node_attribute_t *node_ptr, int count)
 			if(this->nonseq_info->row_num > 0) {
 				int read_seq_depth = this->nonseq_info->non_seq_struct_depth > this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth ? this->nonseq_info->non_seq_struct_depth : this->nonseq_info->row_info_node[this->nonseq_info->row_num].non_seq_depth;
 				for(int i=read_seq_depth; i>0; i--) {
-					if(this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_FOR || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_WHILE || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_DO) {
+					if(this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_FOR || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_WHILE || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_DO || this->nonseq_info->non_seq_type_stack[i - 1] == NONSEQ_KEY_SWITCH) {
 						mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 						mid_code_ptr->ret_operator = CTL_BREAK;
 						this->cur_mid_code_stack_ptr->push();
@@ -3781,15 +3791,31 @@ int c_interpreter::nonseq_mid_gen_mid_code(node_attribute_t* node_ptr, int count
 	mid_code* mid_code_ptr;
 	int cur_depth = nonseq_info->row_info_node[nonseq_info->row_num - 1].non_seq_depth;
 	mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-	mid_code_ptr->ret_operator = CTL_BRANCH;
-	this->cur_mid_code_stack_ptr->push();
-	nonseq_info->row_info_node[nonseq_info->row_num].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
-	for(int i=nonseq_info->row_num-1; i>=0; i--) {
-		if(nonseq_info->row_info_node[i].non_seq_depth == cur_depth	&& nonseq_info->row_info_node[i].non_seq_info == 0 && nonseq_info->row_info_node[i].nonseq_type == NONSEQ_KEY_IF) {
-			mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
-			mid_code_ptr->opda_addr++;
-			nonseq_info->row_info_node[i].finish_flag = 1;
-			break;
+	int i;
+	if(node_ptr->value.int_value == NONSEQ_KEY_ELSE) {
+		mid_code_ptr->ret_operator = CTL_BRANCH;
+		this->cur_mid_code_stack_ptr->push();
+		nonseq_info->row_info_node[nonseq_info->row_num].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+		for(int i=nonseq_info->row_num-1; i>=0; i--) {
+			if(nonseq_info->row_info_node[i].non_seq_depth == cur_depth	&& nonseq_info->row_info_node[i].non_seq_info == 0 && nonseq_info->row_info_node[i].nonseq_type == NONSEQ_KEY_IF) {
+				mid_code_ptr = nonseq_info->row_info_node[i].post_info_b + (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
+				mid_code_ptr->opda_addr++;
+				nonseq_info->row_info_node[i].finish_flag = 1;
+				break;
+			}
+		}
+	} else if(node_ptr->value.int_value == NONSEQ_KEY_CASE || node_ptr->value.int_value == NONSEQ_KEY_DEFAULT) {
+		for(i=nonseq_info->non_seq_struct_depth; i>0; i--) {
+			if(this->nonseq_info->non_seq_type_stack[nonseq_info->non_seq_struct_depth - 1] == NONSEQ_KEY_SWITCH)
+				break;
+		}
+		if(i<=0) {
+			error("No switch match with case\n");
+			return ERROR_NONSEQ_GRAMMER;
+		}
+		if(node_ptr->value.int_value == NONSEQ_KEY_CASE) {
+			INT_VALUE(&this->nonseq_info->row_info_node[nonseq_info->row_num].post_info_b) = node_ptr[1].value.int_value;
+			this->nonseq_info->row_info_node[nonseq_info->row_num].post_info_a = INT;
 		}
 	}
 	return ERROR_NO;
@@ -3829,6 +3855,50 @@ int c_interpreter::nonseq_end_gen_mid_code(int row_num, node_attribute_t* node_p
 				mid_code_ptr->opda_addr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - mid_code_ptr;
 				nonseq_info->row_info_node[i].finish_flag = 1;
 				break;
+			case NONSEQ_KEY_SWITCH:
+			{
+				mid_code *end_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+				mid_code *default_ptr = 0;
+				end_code_ptr->ret_operator = CTL_BRANCH;
+				this->cur_mid_code_stack_ptr->push();
+				(this->nonseq_info->row_info_node[i + 1].row_code_ptr - 1)->opda_addr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - (this->nonseq_info->row_info_node[i + 1].row_code_ptr - 1);
+				(this->nonseq_info->row_info_node[i + 1].row_code_ptr - 1)->ret_operator = CTL_BRANCH;
+				for(int j=i; j<row_num; j++) {
+					if(nonseq_info->row_info_node[j].nonseq_type == NONSEQ_KEY_CASE && nonseq_info->row_info_node[j].finish_flag == 0) {
+						mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+						mid_code_ptr->ret_operand_type = mid_code_ptr->opda_operand_type = OPERAND_T_VARITY;
+						mid_code_ptr->ret_addr = 8;//$1
+						mid_code_ptr->ret_varity_type = INT;
+						mid_code_ptr->ret_operator = OPT_EQU;
+						mid_code_ptr->opda_addr = 0;
+						mid_code_ptr->opda_varity_type = nonseq_info->row_info_node[i].post_info_a;
+						mid_code_ptr->opdb_varity_type = nonseq_info->row_info_node[j].post_info_a;
+						mid_code_ptr->opdb_operand_type = OPERAND_CONST;
+						mid_code_ptr->opdb_addr = INT_VALUE(&nonseq_info->row_info_node[j].post_info_b);
+						this->cur_mid_code_stack_ptr->push();//TODO: case下面一行没有填nonseq depth， case行的post_info_b没有填常数呢！
+						mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+						mid_code_ptr->ret_operator = CTL_BRANCH_TRUE;
+						mid_code_ptr->opda_addr = nonseq_info->row_info_node[j].row_code_ptr - mid_code_ptr;
+						this->cur_mid_code_stack_ptr->push();
+						nonseq_info->row_info_node[j].finish_flag = 1;
+					} else if(nonseq_info->row_info_node[j].nonseq_type == NONSEQ_KEY_DEFAULT && nonseq_info->row_info_node[j].finish_flag == 0) {
+						default_ptr = nonseq_info->row_info_node[j].row_code_ptr;
+						nonseq_info->row_info_node[j].finish_flag = 1;
+					}
+				}
+				if(default_ptr) {
+					mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+					mid_code_ptr->ret_operator = CTL_BRANCH;
+					mid_code_ptr->opda_addr = default_ptr - mid_code_ptr;
+					this->cur_mid_code_stack_ptr->push();
+				}
+				end_code_ptr->opda_addr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - end_code_ptr;
+				for(mid_code_ptr=this->nonseq_info->row_info_node[i+1].row_code_ptr; mid_code_ptr<end_code_ptr; mid_code_ptr++) {
+					if(mid_code_ptr->ret_operator == CTL_BREAK && mid_code_ptr->opda_addr == 0)
+						mid_code_ptr->opda_addr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr() - mid_code_ptr;
+				}
+				break;
+			}
 			case NONSEQ_KEY_FOR:
 			{
 				int token_count;
@@ -3905,6 +3975,15 @@ int c_interpreter::nonseq_start_gen_mid_code(node_attribute_t *node_ptr, int cou
 		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
 		nonseq_info->row_info_node[nonseq_info->row_num].post_info_b = mid_code_ptr - (mid_code*)this->cur_mid_code_stack_ptr->get_base_addr();
 		mid_code_ptr->ret_operator = CTL_BRANCH_FALSE;
+		this->cur_mid_code_stack_ptr->push();
+		break;
+	case NONSEQ_KEY_SWITCH:
+		ret = this->generate_mid_code(node_ptr + 1, count - 1, false);
+		if (ret)
+			break;
+		mid_code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+		this->nonseq_info->row_info_node[this->nonseq_info->row_num].post_info_a = (mid_code_ptr - 1)->ret_varity_type;
+		mid_code_ptr->ret_operator = CTL_SWITCH_BEGIN;
 		this->cur_mid_code_stack_ptr->push();
 		break;
 	case NONSEQ_KEY_FOR:
