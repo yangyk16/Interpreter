@@ -8,7 +8,7 @@
 #define INDENT_REASON_BRACKET	2
 #define INDENT_REASON_NOTCARE	3
 
-class indentation {
+class indentator {
 	char indentation;
 	char reason[MAX_INDENTATION];
 	//short rows;

@@ -334,28 +334,33 @@ void irq_unmask(int irq_no)
 #endif
 }
 
-void irq_entry(void) IRQ;
-void irq_entry(void)
+//void irq_entry(void) IRQ;
+void irq_entry(void *data)
 {
 #if HW_PLATFORM == PLATFORM_ARM
-	int irq_no = 31 - __builtin_clz(*(int*)0x2310030);
-	irq_mask(irq_no);
+	int irq_no = (int)data;
+	//irq_mask(irq_no);
 	if(irq_service[irq_no]) {
 		stack *mid_code_stack = &((function_info*)irq_service[irq_no])->mid_code_stack;
 		irq_interpreter.exec_mid_code((mid_code*)mid_code_stack->get_base_addr(), mid_code_stack->get_count());
 	}
-	irq_unmask(irq_no);
+	//irq_unmask(irq_no);
 #endif
 }
 
 extern "C" void irq_init(int base,int priority, void (*isr_fun)(void));
+extern "C" void irq_install_handler(int irq, void (*handle_irq)(void*), void *data, void (*dsr)(void*));
+extern "C" void enable_irq(unsigned int irq);
 void irq_reg(int irq_no, void *func_ptr, void *data)
 {
+	irq_no -= 32;
 	irq_service[irq_no] = func_ptr;
 	irq_data[irq_no] = data;
 	//intreg(irq_no, irq_entry, 0);
 #if HW_PLATFORM == PLATFORM_ARM
-	irq_init(0, irq_no, irq_entry);
+	//irq_init(0, irq_no, irq_entry);
+	irq_install_handler(irq_no + 32, 0, (void*)irq_no, irq_entry);
+	enable_irq(irq_no + 32);
 #endif
 }
 

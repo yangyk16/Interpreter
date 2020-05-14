@@ -155,9 +155,14 @@ int gdb::breakpoint(int argc, char **argv, c_interpreter *cptr)
 {
 	function_info *fptr;
 	int line;
-	if(argc != 3)
+	if(argc < 2) {
+		gdbout("Argument not enough\n");
 		return ERROR_GDB_ARGC;
-	line = katoi(argv[2]);
+	}
+	if(argc >= 3)
+		line = katoi(argv[2]);
+	else
+		line = 0;
 	//if(!kstrcmp(argv[1], "main")) {
 	//	for(int i=0; i<cptr->nonseq_info->row_num; i++)
 	//		kprintf("%03d %s\n", i, cptr->nonseq_info->row_info_node[i].row_ptr);
@@ -224,24 +229,37 @@ int info_ask(int argc, char **argv, c_interpreter *cptr)
 
 int gdb::print_code(int argc, char **argv, c_interpreter *cptr)
 {
-	function_info *fptr;
-	if(argc == 1)
-		return ERROR_NO;
-	fptr = cptr->function_declare->find(argv[1]);
-	if(!kstrcmp(argv[1], "main")) {
-		if(!fptr)
-			for(int i=0; i<cptr->nonseq_info->row_num; i++)
-				gdbout("%03d %s\n", i, cptr->nonseq_info->row_info_node[i].row_ptr);
-		else
-			for(int i=0; i<fptr->row_line; i++)
-				fptr->print_line(i);
-		return ERROR_NO;
-	}
-	if(!fptr)
-		gdbout("Function not found.\n");
-	else {
-		for(int i=0; i<fptr->row_line; i++)
+	function_info *fptr, *c_fptr;
+	int line, i;
+	char space_flag = 0;
+	cptr->find_fptr_by_code(cptr->pc, c_fptr, &line);
+	if(argc > 1) {
+		fptr = cptr->function_declare->find(argv[1]);
+		if(!kstrcmp(argv[1], "main")) {
+			if(!fptr)
+				for(i=0; i<cptr->nonseq_info->row_num; i++)
+					gdbout("%03d %s\n", i, cptr->nonseq_info->row_info_node[i].row_ptr);
+			else
+				goto print_c;
+		} else {
+			if(!fptr)
+				gdbout("Function not found.\n");
+			else
+				goto print_c;
+		}
+	} else {
+		fptr = c_fptr;
+print_c:
+		if(fptr == c_fptr)
+			space_flag = 1;
+		for(i=0; i<fptr->row_line; i++) {
+			if(space_flag)
+				if(i == line)
+					gdbout(" => ");
+				else
+					gdbout("    ");
 			fptr->print_line(i);
+		}
 	}
 	return ERROR_NO;
 }
@@ -345,7 +363,7 @@ int gdb::exec(c_interpreter* interpreter_ptr)
 	for(i=0; i<cmd_count; i++)
 		if(!kstrcmp(cmd_tab[i].str, argv[0]) && cmd_tab[i].fun != NULL)
 			return cmd_tab[i].fun(argc, argv, interpreter_ptr);
-	gdbout("Wrong Cmd: %s\r\n", argv[0]);
+	gdbout("Cmd not found: %s\r\n", argv[0]);
 	return -1;
 }
 

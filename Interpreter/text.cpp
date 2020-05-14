@@ -2,7 +2,7 @@
 #include "cstdlib.h"
 #include "interpreter.h"
 
-int indentation::auto_indent(char *str, unsigned int len)
+int indentator::auto_indent(char *str, unsigned int len)
 {
 	short i = 0;
 	if(len == 0)
@@ -12,7 +12,7 @@ int indentation::auto_indent(char *str, unsigned int len)
 	return this->auto_indent(str, i, len);
 }
 
-int indentation::auto_indent(char *str, short &cur_indentation, unsigned int &len)
+int indentator::auto_indent(char *str, short &cur_indentation, unsigned int &len)
 {
 	int ret = 0, indentation;
 	node_attribute_t token_node;
@@ -42,7 +42,7 @@ int indentation::auto_indent(char *str, short &cur_indentation, unsigned int &le
 	return ret;
 }
 
-void indentation::change_indent(char increase_level, char reason)
+void indentator::change_indent(char increase_level, char reason)
 {
 	this->indentation += increase_level;
 	if(increase_level == 1)

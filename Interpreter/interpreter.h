@@ -255,7 +255,7 @@ typedef struct interprete_need_s {
 	round_queue non_seq_code_fifo;
 	char non_seq_tmp_buf[NON_SEQ_TMPBUF_LEN];
 	int str_count_bak;
-	indentation indentation;
+	indentator indentation;
 	sentence_analysis_data_struct_t sentence_analysis_data_struct;//TODO:ÒÆµ½interprete need
 } interprete_need_t;
 
