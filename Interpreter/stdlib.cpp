@@ -425,12 +425,14 @@ extern "C" void* kmemmove(void *d, const void *s, unsigned int size)
                 remain = size & 3;
                 for(j=size-1; j>=size-remain; j--)
                     *(char*)((long)d + j) = *(char*)((long)s + j);
+                size -= remain;
                 for(i=size-4; i>=0; i-=4)
                     *(int*)((unsigned long)d + i) = *(int*)((unsigned long)s + i);
             } else if(!((long)s & 1) && !((long)d & 1)) {
                 remain = size & 1;
                 for(j=size-1; j>=size-remain; j--)
                     *(char*)((long)d + j) = *(char*)((long)s + j);
+                size -= remain;
                 for(i=size-2; i>=0; i-=2)
                     *(short*)((unsigned long)d + i) = *(short*)((unsigned long)s + i);
             } else {

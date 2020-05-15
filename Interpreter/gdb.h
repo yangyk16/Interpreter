@@ -16,6 +16,9 @@ class mid_code;
 #define FORMAT_FLOAT	4
 #define FORMAT_CHAR		5
 
+#define PRINT_CFG_ALL	1
+#define PRINT_CFG_NEAR	2
+
 class gdb {
 	static int trace_en;
 	static int argc;
@@ -24,6 +27,8 @@ class gdb {
 	static char argstr[MAX_ARG_LEN];
 	static char *wptr;
 	static mid_code *bp_todo;
+	static short print_cfg;
+	static short near_rows;
 	static void *get_real_addr(void *addr, int type, c_interpreter *cptr);
 public:
 	static int get_trace_status(void) { return gdb::trace_en; }
@@ -38,6 +43,7 @@ public:
 	static int print_mid_code(int argc, char **argv, c_interpreter *cptr);
 	static int breakpoint(int argc, char **argv, c_interpreter *cptr);
 	static int print(int argc, char **argv, c_interpreter *cptr);
+	static int config(int argc, char **argv, c_interpreter *cptr);
 };
 
 int breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *mid_code_ptr);

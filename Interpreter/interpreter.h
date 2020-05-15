@@ -83,6 +83,11 @@
 #define BREAKPOINT_STEP		(1 << 1)
 #define BREAKPOINT_EN		(1 << 7)
 
+#define PCODE_ECHO_BIT		0
+#define PCODE_NARROW_BIT	1
+#define PCODE_ROW_BIT		8
+#define PCODE_BEGIN_BIT		16
+
 class c_interpreter;
 //typedef varity_info (*opt_calc)(c_interpreter*,char*,uint);
 typedef int (c_interpreter::*opt_calc )(char*, uint*);
@@ -108,13 +113,13 @@ typedef struct nonseq_info_struct_s {
 	int non_seq_struct_depth;
 	int non_seq_check_ret;
 	int last_non_seq_check_ret;
-	int non_seq_exec;
+	int non_seq_exec;//TODO: maybe can be removed.
 	row_info_struct row_info_node[MAX_NON_SEQ_ROW];
 	uint row_num;
 	char* non_seq_begin_addr[MAX_STACK_INDEX];
 	char nonseq_begin_bracket_stack[MAX_STACK_INDEX];
 	char non_seq_type_stack[MAX_STACK_INDEX];
-	char nonseq_analyse_status;
+	//char nonseq_analyse_status;
 	//int nonseq_begin_stack_ptr;
 	//int stack_frame_size;
 	void reset(void);

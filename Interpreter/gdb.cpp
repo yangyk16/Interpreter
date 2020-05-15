@@ -25,6 +25,8 @@ char gdb::args[ARG_SPACE_SIZE - sizeof(argv)];
 mid_code *gdb::bp_todo = 0;
 char *gdb::wptr = 0;
 char gdb::argstr[MAX_ARG_LEN];
+short gdb::print_cfg = PRINT_CFG_ALL;
+short gdb::near_rows = 16;
 
 int bp_info_t::total_no = 0;
 list_stack bp_stack;
@@ -266,21 +268,61 @@ print_c:
 
 int gdb::print_mid_code(int argc, char **argv, c_interpreter *cptr)
 {
-	function_info *fptr;
-	if(argc == 1)
-		return ERROR_NO;
-	fptr = cptr->function_declare->find(argv[1]);
-	if(!kstrcmp(argv[1], "main")) {
-		if(fptr)
-			cptr->print_code((mid_code*)fptr->mid_code_stack.get_base_addr(), fptr->mid_code_stack.get_count(), 1);
-		else
-			cptr->print_code((mid_code*)cptr->interprete_need_ptr->mid_code_stack.get_base_addr(), cptr->interprete_need_ptr->mid_code_stack.get_count(), 1);
-		return ERROR_NO;
+	function_info *fptr, *c_fptr;
+	int line, flag = 0;
+	int begin_row, end_row, offset;
+	cptr->find_fptr_by_code(cptr->pc, c_fptr, &line);
+	if(argc > 1) {
+		fptr = cptr->function_declare->find(argv[1]);
+		if(!kstrcmp(argv[1], "main")) {
+			if(fptr)
+				goto print_c;
+			else
+				cptr->print_code((mid_code*)cptr->interprete_need_ptr->mid_code_stack.get_base_addr(), cptr->interprete_need_ptr->mid_code_stack.get_count(), 1);
+		} else {
+			if(!fptr)
+				gdbout("Function not found.\n");
+			else {
+				goto print_c;
+			}
+		}
+	} else {
+		fptr = c_fptr;
+print_c:
+		if(fptr == c_fptr) {
+			flag = 1;
+			if(gdb::print_cfg == PRINT_CFG_NEAR) {
+				offset = cptr->pc - (mid_code*)fptr->mid_code_stack.get_base_addr();
+				begin_row = offset > gdb::near_rows ? offset - gdb::near_rows : 0;
+				end_row = fptr->mid_code_stack.get_count() - offset  - 1 > gdb::near_rows ? offset + gdb::near_rows + 1 : fptr->mid_code_stack.get_count() - 1;
+			} else {
+				begin_row = 0;
+				offset = 0;
+				end_row = fptr->mid_code_stack.get_count() - 1;
+			}
+		} else {
+			begin_row = 0;
+			offset = 0;
+			end_row = fptr->mid_code_stack.get_count() - 1;
+		}
+		cptr->print_code((mid_code*)fptr->mid_code_stack.get_base_addr() + begin_row, 
+			end_row - begin_row + 1, 
+			begin_row << PCODE_BEGIN_BIT | offset - begin_row << PCODE_ROW_BIT | flag << PCODE_NARROW_BIT | 1);
 	}
-	if(!fptr)
-		gdbout("Function not found.\n");
-	else {
-		cptr->print_code((mid_code*)fptr->mid_code_stack.get_base_addr(), fptr->mid_code_stack.get_count(), 1);
+	return ERROR_NO;
+}
+
+int gdb::config(int argc, char **argv, c_interpreter *cptr)
+{
+	if(argc < 2)
+		return ERROR_NO;
+	if(!kstrcmp(argv[1], "print")) {
+		if(argc < 3)
+			error("cfg print arg too few\n");
+		if(!kstrcmp(argv[2], "all"))
+			gdb::print_cfg = PRINT_CFG_ALL;
+		else
+			gdb::print_cfg = PRINT_CFG_NEAR;
 	}
 	return ERROR_NO;
 }
@@ -300,6 +342,7 @@ cmd_t cmd_tab[] = {
 	{"pmcode", gdb::print_mid_code},
 	{"bt", print_call_stack},
 	{"trace", gdb::trace_ctl},
+	{"cfg", gdb::config},
 };
 
 int gdb::parse(char *cmd_str)
@@ -367,6 +410,20 @@ int gdb::exec(c_interpreter* interpreter_ptr)
 	return -1;
 }
 
+char* gdb_complete(char *str, int times)
+{
+	int tiplen = kstrlen(str);
+	int i, j, k = 0, ret;
+	int cmd_count = sizeof(cmd_tab) / sizeof(cmd_t);
+	tiplen = kstrlen(&str[i + 1]);
+	for(j=0; j<cmd_count; j++)
+		if(!kstrncmp(cmd_tab[j].str, &str[i + 1], tiplen)) {
+			if(++k == times)
+				return (char*)cmd_tab[j].str + tiplen;
+		}
+	return 0;
+}
+
 int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction_ptr)
 {
 	int gdbret = 0;
@@ -388,7 +445,7 @@ int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction
 		while(1) {
 			instruction_ptr->break_flag &= ~BREAKPOINT_STEP;
 			gdbout("gdb>");
-			interpreter_ptr->tty_used->readline(gdbstr, '\t', 0);
+			interpreter_ptr->tty_used->readline(gdbstr, '\t', gdb_complete);
 			gdb::parse(gdbstr);
 			gdbret = gdb::exec(interpreter_ptr);
 			if(gdbret == OK_GDB_RUN || gdbret == OK_GDB_STEP_RTL_INTO || gdbret == OK_GDB_STEPINTO || gdbret == OK_GDB_STEPOVER || gdbret == OK_GDB_STEP_RTL_OVER) {

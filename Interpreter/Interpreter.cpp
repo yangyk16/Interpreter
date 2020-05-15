@@ -2695,6 +2695,7 @@ int c_interpreter::run_interpreter(void)
 			else
 				break;
 		ret = this->eval(this->token_node_ptr, ret);
+		//debug("cur line=%d\n", this->tty_used->line);
 		if(ret < 0)
 			if(this->tty_used == &stdio)
 				continue;
@@ -2883,7 +2884,7 @@ int c_interpreter::struct_end(int struct_end_flag, bool &exec_flag_bak, register
 		} else {
 			if(!try_flag) {
 				nonseq_info->non_seq_exec = 1;
-				this->exec_flag = exec_flag_bak;
+				this->exec_flag |= exec_flag_bak;
 				this->varity_global_flag = exec_flag_bak;
 				if(this->cur_mid_code_stack_ptr == &this->interprete_need_ptr->mid_code_stack) {
 					this->varity_global_flag = VARITY_SCOPE_GLOBAL;
@@ -4058,6 +4059,7 @@ int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 				error("struct definition error\n");
 				return ERROR_STRUCT_ERROR;
 			} else {
+				this->interprete_need_ptr->indentation.change_indent(1, INDENT_REASON_BRACKET);
 				return OK_STRUCT_INPUTING;
 			}
 		} else {
@@ -4835,10 +4837,17 @@ normal_bracket:
 
 void c_interpreter::print_code(mid_code *ptr, int n, int echo)
 {
-	if(!echo) return;
+	int begin_line;
+	if(!(echo & 1)) return;
+	begin_line = (echo & (0xFFFF << PCODE_BEGIN_BIT)) >> PCODE_BEGIN_BIT;
 	varity_info *varity_base = (varity_info*)this->varity_declare->global_varity_stack->get_base_addr();
 	for(int i=0; i<n; i++, ptr++) {
-		gdbout("%03d ", i);
+		if(echo & 1 << PCODE_NARROW_BIT)
+			if(i == (echo & (0xFF << PCODE_ROW_BIT)) >> PCODE_ROW_BIT)
+				gdbout(" => ");
+			else
+				gdbout("    ");
+		gdbout("%03d ", i + begin_line);
 		if(ptr->ret_operand_type == OPERAND_T_VARITY) {
 			gdbout("$%d=", ptr->ret_addr / 8);
 		} else if(ptr->ret_operand_type == OPERAND_LINK_VARITY) {
