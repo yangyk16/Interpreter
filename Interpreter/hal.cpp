@@ -266,6 +266,21 @@ int kfclose(void *fp)
 #endif
 }
 
+unsigned int kchmod(const char *filename, int mode)
+{
+#if TTY_TYPE == 0
+	return 0;
+#else
+	int attr = 0, mask = 0;
+	if(mode & ATTRIBUTE_EXE) {
+		attr |= AM_EXE;
+		mask |= AM_EXE;
+	}
+	f_chmod(filename, attr, mask);
+	return 0;
+#endif
+}
+
 unsigned int kfread(void *buffer, unsigned int size, unsigned int nmemb, void *fileptr)
 {
 #if TTY_TYPE == 0

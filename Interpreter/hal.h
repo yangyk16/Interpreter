@@ -49,6 +49,7 @@ public:
 int kfputs(char *str);
 void *kfopen(const char *filename, const char *mode);
 int kfclose(void*);
+unsigned int kchmod(const char *filename, int mode);
 unsigned int kfread(void *buffer, unsigned int size, unsigned int count, void *fileptr);
 unsigned int kfwrite(void *buffer, unsigned int size, unsigned int count, void *fileptr);
 unsigned int vfwrite(void* buffer, unsigned int size, unsigned int count, void* fileptr, char* log);

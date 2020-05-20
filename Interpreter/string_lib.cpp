@@ -216,6 +216,19 @@ extern "C" int read_codeline(void* tty, char* string, char ch, char *(*callback)
 	return ((terminal*)tty)->readline(string, ch, callback);
 }
 
+extern "C" int get_argc(char *str)
+{
+	int count = 0;
+	for(; *str;) {
+		while(*str && kisspace(*str))
+			str++;
+		while(*str && !kisspace(*str))
+			str++;
+		count++;
+	}
+	return count;
+}
+
 #define CMD_LOG_COUNT   5
 unsigned char cmd_count[2] = {0};
 char cmd_pos[2] = {-1, -1};

@@ -3,6 +3,7 @@
 #include "config.h"
 #include "cstdlib.h"
 #include "interpreter.h"
+#include "string_lib.h"
 
 #if DEBUG_EN
 typedef int (*cmd_fun)(int argc, char** argv, c_interpreter*);
@@ -30,8 +31,6 @@ short gdb::near_rows = 16;
 
 int bp_info_t::total_no = 0;
 list_stack bp_stack;
-
-static inline int IsSpace(char ch) {return (ch == ' ' || ch == '\t');}
 
 void *gdb::get_real_addr(void *addr, int type, c_interpreter *cptr)
 {
@@ -297,7 +296,7 @@ print_c:
 				end_row = fptr->mid_code_stack.get_count() - offset  - 1 > gdb::near_rows ? offset + gdb::near_rows + 1 : fptr->mid_code_stack.get_count() - 1;
 			} else {
 				begin_row = 0;
-				offset = 0;
+				offset = cptr->pc - (mid_code*)fptr->mid_code_stack.get_base_addr();
 				end_row = fptr->mid_code_stack.get_count() - 1;
 			}
 		} else {
@@ -412,15 +411,23 @@ int gdb::exec(c_interpreter* interpreter_ptr)
 
 char* gdb_complete(char *str, int times)
 {
+	char *arg1 = str;
 	int tiplen = kstrlen(str);
 	int i, j, k = 0, ret;
-	int cmd_count = sizeof(cmd_tab) / sizeof(cmd_t);
-	tiplen = kstrlen(&str[i + 1]);
-	for(j=0; j<cmd_count; j++)
-		if(!kstrncmp(cmd_tab[j].str, &str[i + 1], tiplen)) {
-			if(++k == times)
-				return (char*)cmd_tab[j].str + tiplen;
-		}
+	int count = get_argc(str);
+	const int cmd_count = sizeof(cmd_tab) / sizeof(cmd_t);
+	while(*arg1 && kisspace(*arg1))
+		arg1++;
+	if(count == 1) {
+		tiplen = kstrlen(arg1);
+		for(j=0; j<cmd_count; j++)
+			if(!kstrncmp(cmd_tab[j].str, str, tiplen)) {
+				if(++k == times)
+					return (char*)cmd_tab[j].str + tiplen;
+			}
+	} else if(count == 2) {
+
+	}
 	return 0;
 }
 

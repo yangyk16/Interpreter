@@ -1079,6 +1079,8 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		vfwrite(varity_info_ptr[i].get_content_ptr(), 1, varity_size, file_ptr, "varity data");
 	}
 	kfclose(file_ptr);
+	if(export_flag == EXPORT_FLAG_EXEC)
+		kchmod(file, ATTRIBUTE_EXE);
 	return ERROR_NO;
 }
 
@@ -4066,6 +4068,7 @@ int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 			stack *varity_stack_ptr = this->struct_declare->current_node->varity_stack_ptr;
 			if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == R_BIG_BRACKET) {
 				struct_info_set.declare_flag = 0;
+				this->interprete_need_ptr->indentation.change_indent(-1, INDENT_REASON_NOTCARE);
 				this->struct_declare->current_node->set_size(make_align(this->struct_info_set.current_offset, PLATFORM_WORD_LEN));
 				vrealloc(varity_stack_ptr->get_base_addr(), varity_stack_ptr->get_count() * sizeof(varity_info));
 				return OK_STRUCT_FINISH;

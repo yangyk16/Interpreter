@@ -28,6 +28,7 @@ unsigned int calc_sum32(int *p, int len);
 extern "C" {
 #endif
 int read_codeline(void* tty, char* string, char ch, char *(*callback)(char*, int));
+int get_argc(char *str);
 #ifdef __cplusplus
 }
 #endif
