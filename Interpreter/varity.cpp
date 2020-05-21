@@ -427,3 +427,25 @@ int get_align_size(int complex_arg_count, PLATFORM_WORD *comlex_info_ptr)
 	else
 		return get_varity_size(0, comlex_info_ptr, i);
 }
+
+void typedefine::init(stack *stack_ptr)
+{
+	this->type_stack = stack_ptr;
+}
+
+int typedefine::define(char *name, int argc, PLATFORM_WORD *argv)
+{
+	void *type_ptr;
+	string_info* string_ptr;
+	typedef_info typeinfo;
+	string_ptr = (string_info*)name_stack.find(name);
+	typeinfo.set_name(string_ptr->get_name());
+	typeinfo.set_arg(argc, argv);
+	type_ptr = this->type_stack->find(name);
+	if(type_ptr) {
+		error("Type name duplicate\n");
+		return ERROR_TYPEDEF;
+	}
+	type_stack->push(&typeinfo);
+	return 0;
+}

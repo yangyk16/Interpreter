@@ -59,6 +59,7 @@
 #define ERROR_PREPROCESS		-54
 #define ERROR_MACRO_DEF			-55
 #define ERROR_MACRO_EXP			-56
+#define ERROR_TYPEDEF			-57
 
 #define ERROR_STACK_OVERFLOW	-70
 #define ERROR_ARRAY_BOUND		-71

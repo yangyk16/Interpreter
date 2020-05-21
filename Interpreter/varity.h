@@ -57,7 +57,17 @@
 #define COMPLEX	0u
 #define PTR 16u
 #define ARRAY 17u
+#define DEFTYPE	18u
 #define PLATFORM_TYPE LONG
+
+class typedef_info: public element {
+	int complex_arg_count;
+	PLATFORM_WORD* complex_info_ptr;
+public:
+	void set_arg(int argc, PLATFORM_WORD* argv) {this->complex_arg_count = argc; this->complex_info_ptr = argv;}
+	int get_argc(void) {return this->complex_arg_count;}
+	PLATFORM_WORD *get_argv(void) {return this->complex_info_ptr;}
+};
 
 class varity_info:public element {
 protected:
@@ -107,6 +117,14 @@ public:
 	int declare(int scope_flag, char* name, uint size, int, PLATFORM_WORD*);
 	int destroy_local_varity_cur_depth(void);
 	int destroy_local_varity(void);
+};
+
+class typedefine {
+	stack *type_stack;
+public:
+	void init(stack*);
+	int define(char *name, int argc, PLATFORM_WORD *argv);
+	typedef_info* find(char* name) {return (typedef_info*)this->type_stack->find(name);}
 };
 
 class struct_define;

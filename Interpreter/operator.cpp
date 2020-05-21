@@ -1568,10 +1568,14 @@ ITCM_TEXT int c_interpreter::opt_assign_handle(c_interpreter *interpreter_ptr)
 		case U_LONG:
 			if(converting_type == INT || converting_type == U_INT || converting_type == LONG || converting_type == U_LONG || converting_type == LONG_LONG || converting_type == U_LONG_LONG)
 				INT_VALUE(opda_addr) = INT_VALUE(opdb_addr);
-			else if(converting_type == SHORT || converting_type == U_SHORT)
+			else if(converting_type == SHORT)
 				INT_VALUE(opda_addr) = SHORT_VALUE(opdb_addr);
-			else if(converting_type == CHAR || converting_type == U_CHAR)
+			else if(converting_type == U_SHORT)
+				INT_VALUE(opda_addr) = U_SHORT_VALUE(opdb_addr);
+			else if(converting_type == CHAR)
 				INT_VALUE(opda_addr) = CHAR_VALUE(opdb_addr);
+			else if(converting_type == U_CHAR)
+				INT_VALUE(opda_addr) = U_CHAR_VALUE(opdb_addr);
 			break;
 		case LONG_LONG:
 		case U_LONG_LONG:

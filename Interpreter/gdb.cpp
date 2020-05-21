@@ -127,9 +127,90 @@ static int continue_exec(int argc, char **argv, c_interpreter *cptr)
 	return OK_GDB_RUN;
 }
 
+static int gdbset(int argc, char **argv, c_interpreter *cptr)
+{
+	char *ptr;
+	node_attribute_t node;
+	int token_len;
+	if(argv[1][0] == '*') {
+		token_len = get_token(&argv[1][1], &node);
+		if(node.node_type == TOKEN_CONST_VALUE) {
+
+		} else {
+
+		}
+	} else if(argv[1][0] == '$') {
+
+	} else {
+
+	}
+	return 0;
+}
+
 static int print_call_stack(int argc, char **argv, c_interpreter *cptr)
 {
 	return cptr->print_call_stack();
+}
+
+int gdb::memory_dump(int argc, char **argv, c_interpreter *cptr)
+{
+	int width = 4;
+	int count = 1;
+	int format = 0;
+	unsigned long addr;
+	int argvptr, i;
+	char *end;
+	if(argc < 2)
+		error("Too few arguments for \"x\"\n");
+	addr = katoi(argv[1]);
+
+	if(gdb::argstr[0]) {
+		end = &gdb::argstr[1];
+		while(kisdigit(*end))
+			end++;
+		char bak = *end;
+		*end = 0;
+		count = katoi(&gdb::argstr[1]);
+		*end = bak;
+		switch(*end) {
+		case 'b':
+			width = 1;
+			break;
+		case 'h':
+			width = 2;
+			break;
+		case 'w':
+			width = 4;
+			break;
+		case 'g':
+			width = 8;
+			break;
+		}
+		count *= width;
+	}
+	for(i=0; i<count; i+=width) {
+		if(i % 16 == 0)
+			gdbout("0x%08x:", addr + i);
+		switch(width) {
+		case 1:
+			gdbout("%02x ", U_CHAR_VALUE(addr + i));
+			break;
+		case 2:
+			gdbout("%04x ", U_SHORT_VALUE(addr + i));
+			break;
+		case 4:
+			gdbout("%08x ", U_LONG_VALUE(addr + i));
+			break;
+		case 8:
+			gdbout("%016llx ", U_LONG_LONG_VALUE(addr + i));
+			break;
+		}
+		if(i % 16 == 16 - width)
+			gdbout("\n");
+	}
+	if(i % 16)
+		gdbout("\n");
+	return 0;
 }
 
 static int step_rtl_into(int argc, char **argv, c_interpreter *cptr)
@@ -334,10 +415,12 @@ cmd_t cmd_tab[] = {
 	{"d", del_breakpoint},
 	{"n", stepover},
 	{"s", stepinto},
+	{"set", gdbset},
 	{"ni", step_rtl_over},//TODO: ni not step into
 	{"si", step_rtl_into},
 	{"info", info_ask},
 	{"list", gdb::print_code},
+	{"x", gdb::memory_dump},
 	{"pmcode", gdb::print_mid_code},
 	{"bt", print_call_stack},
 	{"trace", gdb::trace_ctl},
@@ -356,9 +439,11 @@ int gdb::parse(char *cmd_str)
 	while(*cmd_str)
 	{
 		ch = *cmd_str++;
-		if(ch == '/') {
+		if(ch == '/' && IsSpace(last_char)) {
+			wptr[char_index] = 0;
 			wptr = argstr;
 			char_index = 0;
+			inword = true;
 		} else if(!IsSpace(ch) && IsSpace(last_char)) {
 			if(argc >= 0) {
 				char_total_index++;
@@ -366,7 +451,7 @@ int gdb::parse(char *cmd_str)
 					gdbout("Cmd error: cmd too long\r\n");
 					return -3;
 				}
-				argv[argc][char_index] = 0;
+				wptr[char_index] = 0;
 			}
 			char_index = 0;
 			argc++;

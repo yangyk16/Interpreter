@@ -43,6 +43,7 @@ public:
 	static int print_mid_code(int argc, char **argv, c_interpreter *cptr);
 	static int breakpoint(int argc, char **argv, c_interpreter *cptr);
 	static int print(int argc, char **argv, c_interpreter *cptr);
+	static int memory_dump(int argc, char **argv, c_interpreter *cptr);
 	static int config(int argc, char **argv, c_interpreter *cptr);
 };
 

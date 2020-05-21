@@ -2741,6 +2741,8 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag, int interprete_need, i
 		c_interpreter::language_elment_space.macro_list.init(sizeof(macro_info), DEFAULT_MACRO_NODE);
 		c_interpreter::language_elment_space.c_macro.init(&c_interpreter::language_elment_space.macro_list);
 		c_interpreter::language_elment_space.arg_stack_list.init();
+		c_interpreter::language_elment_space.typedef_list.init(sizeof(typedef_info), MAX_TYPEDEF_NODE);
+		c_interpreter::language_elment_space.c_typedef.init(&c_interpreter::language_elment_space.typedef_list);
 		//c_interpreter::language_elment_space.init_done = 1;
 		string_stack.init(sizeof(string_info), DEFAULT_STRING_NODE);
 		name_stack.init(sizeof(string_info), DEFAULT_NAME_NODE);
@@ -2759,6 +2761,7 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag, int interprete_need, i
 	this->function_declare = &c_interpreter::language_elment_space.c_function;
 	this->struct_declare = &c_interpreter::language_elment_space.c_struct;
 	this->macro_declare = &c_interpreter::language_elment_space.c_macro;
+	this->type_define = &c_interpreter::language_elment_space.c_typedef;
 	if(interprete_need) {
 		this->interprete_need_ptr = (interprete_need_t*)dmalloc(sizeof(interprete_need_s), "interprete need data space");
 		this->interprete_need_ptr->sentence_analysis_data_struct.short_depth = 0;
@@ -2837,6 +2840,7 @@ int c_interpreter::dispose(void)
 		c_interpreter::language_elment_space.g_varity_list.dispose();
 		c_interpreter::language_elment_space.l_varity_list.dispose();
 		c_interpreter::language_elment_space.macro_list.dispose();
+		c_interpreter::language_elment_space.typedef_list.dispose();
 	}
 	if(this->interprete_need_ptr) {
 		this->interprete_need_ptr->mid_code_stack.dispose();
@@ -4162,9 +4166,14 @@ int c_interpreter::basic_type_check(node_attribute_t *node_ptr, int &count, stru
 		}
 		count = 1;
 		return is_varity_declare;
-	} else {
-		return ERROR_NO_VARITY_FOUND;
 	}
+	typedef_info *typeinfo_ptr;
+	if(node_ptr[0].node_type == TOKEN_NAME && (typeinfo_ptr = this->type_define->find(node_ptr[0].value.ptr_value))) {
+		struct_info_ptr = (struct_info*)typeinfo_ptr;
+		count = 1;
+		return DEFTYPE;
+	}
+	return ERROR_NO_VARITY_FOUND;
 }
 
 int c_interpreter::get_varity_type(node_attribute_t *node_ptr, int &count, char *name, int basic_type, struct_info *info, PLATFORM_WORD *&ret_info)
@@ -4225,6 +4234,9 @@ varity_end:
 				int basic_info_node_count = 1;
 				if(is_varity_declare == STRUCT)
 					basic_info_node_count++;
+				else if(is_varity_declare == DEFTYPE) {
+					basic_info_node_count = ((typedef_info*)info)->get_argc();
+				}
 				if(node_count) {
 					complex_info = (PLATFORM_WORD*)dmalloc((node_count + arg_count + 1 + basic_info_node_count) * sizeof(PLATFORM_WORD), "varity type info"); //+基本类型
 					cur_complex_info_ptr = complex_info + node_count + arg_count + basic_info_node_count;
@@ -4244,9 +4256,13 @@ varity_end:
 						}
 						cur_complex_info_ptr--;
 					}
-					*cur_complex_info_ptr-- = (COMPLEX_BASIC << COMPLEX_TYPE_BIT) | is_varity_declare;
-					if(is_varity_declare == STRUCT) {
-						*cur_complex_info_ptr-- = info->type_info_ptr[1];//TODO:或许有更好办法
+					if(is_varity_declare < DEFTYPE) {
+						*cur_complex_info_ptr-- = (COMPLEX_BASIC << COMPLEX_TYPE_BIT) | is_varity_declare;
+						if(is_varity_declare == STRUCT) {
+							*cur_complex_info_ptr-- = info->type_info_ptr[1];//TODO:或许有更好办法
+						}
+					} else {
+						kmemcpy((void*)(complex_info + 1), (void*)(((typedef_info*)info)->get_argv() + 1), ((typedef_info*)info)->get_argc() * PLATFORM_WORD_LEN);
 					}
 					int type_index = varity_type_stack.find(node_count + arg_count + basic_info_node_count, complex_info);
 					if(type_index >= 0) {
@@ -4260,6 +4276,8 @@ varity_end:
 				} else {
 					if(is_varity_declare == STRUCT)
 						ret_info = info->type_info_ptr;
+					else if(is_varity_declare == DEFTYPE)
+						ret_info = ((typedef_info*)info)->get_argv();
 					else
 						ret_info = basic_type_info[is_varity_declare];
 				}
@@ -4299,8 +4317,8 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 	char varity_name[32];
 	int varity_special_flag = 0;//1: external 2: global
 	if(node_ptr->node_type == TOKEN_SPECIFIER) {
+		varity_special_flag = node_ptr->data;
 		if(node_ptr->data == SPECIFIER_EXTERN) {
-			varity_special_flag = 1;
 		} else if(node_ptr->data == SPECIFIER_DELETE) {
 			int name_flag = 1;
 			node_ptr++;
@@ -4316,6 +4334,7 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 				node_ptr++;
 			}
 			return OK_VARITY_DECLARE;
+		} else if(node_ptr->data == SPECIFIER_TYPEDEF) {
 		}
 		node_ptr++;
 		count--;
@@ -4340,10 +4359,10 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 				error("Wrong varity name.\n");
 				return ERROR_VARITY_NAME;
 			}
-			if(varity_special_flag == 1) {
+			if(varity_special_flag == SPECIFIER_EXTERN) {
 				ret = this->varity_declare->declare(VARITY_SCOPE_EXTERNAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
-			} else if(varity_special_flag == 2) {
-				ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
+			} else if(varity_special_flag == SPECIFIER_TYPEDEF) {
+				ret = this->type_define->define(varity_name, complex_node_count, varity_complex_ptr);
 			} else {
 				if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
 					ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
@@ -4486,6 +4505,11 @@ int get_token(char *str, node_attribute_t *info)
 		if(!kstrcmp(symbol_ptr, "delete")) {
 			info->node_type = TOKEN_SPECIFIER;
 			info->data = SPECIFIER_DELETE;
+			return i;
+		}
+		if(!kstrcmp(symbol_ptr, "typedef")) {
+			info->node_type = TOKEN_SPECIFIER;
+			info->data = SPECIFIER_TYPEDEF;
 			return i;
 		}
 		string_info *string_ptr;

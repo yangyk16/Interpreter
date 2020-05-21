@@ -45,8 +45,9 @@
 #define TOKEN_ERROR				11
 #define TOKEN_NONEXIST			12
 
-#define SPECIFIER_EXTERN	0
-#define SPECIFIER_DELETE	1
+#define SPECIFIER_EXTERN	1
+#define SPECIFIER_DELETE	2
+#define SPECIFIER_TYPEDEF	3
 
 #define NONSEQ_KEY_IF		1
 #define NONSEQ_KEY_SWITCH	2
@@ -166,6 +167,8 @@ typedef struct language_element_space {
 	stack macro_list;
 	macro c_macro;
 	arg_stack_stack arg_stack_list;
+	stack typedef_list;
+	typedefine c_typedef;
 	int init_done;
 } language_elment_space_t;
 
@@ -301,6 +304,7 @@ class c_interpreter {
 	struct_define* struct_declare;
 	varity* varity_declare;
 	function* function_declare;
+	typedefine* type_define;
 	int varity_global_flag;
 	int break_flag;
 	
