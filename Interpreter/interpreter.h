@@ -136,6 +136,7 @@ typedef struct struct_info_s {
 	int declare_flag;
 	int struct_begin_flag;
 	int current_offset;
+	int typedef_flag;
 } struct_info_struct;
 
 typedef union operand_value {
@@ -333,7 +334,7 @@ class c_interpreter {
 	int get_nonseq_to_depth(int, bool);
 	int struct_end(int struct_end_flag, bool &exec_flag_bak, bool try_flag);
 	int non_seq_struct_analysis(node_attribute_t*, uint);
-	//int non_seq_struct_analysis2(node_attribute_t*, uint);
+	int declare_varity(node_attribute_t* node_ptr, int count, int is_varity_declare, int varity_special_flag, struct_info* struct_node_ptr);
 	int varity_declare_analysis(node_attribute_t*, int);
 	int label_analysis(node_attribute_t*, int);
 	int sentence_exec(node_attribute_t*, uint, bool);

@@ -57,7 +57,7 @@ int struct_define::declare(char* name, stack* arg_list)
 {
 	struct_info* struct_node_ptr;
 
-	if(struct_stack_ptr->find(name)) {
+	if(*name && struct_stack_ptr->find(name)) {
 		error("declare struct \"%s\" error: struct name duplicated\n", name);
 		return ERROR_FUNC_DUPLICATE;
 	}

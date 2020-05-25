@@ -521,10 +521,10 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 			struct_info_ptr->varity_stack_ptr->set_base(arg_varity_ptr);
 			struct_info_ptr->set_name(((string_info*)name_stack.visit_element_by_index(name_map_table[(int)struct_info_ptr ->get_name()]))->get_name());
 			struct_dup_ptr = this->struct_declare->find(struct_info_ptr->get_name());
-			if(struct_dup_ptr) {//TODO:struct重复定义时检查结构，定义不一致时直接报错
+			if(struct_dup_ptr && struct_info_ptr->get_name()) {//TODO:struct重复定义时检查结构，定义不一致时直接报错
 				struct_map_table[i] = struct_dup_ptr - (struct_info*)this->struct_declare->struct_stack_ptr->get_base_addr();
 			} else {
-				kmemcpy(struct_info_ptr->varity_stack_ptr, &this->interprete_need_ptr->mid_code_stack, sizeof(void*));//copy virtual table
+				kmemcpy(struct_info_ptr->varity_stack_ptr, &name_stack, sizeof(void*));//copy virtual table
 				struct_map_table[i] = this->struct_declare->struct_stack_ptr->get_count();
 				this->struct_declare->struct_stack_ptr->push(struct_info_ptr);
 			}
@@ -2747,6 +2747,9 @@ int c_interpreter::init(terminal* tty_used, int rtl_flag, int interprete_need, i
 		string_stack.init(sizeof(string_info), DEFAULT_STRING_NODE);
 		name_stack.init(sizeof(string_info), DEFAULT_NAME_NODE);
 		name_fifo.init(DEFAULT_NAME_LENGTH);
+		string_info tmp;
+		tmp.set_name(name_fifo.write(""));
+		name_stack.push(&tmp);
 		string_fifo.init(DEFAULT_STRING_LENGTH);
 		for(int i=0; i<MAX_A_VARITY_NODE; i++) {
 			link_varity_name[i][0] = LINK_VARITY_PREFIX;
@@ -3777,7 +3780,9 @@ int c_interpreter::eval(node_attribute_t* node_ptr, int count)
 	if(ret1 != ERROR_NO)
 		return ret1;
 	ret1 = struct_analysis(node_ptr, count);
-	if(ret1 != OK_STRUCT_NOSTRUCT)
+	if(ret1 < 0)
+		return ret1;
+	else if(ret1 != OK_STRUCT_NOSTRUCT)
 		return ERROR_NO;
 	ret1 = function_analysis(node_ptr, count);
 	if(ret1 < 0)
@@ -4052,12 +4057,17 @@ int c_interpreter::nonseq_start_gen_mid_code(node_attribute_t *node_ptr, int cou
 
 int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 {
-	int is_varity_declare;
+	int is_varity_declare, typedef_flag = 0, ret;
+	if(node_ptr->node_type == TOKEN_SPECIFIER && node_ptr->data == SPECIFIER_TYPEDEF) {
+		typedef_flag = 1;
+		node_ptr++;
+		count--;
+	}
 	if(node_ptr[0].node_type == TOKEN_KEYWORD_TYPE)
 		is_varity_declare = node_ptr[0].value.int_value;
 	else
 		is_varity_declare = 0;
-	if(this->struct_info_set.declare_flag) {
+	if(this->struct_info_set.declare_flag == 1) {
 		if(this->struct_info_set.struct_begin_flag) {
 			struct_info_set.struct_begin_flag = 0;
 			if(!(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == L_BIG_BRACKET)) {
@@ -4071,11 +4081,11 @@ int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 		} else {
 			stack *varity_stack_ptr = this->struct_declare->current_node->varity_stack_ptr;
 			if(node_ptr[0].node_type == TOKEN_OTHER && node_ptr[0].data == R_BIG_BRACKET) {
-				struct_info_set.declare_flag = 0;
+				struct_info_set.declare_flag = 2;
 				this->interprete_need_ptr->indentation.change_indent(-1, INDENT_REASON_NOTCARE);
 				this->struct_declare->current_node->set_size(make_align(this->struct_info_set.current_offset, PLATFORM_WORD_LEN));
 				vrealloc(varity_stack_ptr->get_base_addr(), varity_stack_ptr->get_count() * sizeof(varity_info));
-				return OK_STRUCT_FINISH;
+				return OK_STRUCT_INPUTING;
 			} else {
 				char varity_name[32];
 				int type, remain_count = count, node_count = count, complex_node_count, varity_size, align_size;
@@ -4088,6 +4098,7 @@ int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 					return ERROR_FUNC_ARG_LIST;
 				}
 				node_count = remain_count -= node_count;
+				node_ptr++;
 				while(remain_count > 0) {
 					node_count = remain_count;
 					complex_node_count = get_varity_type(node_ptr, node_count, varity_name, type, struct_info_ptr, varity_complex_ptr);
@@ -4107,11 +4118,25 @@ int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 				return OK_STRUCT_INPUTING;
 			}
 		}
+	} else if(struct_info_set.declare_flag == 2) {
+		if(!(node_ptr[count - 1].node_type == TOKEN_OPERATOR && node_ptr[count - 1].data == OPT_EDGE)) {
+			error("Missing ;\n");
+			return ERROR_SEMICOLON;
+		}
+		count--;
+		ret = declare_varity(node_ptr, count, STRUCT, this->struct_info_set.typedef_flag ? SPECIFIER_TYPEDEF : 0, this->struct_declare->current_node);
+		if(ret == OK_VARITY_DECLARE) {
+			struct_info_set.declare_flag = 0;
+			return OK_STRUCT_FINISH;
+		} else {
+			error("Struct declare error\n");
+			return ERROR_STRUCT_ERROR;
+		}
 	}
 	if(is_varity_declare == STRUCT) {
-		if(count != 2)
+		if(count != 2 && count != 1)
 			return OK_STRUCT_NOSTRUCT;
-		if(node_ptr[1].node_type != TOKEN_NAME) {
+		if(count == 2 && node_ptr[1].node_type != TOKEN_NAME) {
 			error("Wrong struct define.\n");
 			return ERROR_STRUCT_NAME;
 		}
@@ -4119,6 +4144,7 @@ int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 		int symbol_begin_pos, ptr_level = 0;
 		int keylen = kstrlen(type_key[is_varity_declare]);
 		stack* arg_stack;
+		this->struct_info_set.typedef_flag = typedef_flag;
 		this->struct_info_set.declare_flag = 1;
 		this->struct_info_set.struct_begin_flag = 1;
 		this->struct_info_set.current_offset = 0;
@@ -4128,9 +4154,10 @@ int c_interpreter::struct_analysis(node_attribute_t* node_ptr, uint count)
 		arg_stack = (stack*)dmalloc(sizeof(stack), "struct arg stack");
 		stack tmp_stack(sizeof(varity_info), arg_node_ptr, MAX_VARITY_COUNT_IN_STRUCT);
 		kmemcpy(arg_stack, &tmp_stack, sizeof(stack));
-		this->struct_declare->declare(node_ptr[1].value.ptr_value, arg_stack);
+		ret = this->struct_declare->declare(count == 2 ? node_ptr[1].value.ptr_value : "", arg_stack);
+		if(ret)
+			return ret;
 		return OK_STRUCT_INPUTING;
-
 	}
 	return OK_STRUCT_NOSTRUCT;
 }
@@ -4305,16 +4332,101 @@ varity_end:
 		} else if(node_ptr[i].node_type == TOKEN_ARG_LIST) {
 			cur_stack_ptr->push(&analysis_data_struct_ptr->node_struct[i]);
 			arg_stack_addr[arg_count++] = (PLATFORM_WORD)node_ptr[i].value.ptr_value;
+		} else {
+			tip_wrong(node_ptr[i].pos);
+			error("Shouldn't appear token in variable declare\n");
+			return ERROR_VARITY_DECLARE;
 		}
 		this->interprete_need_ptr->sentence_analysis_data_struct.last_token = node_ptr[i];
 	}
 	return ERROR_NO_VARITY_FOUND;
 }
 
+int c_interpreter::declare_varity(node_attribute_t* node_ptr, int count, int is_varity_declare, int varity_special_flag, struct_info *struct_node_ptr)
+{
+	char varity_name[32];
+	int complex_node_count, varity_size, align_size, ret;
+	PLATFORM_WORD* varity_complex_ptr;
+	varity_info* new_varity_ptr;
+	while (count > 0) {
+		int complex_part_count = count;
+		complex_node_count = get_varity_type(node_ptr, complex_part_count, varity_name, is_varity_declare, struct_node_ptr, varity_complex_ptr);
+		if(complex_node_count < 0 && complex_node_count != ERROR_NO_VARITY_FOUND)
+			return complex_node_count;
+		if (is_varity_declare == STRUCT)
+			align_size = PLATFORM_WORD_LEN;//TODO:struct内最长对齐长度
+		else
+			align_size = get_element_size(complex_node_count, varity_complex_ptr);
+		varity_size = get_varity_size(0, varity_complex_ptr, complex_node_count);
+		if (!varity_name[0]) {
+			error("Wrong varity name.\n");
+			return ERROR_VARITY_NAME;
+		}
+		if (varity_special_flag == SPECIFIER_EXTERN) {
+			ret = this->varity_declare->declare(VARITY_SCOPE_EXTERNAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
+		} else if (varity_special_flag == SPECIFIER_TYPEDEF) {
+			ret = this->type_define->define(varity_name, complex_node_count, varity_complex_ptr);
+		} else {
+			if (this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
+				ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
+				new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
+			}
+			else {
+				ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
+				new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
+			}
+		}
+		if (!varity_complex_ptr[0]) {
+			varity_complex_ptr[0] = 1;//起始引用次数1
+		}
+		node_ptr += complex_part_count;
+		count -= complex_part_count;
+		if (this->interprete_need_ptr->sentence_analysis_data_struct.last_token.data == OPT_ASSIGN) {//TODO: generate mid code from varity_name to ;
+			if(varity_special_flag == 1) {
+				error("external variable cannot be assigned.\n");
+				return ERROR_ASSIGN;
+			} else if(varity_special_flag == SPECIFIER_TYPEDEF) {
+				error("= can't be used int typedef");
+				return ERROR_ASSIGN;
+			}
+			node_attribute_t node = { 0, TOKEN_OPERATOR, opt_prio[OPT_COMMA], OPT_COMMA, 0, 0 };
+			int exp_len = find_token_with_bracket_level(node_ptr, count, &node, 0);
+			if (exp_len == -1) {
+				node.data = OPT_EDGE;
+				node.value_type = opt_prio[OPT_EDGE];
+				exp_len = find_token_with_bracket_level(node_ptr, count + 1, &node, 0);
+			}
+			if (new_varity_ptr->get_type() != ARRAY) {
+				ret = generate_mid_code(node_ptr, exp_len, false);
+				if (ret)
+					return ret;
+				mid_code* code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
+				kmemcpy(&code_ptr->opdb_addr, &(code_ptr - 1)->opda_addr, sizeof(code_ptr->opda_addr) + sizeof(code_ptr->opda_operand_type) + sizeof(code_ptr->double_space1) + sizeof(code_ptr->opda_varity_type));
+				if (this->varity_global_flag == VARITY_SCOPE_LOCAL) {
+					code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_content_ptr();
+					code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_L_VARITY;
+				}
+				else {
+					code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_name();
+					code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_G_VARITY;
+				}
+				code_ptr->ret_varity_type = code_ptr->opda_varity_type = new_varity_ptr->get_type();
+				code_ptr->data = new_varity_ptr->get_element_size();
+				code_ptr->ret_operator = OPT_ASSIGN;
+				this->cur_mid_code_stack_ptr->push();
+			}
+			else {//数组赋值
+			}
+			node_ptr += exp_len + 1;
+			count -= exp_len + 1;
+		}
+	}
+	return OK_VARITY_DECLARE;
+}
+
 int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count)
 {
-	int is_varity_declare, basic_type_count = count, ret;
-	char varity_name[32];
+	int is_varity_declare, basic_type_count = count;
 	int varity_special_flag = 0;//1: external 2: global
 	if(node_ptr->node_type == TOKEN_SPECIFIER) {
 		varity_special_flag = node_ptr->data;
@@ -4344,75 +4456,7 @@ int c_interpreter::varity_declare_analysis(node_attribute_t* node_ptr, int count
 	count -= basic_type_count;
 	node_ptr += basic_type_count;
 	if(is_varity_declare >= 0) {
-		int complex_node_count, varity_size, align_size;
-		PLATFORM_WORD *varity_complex_ptr;
-		varity_info *new_varity_ptr;
-		while(count > 0) {
-			int complex_part_count = count;
-			complex_node_count = get_varity_type(node_ptr, complex_part_count, varity_name, is_varity_declare, struct_node_ptr, varity_complex_ptr);
-			if(is_varity_declare == STRUCT)
-				align_size = PLATFORM_WORD_LEN;//TODO:struct内最长对齐长度
-			else
-				align_size = get_element_size(complex_node_count, varity_complex_ptr);
-			varity_size = get_varity_size(0, varity_complex_ptr, complex_node_count);
-			if(!varity_name[0]) {
-				error("Wrong varity name.\n");
-				return ERROR_VARITY_NAME;
-			}
-			if(varity_special_flag == SPECIFIER_EXTERN) {
-				ret = this->varity_declare->declare(VARITY_SCOPE_EXTERNAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
-			} else if(varity_special_flag == SPECIFIER_TYPEDEF) {
-				ret = this->type_define->define(varity_name, complex_node_count, varity_complex_ptr);
-			} else {
-				if(this->varity_global_flag == VARITY_SCOPE_GLOBAL) {
-					ret = this->varity_declare->declare(VARITY_SCOPE_GLOBAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
-					new_varity_ptr = (varity_info*)this->varity_declare->global_varity_stack->get_lastest_element();
-				} else {
-					ret = this->varity_declare->declare(VARITY_SCOPE_LOCAL, varity_name, varity_size, complex_node_count, varity_complex_ptr);
-					new_varity_ptr = (varity_info*)this->varity_declare->local_varity_stack->get_lastest_element();
-				}
-			}
-			if(!varity_complex_ptr[0]) {
-				varity_complex_ptr[0] = 1;//起始引用次数1
-			}
-			node_ptr += complex_part_count;
-			count -= complex_part_count;
-			if(this->interprete_need_ptr->sentence_analysis_data_struct.last_token.data == OPT_ASSIGN) {//TODO: generate mid code from varity_name to ;
-				if(varity_special_flag == 1) {
-					error("external variable cannot be assigned.\n");
-					return ERROR_ASSIGN;
-				}
-				node_attribute_t node = {0, TOKEN_OPERATOR, opt_prio[OPT_COMMA], OPT_COMMA, 0, 0};
-				int exp_len = find_token_with_bracket_level(node_ptr, count, &node, 0);
-				if(exp_len == -1) {
-					node.data = OPT_EDGE;
-					node.value_type = opt_prio[OPT_EDGE];
-					exp_len = find_token_with_bracket_level(node_ptr, count + 1, &node, 0);
-				}
-				if(new_varity_ptr->get_type() != ARRAY) {
-					ret = generate_mid_code(node_ptr, exp_len, false);
-					if (ret)
-						return ret;
-					mid_code *code_ptr = (mid_code*)this->cur_mid_code_stack_ptr->get_current_ptr();
-					kmemcpy(&code_ptr->opdb_addr, &(code_ptr - 1)->opda_addr, sizeof(code_ptr->opda_addr) + sizeof(code_ptr->opda_operand_type) + sizeof(code_ptr->double_space1) + sizeof(code_ptr->opda_varity_type));
-					if(this->varity_global_flag == VARITY_SCOPE_LOCAL) {
-						code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_content_ptr();
-						code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_L_VARITY;
-					} else {
-						code_ptr->ret_addr = code_ptr->opda_addr = (int)new_varity_ptr->get_name();
-						code_ptr->ret_operand_type = code_ptr->opda_operand_type = OPERAND_G_VARITY;
-					}
-					code_ptr->ret_varity_type = code_ptr->opda_varity_type = new_varity_ptr->get_type();
-					code_ptr->data = new_varity_ptr->get_element_size();
-					code_ptr->ret_operator = OPT_ASSIGN;
-					this->cur_mid_code_stack_ptr->push();
-				} else {//数组赋值
-				}
-				node_ptr += exp_len + 1;
-				count -= exp_len + 1;
-			}
-		}
-		return OK_VARITY_DECLARE;
+		return declare_varity(node_ptr, count, is_varity_declare, varity_special_flag, struct_node_ptr);
 	}
 	return ERROR_NO;
 }
