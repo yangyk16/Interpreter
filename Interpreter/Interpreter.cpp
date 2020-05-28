@@ -1778,7 +1778,7 @@ assign_general:
 			//varity_info *return_varity_ptr;
 			node_attribute = (node_attribute_t*)opt_node_ptr->left->value;
 			function_info *function_ptr;
-			function_ptr = this->function_declare->find(node_attribute->value.ptr_value);
+			function_ptr = this->call_func_info.function_ptr[this->call_func_info.function_depth - 1];
 			if(opt_node_ptr->right && !(((node_attribute_t*)opt_node_ptr->right->value)->data == OPT_FUNC_COMMA && ((node_attribute_t*)opt_node_ptr->right->value)->node_type == TOKEN_OPERATOR))
 				code_stack_ptr->push();
 			instruction_ptr = (mid_code*)code_stack_ptr->get_current_ptr();
@@ -1902,8 +1902,21 @@ int c_interpreter::operator_mid_handle(stack *code_stack_ptr, node *opt_node_ptr
 		break;
 	case OPT_CALL_FUNC:
 		this->call_func_info.function_ptr[this->call_func_info.function_depth] = this->function_declare->find(((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value);
-		if(!this->call_func_info.function_ptr[this->call_func_info.function_depth])
-			this->call_func_info.function_ptr[this->call_func_info.function_depth] = (function_info*)this->varity_declare->find(((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value)->get_content_ptr();
+		if(!this->call_func_info.function_ptr[this->call_func_info.function_depth]) {
+			varity_info *varity_ptr = this->varity_declare->find(((node_attribute_t*)opt_node_ptr->left->value)->value.ptr_value);
+			PLATFORM_WORD *type_info;
+			int arg_count;
+			if(varity_ptr) {
+				type_info = varity_ptr->get_complex_ptr();
+				arg_count = varity_ptr->get_complex_arg_count();
+			}
+			if(!varity_ptr || GET_COMPLEX_TYPE(type_info[arg_count]) != COMPLEX_PTR || GET_COMPLEX_TYPE(type_info[arg_count - 1]) != COMPLEX_ARG) {
+				tip_wrong(node_attribute->pos);
+				error("No function or function ptr\n");
+				return ERROR_NO_FUNCTION;
+			}
+			this->call_func_info.function_ptr[this->call_func_info.function_depth] = (function_info*)PTR_VALUE(varity_ptr->get_content_ptr());
+		}
 		do {
 			function_info *function_ptr = this->call_func_info.function_ptr[this->call_func_info.function_depth];
 			stack *arg_list = (stack*)function_ptr->arg[function_ptr->arg_count - 1];
@@ -3363,6 +3376,8 @@ int c_interpreter::function_analysis(node_attribute_t* node_ptr, int &count)
 				this->cur_mid_code_stack_ptr = &this->function_declare->get_current_node()->mid_code_stack;
 				this->exec_flag = false;
 				this->function_declare->save_sentence(this->interprete_need_ptr->sentence_buf, kstrlen(this->interprete_need_ptr->sentence_buf));
+			} else {
+				this->varity_declare->destroy_local_varity();
 			}
 			return OK_FUNC_DEFINE;
 		} else if(complex_count < 0)
@@ -4809,6 +4824,11 @@ int c_interpreter::token_convert(node_attribute_t *node_ptr, int &count)
 					this->token_node_ptr[wptr].node_type = TOKEN_ARG_LIST;
 					void *arg_stack_in_stack = this->language_elment_space.arg_stack_list.find(arg_stack);
 					if(arg_stack_in_stack) {
+						varity_info *std_varity = (varity_info*)((stack*)*(PLATFORM_WORD*)arg_stack_in_stack)->get_base_addr();
+						varity_info *src_varity = (varity_info*)arg_stack->get_base_addr();
+						for(int j=0; j<arg_stack->get_count(); j++)
+							std_varity[j].set_name(src_varity[j].get_name());
+						////////sync variable name///////
 						clear_arglist(arg_stack);
 						this->token_node_ptr[wptr].value.ptr_value = (char*)*(PLATFORM_WORD*)arg_stack_in_stack;
 					} else {
@@ -5059,11 +5079,15 @@ int c_interpreter::open_ref(char *file)
 {
 	int ret;
 	terminal *ttybak, *ttylogbak;
+	::file *include_file = (::file*)dmalloc(sizeof(::file), "include file tty");
+	kmemcpy(include_file, &fileio, sizeof(::file));
 	this->get_tty(&ttybak, &ttylogbak);
-	this->set_tty(&fileio, 0);
-	ret = fileio.init(file, "r");
-	if(ret)
+	this->set_tty(include_file, 0);
+	ret = include_file->init(file, "r");
+	if(ret) {
+		this->set_tty(ttybak, ttylogbak);
 		return ret;
+	}
 	int count = this->interprete_need_ptr->row_pretreat_fifo.get_count();
 	char *pretreat_fifo_bak = (char*)dmalloc(count, "pretreat fifo bak");
 	this->interprete_need_ptr->row_pretreat_fifo.read(pretreat_fifo_bak, count);
