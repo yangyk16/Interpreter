@@ -55,6 +55,7 @@ int kmemcmp(void *mem1, void *mem2, unsigned int size);
 int kstrcmp(const char *str1, const char *str2);
 int kstrncmp(const char *str1, const char *str2, unsigned int size);
 char *kstrcpy(char *d, const char *s);
+char *kstrncpy(char *dst, char *src, int len);
 int katoi(const char* sptr);
 double katof(const char* sptr);
 int kisspace(int ch);
@@ -62,12 +63,12 @@ int kisdigit(int ch);
 int kisupper(int ch);
 int kislower(int ch);
 int kisalnum(int ch);
-#ifdef __cplusplus
-}
-#endif
 void *dmalloc(unsigned int size, const char *info);
 void vfree(void*);
 void* vrealloc(void* addr, unsigned int size);
+#ifdef __cplusplus
+}
+#endif
 
 #define debug(fmt, ...) kprintf_l(PRINT_LEVEL_DEBUG, fmt, ##__VA_ARGS__)
 #define tip(fmt, ...) kprintf_l(PRINT_LEVEL_TIP, fmt, ##__VA_ARGS__)

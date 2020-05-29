@@ -239,7 +239,7 @@ extern "C" void heapinit(void) {
 #endif
 }
 
-void* dmalloc(unsigned int size, const char *info)
+extern "C" void* dmalloc(unsigned int size, const char *info)
 {
 	unsigned int a_size = size&7?size+(8-(size&7)):size;
 	void* ret = kmalloc(a_size);
@@ -261,14 +261,14 @@ void* dmalloc(unsigned int size, const char *info)
 	}
 }
 
-void vfree(void *ptr)
+extern "C" void vfree(void *ptr)
 {
 	kfree(ptr);
 	memdebug("free %x\n", ptr);
 	//heap_debug();
 }
 
-void* vrealloc(void* addr, unsigned int size)
+extern "C" void* vrealloc(void* addr, unsigned int size)
 {
 	void *ret = krealloc(addr, size);
 	memdebug("realloc %x to %x, %d\n", addr, ret, size);

@@ -382,6 +382,16 @@ extern "C" int ksprintf(char *buf, const char *fmt, ...)
 	return len;
 }
 
+extern "C" int ksscanf(const char *ibuf, const char *fmt, ...)
+{
+        va_list ap;
+        int ret;
+        va_start(ap, fmt);
+        //ret = vsscanf(ibuf, fmt, ap);
+        va_end(ap);
+        return(ret);
+}
+
 extern "C" void* kmemcpy(void *d, const void *s, unsigned int size)
 {//TODO：加入空指针检查？可能不需要
 	unsigned int i, j, remain;
@@ -538,6 +548,17 @@ extern "C" char *kstrcpy(char *d, const char *s)
 	return d;
 }
 
+extern "C" char *kstrncpy(char *dst, char *src, int len)
+{
+	int i;
+	for(i=0; src[i] && i<len; i++) {
+		dst[i] = src[i];
+	}
+	if(i < len)
+		dst[i] = 0;
+	return dst;
+}
+
 extern "C" double katof(const char* sptr)
 {
 	double temp = 10;
@@ -669,7 +690,7 @@ extern "C" char *kstrcat(char *dest, const char *src)
 extern "C" char *kstrdup(char *s)
 {
         int len = kstrlen(s);
-        char *p = (char*)kmalloc(len);
+        char *p = (char*)dmalloc(len, "strdup");
         kstrcpy(p, s);
         return p;
 }
