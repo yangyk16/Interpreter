@@ -409,6 +409,8 @@ static int write_varity_stack(void *file_ptr, stack *stack_ptr, bool write_flag)
 		varity_info* arg_varity_ptr = (varity_info*)stack_ptr->visit_element_by_index(j);
 		PLATFORM_WORD *complex_ptr = arg_varity_ptr->get_complex_ptr();
 		unsigned int type_no = varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
+		if(type_no == 0xFFFFFFFFu)
+			fatal("varity type not found\n");
 		arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), (PLATFORM_WORD*)type_no);
 		vfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr, "an arg varity");
 		arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
@@ -424,7 +426,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		return ERROR_FILE;
 	}
 	unsigned int function_total_size;
-	int i, j, type_no;
+	int i, j, k, type_no;
 	vfread(&this->compile_info, sizeof(compile_info_t), 1, file_ptr, "compile info");
 	if(compile_info.sum32 != calc_sum32((int*)&compile_info, sizeof(this->compile_info) - sizeof(int))) {
 		error("Not an ELF file.\n");
@@ -555,7 +557,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		varity_type_stack_ptr->type_info_addr[0] = varity_type_ptr;
 		for(i=1; i<varity_type_stack_ptr->count; i++)
 			varity_type_stack_ptr->type_info_addr[i] = varity_type_stack_ptr->type_info_addr[i - 1] + varity_type_stack_ptr->arg_count[i - 1] + 1;
-		arg_content_stack.init(PLATFORM_WORD_LEN, 16);
+		arg_content_stack.init(PLATFORM_WORD_LEN, 16);//TODO: change 16
 		int arg_type_count;
 		vfread(&arg_type_count, sizeof(int), 1, file_ptr, "arg type count");
 		arg_map_table = (unsigned short*)dmalloc(sizeof(short) * arg_type_count, "arg map table");
@@ -584,7 +586,7 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 		kmemcpy(varity_type_info_ptr, varity_type_stack_ptr, sizeof(varity_type_stack_t));
 		for(i=0; i<arg_type_count; i++) {
 			stack *vstack = (stack*)PTR_N_VALUE(arg_content_stack.visit_element_by_index(i));
-			for(int k=0; k<vstack->get_count(); k++) {
+			for(k=0; k<vstack->get_count(); k++) {
 				varity_ptr = (varity_info*)vstack->visit_element_by_index(k);
 				varity_ptr->config_complex_info(varity_ptr->get_complex_arg_count(), varity_type_stack_ptr->type_info_addr[(int)varity_ptr->get_complex_ptr()]);
 			}
@@ -595,6 +597,14 @@ int c_interpreter::load_ofile(char *file, int flag, void **load_base, void **bss
 				arg_map_table[i] = (PLATFORM_WORD*)stack_addr_ptr - (PLATFORM_WORD*)this->language_elment_space.arg_stack_list.get_base_addr();
 			} else {
 				arg_map_table[i] = this->language_elment_space.arg_stack_list.get_count();
+				for(k=0; k<vstack->get_count(); k++) {
+					varity_ptr = (varity_info*)vstack->visit_element_by_index(k);
+					type_no = varity_type_stack.find(varity_ptr->get_complex_arg_count(), varity_ptr->get_complex_ptr());
+					if(type_no >= 0)
+						varity_ptr->config_complex_info(varity_ptr->get_complex_arg_count(), varity_type_stack.type_info_addr[type_no]);
+					else
+						fatal("Variable type not exist\n");
+				}
 				this->language_elment_space.arg_stack_list.push(&vstack);
 			}
 		}
@@ -943,6 +953,8 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 				int name_no = (string_info*)name_stack.find(arg_varity_ptr->get_name()) - (string_info*)name_stack.get_base_addr();
 				arg_varity_ptr->set_name((char*)name_no);
 				type_no = varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), arg_varity_ptr->get_complex_ptr());
+				if(type_no == -1)
+					fatal("Variable type can't be found\n");
 				arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), (PLATFORM_WORD*)type_no);
 			}
 		}
@@ -961,6 +973,8 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 			if(this->compile_info.export_flag == EXPORT_FLAG_LINK || compile_info.extra_flag) {
 				function_ptr[i].set_name((char*)((string_info*)name_stack.find(function_ptr[i].get_name()) - (string_info*)name_stack.get_base_addr()));
 				type_no = varity_type_stack.find(function_ptr[i].arg_count, function_ptr[i].arg);
+				if(type_no == -1)
+					fatal("Variable type can't be found\n");
 				function_ptr[i].arg = (PLATFORM_WORD*)type_no;
 			}
 			if(!compile_info.extra_flag)
@@ -981,6 +995,8 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 				varity_info* arg_varity_ptr = (varity_info*)struct_ptr[i].varity_stack_ptr->visit_element_by_index(j);
 				PLATFORM_WORD *complex_ptr = arg_varity_ptr->get_complex_ptr();
 				unsigned int type_no = varity_type_stack.find(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
+				if(type_no == 0xFFFFFFFFu)
+					fatal("Variable type can't be found\n");
 				arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), (PLATFORM_WORD*)type_no);
 				vfwrite(arg_varity_ptr, sizeof(varity_info), 1, file_ptr, "struct arg");
 				arg_varity_ptr->config_complex_info(arg_varity_ptr->get_complex_arg_count(), complex_ptr);
@@ -1058,6 +1074,8 @@ int c_interpreter::write_ofile(const char *file, int export_flag, int extra_flag
 		PLATFORM_WORD *complex_ptr = varity_info_ptr[i].get_complex_ptr();
 		if(this->compile_info.extra_flag >= EXTRA_FLAG_DEBUG) {
 			unsigned int type_no = varity_type_stack.find(varity_info_ptr[i].get_complex_arg_count(), complex_ptr);
+			if(type_no == 0xFFFFFFFFu)
+				fatal("Variable type can't be found\n");
 			varity_info_ptr[i].config_complex_info(varity_info_ptr[i].get_complex_arg_count(), (PLATFORM_WORD*)type_no);
 		} else {
 			if(this->compile_info.export_flag == EXPORT_FLAG_LINK)
@@ -2394,7 +2412,7 @@ int c_interpreter::macro_instead(char *str, int &len)
 			macro_ptr = this->macro_declare->find(node.value.ptr_value);
 			if(macro_ptr) {
 				if(!macro_ptr->macro_arg_name[0]) {//no para macro
-					delta_len = sub_replace(str, index, ret, macro_ptr->macro_instead_str);
+					delta_len = sub_replace(str, index + node.pos, ret - node.pos, macro_ptr->macro_instead_str);
 					index += ret + delta_len;
 					len += delta_len;
 				} else {

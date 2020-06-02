@@ -103,7 +103,7 @@ void* stack::visit_element_by_index(int index)
 
 void arg_stack_stack::init(void)
 {
-	stack::init(sizeof(stack*), 16);
+	stack::init(sizeof(stack*), 32);
 	//stack::init
 }
 

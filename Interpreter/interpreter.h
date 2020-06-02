@@ -100,11 +100,11 @@ typedef struct row_info_relative_nonseq_s {
 #endif
 	short row_len;
 	char non_seq_depth;
-	char non_seq_info;
-	char nonseq_type;
 	char post_info_a;
 	short post_info_b;
 	short post_info_c;
+	char non_seq_info;
+	char nonseq_type;
 	char finish_flag;
 	char reserve;
 } row_info_struct;
