@@ -416,7 +416,7 @@ cmd_t cmd_tab[] = {
 	{"n", stepover},
 	{"s", stepinto},
 	{"set", gdbset},
-	{"ni", step_rtl_over},//TODO: ni not step into
+	{"ni", step_rtl_over},
 	{"si", step_rtl_into},
 	{"info", info_ask},
 	{"list", gdb::print_code},
@@ -541,6 +541,7 @@ int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction
 			gdb::parse(gdbstr);
 			gdbret = gdb::exec(interpreter_ptr);
 			if(gdbret == OK_GDB_RUN || gdbret == OK_GDB_STEP_RTL_INTO || gdbret == OK_GDB_STEPINTO || gdbret == OK_GDB_STEPOVER || gdbret == OK_GDB_STEP_RTL_OVER) {
+				function_info* function_ptr;
 				switch(gdbret) {
 				case OK_GDB_STEPOVER://n
 					if(fptr && line != fptr->row_line - 1) {
@@ -551,9 +552,32 @@ int gdb::breakpoint_handle(c_interpreter *interpreter_ptr, mid_code *instruction
 					}
 					break;
 				case OK_GDB_STEP_RTL_OVER://ni
-
+					if(instruction_ptr->ret_operator == OPT_CALL_FUNC) {
+						function_ptr = (function_info*)instruction_ptr->opda_addr;
+						bp_todo = (mid_code*)function_ptr->mid_code_stack.get_lastest_element();
+					} else {
+						bp_todo = instruction_ptr;
+					}
 					break;
 				case OK_GDB_STEPINTO://s
+					if(fptr && line != fptr->row_line - 1) {
+						mid_code *code_end = (mid_code*)fptr->mid_code_stack.get_base_addr() + fptr->row_code_ptr[line + 1] - 1;
+						if(fptr && line != fptr->row_line - 1) {
+							bp_todo = (mid_code*)fptr->mid_code_stack.get_base_addr() + fptr->row_code_ptr[line + 1] - 1;
+						} else {
+							if(fptr)
+								bp_todo = (mid_code*)fptr->mid_code_stack.get_current_ptr() - 1;
+						}
+						for(; instruction_ptr<code_end; instruction_ptr++) {
+							if(instruction_ptr->ret_operator == OPT_CALL_FUNC) {
+								bp_todo = instruction_ptr;
+								break;
+							}
+						}
+					} else {
+						if(fptr)
+							bp_todo = (mid_code*)fptr->mid_code_stack.get_current_ptr() - 1;
+					}
 					break;
 				case OK_GDB_STEP_RTL_INTO://si
 					bp_todo = instruction_ptr;
