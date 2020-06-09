@@ -313,6 +313,7 @@ int gdb::print_code(int argc, char **argv, c_interpreter *cptr)
 {
 	function_info *fptr, *c_fptr;
 	int line, i;
+	int begin_row = 0, end_row, offset = 0;
 	char space_flag = 0;
 	cptr->find_fptr_by_code(cptr->pc, c_fptr, &line);
 	if(argc > 1) {
@@ -332,9 +333,16 @@ int gdb::print_code(int argc, char **argv, c_interpreter *cptr)
 	} else {
 		fptr = c_fptr;
 print_c:
-		if(fptr == c_fptr)
+		end_row = fptr->row_line;
+		if(fptr == c_fptr) {
 			space_flag = 1;
-		for(i=0; i<fptr->row_line; i++) {
+			if(gdb::print_cfg == PRINT_CFG_NEAR) {
+				offset = line;
+				begin_row = offset > gdb::near_rows ? offset - gdb::near_rows : 0;
+				end_row = fptr->row_line - offset > gdb::near_rows ? offset + gdb::near_rows + 1 : fptr->row_line;
+			}
+		}
+		for(i=begin_row; i<end_row; i++) {
 			if(space_flag)
 				if(i == line)
 					gdbout(" => ");
@@ -413,6 +421,7 @@ cmd_t cmd_tab[] = {
 	{"b", gdb::breakpoint},
 	{"c", continue_exec},
 	{"d", del_breakpoint},
+	{"display", 0},
 	{"n", stepover},
 	{"s", stepinto},
 	{"set", gdbset},
