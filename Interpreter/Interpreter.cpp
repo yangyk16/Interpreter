@@ -2474,6 +2474,11 @@ int c_interpreter::macro_instead(char *str, int &len)
 			} else {
 				index += ret;
 			}
+		} else if(node.node_type == TOKEN_REMARK) {
+			delta_len = ret - node.pos;
+			kmemmove(&str[index + node.pos], &str[index + ret], len - index - ret);
+			len -= delta_len;
+			str[len] = 0;
 		} else {
 			index += ret;
 		}
@@ -4528,12 +4533,33 @@ int c_interpreter::sentence_exec(node_attribute_t* node_ptr, uint count, bool ne
 
 int get_token(char *str, node_attribute_t *info)
 {
+	static int block_rem_flag = 0;
 	int i = 0, real_token_pos, float_flag = 0;
 	char *symbol_ptr = token_fifo.get_wptr() + (char*)token_fifo.get_base_addr();
 	while(str[i] == ' ' || str[i] == '\t')i++;
 	real_token_pos = i;
 	kmemset(info, 0, sizeof(node_attribute_t));
 	info->pos = i;
+	if(block_rem_flag) {
+		block_rem_get:
+		info->node_type = TOKEN_REMARK;
+		for(; str[i]; i++)
+			if(str[i] == '*' && str[i + 1] == '/') {
+				block_rem_flag = 0;
+				return i + 2;
+			}
+		return i;
+	} else {
+		if(str[i] == '/' && str[i + 1] == '/') {
+			while(str[i]) i++;
+			info->node_type = TOKEN_REMARK;
+			return i;
+		}
+		if(str[i] == '/' && str[i + 1] == '*') {
+			block_rem_flag = 1;
+			goto block_rem_get;
+		}
+	}
 	if(is_letter(str[i])) {
 		i++;
 		for(int j=sizeof(type_key)/sizeof(type_key[0])-1; j>=0; j--) {//避免多段字符串构成的类型检测不到，使用strncmp

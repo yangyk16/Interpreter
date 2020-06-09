@@ -42,8 +42,9 @@
 #define TOKEN_STRING			8
 #define TOKEN_SPECIFIER			9
 #define TOKEN_OTHER				10
-#define TOKEN_ERROR				11
-#define TOKEN_NONEXIST			12
+#define TOKEN_REMARK			11
+#define TOKEN_ERROR				12
+#define TOKEN_NONEXIST			13
 
 #define SPECIFIER_EXTERN	1
 #define SPECIFIER_DELETE	2
